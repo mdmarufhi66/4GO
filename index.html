@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4Metas Clone</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Moneta g Ad Script Placeholder -->
+    <script>
+        const monetagScript = document.createElement('script');
+        monetagScript.src = 'https://monetag.com/rewarded_popup_script.js'; // Replace with real URL
+        monetagScript.setAttribute('data-publisher-id', 'YOUR_PUBLISHER_ID');
+        document.head.appendChild(monetagScript);
+    </script>
+    <style>
+        body {
+            background: linear-gradient(to bottom, #330033, #000000);
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            min-height: 100vh;
+        }
+        header {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+        }
+        .back-arrow { margin-right: auto; font-size: 20px; }
+        h1 { font-size: 24px; margin: 0; }
+        .menu-dots { margin-left: auto; font-size: 20px; }
+        .user-stats {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+        }
+        .metric { display: flex; align-items: center; }
+        .metric img { width: 20px; height: 20px; margin-right: 5px; }
+        .profile-pic img { width: 40px; height: 40px; border-radius: 50%; }
+        .main-banner {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        .main-banner img { width: 120px; height: 120px; margin-left: auto; }
+        .promo-text { font-size: 16px; text-align: left; }
+        .quest-section { padding: 10px; }
+        .quest-section h2 { display: inline-block; margin-right: 10px; }
+        .badge {
+            background-color: pink;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 10px;
+        }
+        .quest-list { list-style: none; padding: 0; }
+        .quest-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .quest-item img { width: 30px; height: 30px; margin-right: 10px; }
+        .quest-reward { margin-left: auto; display: flex; align-items: center; }
+        .quest-reward img { width: 20px; height: 20px; margin-right: 5px; }
+        .go-button, .claim-button {
+            border: none;
+            padding: 5px 15px;
+            border-radius: 15px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        .go-button { background-color: pink; color: white; }
+        .claim-button { background-color: green; color: white; }
+        #adBtn {
+            background-color: #f1c40f;
+            color: black;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin: 20px auto;
+            display: block;
+            cursor: pointer;
+        }
+        .bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            background-color: #333;
+            padding: 10px 0;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+        }
+        .nav-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 14px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .nav-button img { width: 24px; height: 24px; margin-bottom: 5px; }
+        .active { color: blue; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="back-arrow">←</div>
+        <h1>4Metas</h1>
+        <div class="menu-dots">⋮</div>
+    </header>
+
+    <section class="user-stats">
+        <div class="metric">
+            <img src="https://via.placeholder.com/20/00FF00/000000?text=G" alt="Gem">
+            <span>73</span>
+        </div>
+        <div class="metric">
+            <img src="https://via.placeholder.com/20/FFD700/000000?text=C" alt="Coin">
+            <span>0.1137</span>
+        </div>
+        <div class="metric">
+            <img src="https://via.placeholder.com/20/00BFFF/000000?text=D" alt="Diamond">
+            <span>0.0000</span>
+        </div>
+        <div class="profile-pic">
+            <img src="https://via.placeholder.com/40" alt="User Profile">
+        </div>
+    </section>
+
+    <section class="main-banner">
+        <div class="promo-text">
+            EXPLORE, PLAY, AND EARN IN 4METAS<br>
+            Gaming Meets Rewards!
+        </div>
+        <img src="https://via.placeholder.com/120/FF4500/000000?text=Fox" alt="Fox Character">
+    </section>
+
+    <section class="quest-section">
+        <h2>DAILY QUEST</h2>
+        <span class="badge">5</span>
+        <ul class="quest-list">
+            <li class="quest-item">
+                <img src="https://via.placeholder.com/30/FFFFFF/000000?text=L" alt="Lepasa">
+                <span>Play Lepasa! +20 gems</span>
+                <div class="quest-reward">
+                    <img src="https://via.placeholder.com/20/00FF00/000000?text=G" alt="Gem">
+                    <span>+20</span>
+                    <button class="go-button">GO</button>
+                </div>
+            </li>
+            <li class="quest-item">
+                <img src="https://via.placeholder.com/30/0000FF/000000?text=M" alt="Megamine">
+                <span>Play Megamine Now! +20 gems</span>
+                <div class="quest-reward">
+                    <img src="https://via.placeholder.com/20/00FF00/000000?text=G" alt="Gem">
+                    <span>+20</span>
+                    <button class="claim-button">Claim</button>
+                </div>
+            </li>
+            <li class="quest-item">
+                <img src="https://via.placeholder.com/30/FFA500/000000?text=B" alt="BTC">
+                <span>Play and EARN BTC +20 gems</span>
+                <div class="quest-reward">
+                    <img src="https://via.placeholder.com/20/00FF00/000000?text=G" alt="Gem">
+                    <span>+20</span>
+                    <button class="claim-button">Claim</button>
+                </div>
+            </li>
+            <li class="quest-item">
+                <img src="https://via.placeholder.com/30/00FF00/000000?text=MM" alt="Mememarket">
+                <span>Play Mememarket +20 gems</span>
+                <div class="quest-reward">
+                    <img src="https://via.placeholder.com/20/00FF00/000000?text=G" alt="Gem">
+                    <span>+20</span>
+                    <button class="claim-button">Claim</button>
+                </div>
+            </li>
+            <li class="quest-item">
+                <img src="https://via.placeholder.com/30/FFD700/000000?text=DC" alt="Daily Check-in">
+                <span>Daily Check-in +100 gems</span>
+                <div class="quest-reward">
+                    <img src="https://via.placeholder.com/20/00FF00/000000?text=G" alt="Gem">
+                    <span>+100</span>
+                    <button class="go-button">GO</button>
+                </div>
+            </li>
+            <li class="quest-item">
+                <img src="https://via.placeholder.com/30/FF00FF/000000?text=4M" alt="Retweet">
+                <span>Retweet @4metas +50 gems</span>
+                <div class="quest-reward">
+                    <img src="https://via.placeholder.com/20/00FF00/000000?text=G" alt="Gem">
+                    <span>+50</span>
+                    <button class="go-button">GO</button>
+                </div>
+            </li>
+        </ul>
+    </section>
+
+    <section class="quest-section">
+        <h2>BASIC QUEST</h2>
+        <span class="badge">57</span>
+        <!-- Add more tasks here if needed -->
+    </section>
+
+    <button id="adBtn">Watch Ad for Bonus</button>
+
+    <nav class="bottom-nav">
+        <button class="nav-button active">
+            <img src="https://via.placeholder.com/24/1E90FF/000000?text=E" alt="Earn">
+            Earn
+        </button>
+        <button class="nav-button">
+            <img src="https://via.placeholder.com/24/808080/000000?text=W" alt="Wallet">
+            Wallet
+        </button>
+        <button class="nav-button">
+            <img src="https://via.placeholder.com/24/808080/000000?text=G" alt="Game">
+            Game
+        </button>
+        <button class="nav-button">
+            <img src="https://via.placeholder.com/24/808080/000000?text=I" alt="Invite">
+            Invite
+        </button>
+        <button class="nav-button">
+            <img src="https://via.placeholder.com/24/808080/000000?text=C" alt="Chest">
+            Chest
+        </button>
+        <button class="nav-button">
+            <img src="https://via.placeholder.com/24/808080/000000?text=T" alt="Top">
+            Top
+        </button>
+    </nav>
+
+    <script>
+        // Telegram Web App Setup
+        window.Telegram.WebApp.ready();
+        const user = window.Telegram.WebApp.initDataUnsafe.user;
+        if (user) {
+            const profilePic = document.querySelector('.profile-pic img');
+            profilePic.src = user.photo_url || 'https://via.placeholder.com/40';
+            document.querySelector('h1').innerText = `4Metas - ${user.first_name}`;
+        }
+
+        // Navigation Bar Interaction
+        const navButtons = document.querySelectorAll('.nav-button');
+        navButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                navButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                alert(`Navigating to ${this.innerText} (placeholder)`);
+            });
+        });
+
+        // Quest Button Interactions
+        document.querySelectorAll('.go-button').forEach(button => {
+            button.addEventListener('click', function() {
+                alert('Opening task! (Placeholder)');
+            });
+        });
+
+        document.querySelectorAll('.claim-button').forEach(button => {
+            button.addEventListener('click', function() {
+                alert('Reward claimed! (Placeholder)');
+            });
+        });
+
+        // Ad Button
+        document.getElementById('adBtn').addEventListener('click', showAd);
+        function showAd() {
+            if (typeof window.Monetag !== 'undefined' && window.Monetag.showRewardedPopup) {
+                window.Monetag.showRewardedPopup(() => {
+                    alert('Bonus awarded! +50 gems (simulated)');
+                });
+            } else {
+                alert('Ad not ready yet. Please try again later.');
+            }
+        }
+    </script>
+</body>
+</html>
