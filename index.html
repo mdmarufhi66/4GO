@@ -1,0 +1,66 @@
+<html>
+  <head>
+    <title>4Metas Clone</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+      body {
+        background: linear-gradient(to bottom, #330033, #000000);
+        color: white;
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 10px;
+      }
+      /* More styles as needed */
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="back-arrow">←</div>
+      <h1>4Metas</h1>
+      <div class="menu-dots">⋮</div>
+      <div class="user-stats">
+        <div class="metric">
+          <img src="https://via.placeholder.com/20/00FF00/000000?text=G" alt="Gem">
+          <span>73</span>
+        </div>
+        <div class="metric">
+          <img src="https://via.placeholder.com/20/FFD700/000000?text=C" alt="Coin">
+          <span>0.1137</span>
+        </div>
+        <div class="metric">
+          <img src="https://via.placeholder.com/20/00BFFF/000000?text=D" alt="Diamond">
+          <span>0.0000</span>
+        </div>
+        <div class="profile-pic">
+          <img src="https://via.placeholder.com/40" alt="User Profile">
+        </div>
+      </div>
+    </header>
+    <main>
+      <div id="main-section" class="section active">
+        <!-- Main interface content: banner, quests, etc. -->
+      </div>
+      <!-- More sections as defined -->
+    </main>
+    <nav>
+      <!-- Navigation bar buttons: Earn, Wallet, Game, Invite, Chest, Top -->
+    </nav>
+    <script>
+      // JavaScript for navigation and other interactions
+      window.Telegram.WebApp.ready();
+      const user = window.Telegram.WebApp.initDataUnsafe.user;
+      if (user) {
+        const profilePic = document.querySelector('.profile-pic img');
+        profilePic.src = user.photo_url || 'https://via.placeholder.com/40';
+      }
+      // More JavaScript code as needed
+    </script>
+    <!-- Moneta g Ad Script Placeholder -->
+    <script>
+      const monetagScript = document.createElement('script');
+      monetagScript.src = 'https://monetag.com/rewarded_popup.js'; // Replace with real URL
+      monetagScript.setAttribute('data-publisher-id', 'YOUR_PUBLIER_ID');
+      document.head.appendChild(monetagScript);
+    </script>
+  </body>
+</html>
