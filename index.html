@@ -650,6 +650,53 @@
             document.querySelector('h1').innerText = `4Metas - ${user.first_name}`;
         }
 
+        // Check if CloudStorage is supported
+        const isCloudStorageSupported = Telegram.WebApp.version >= '6.4';
+
+        // Storage abstraction to handle CloudStorage or localStorage
+        const Storage = {
+            getItem: (key, callback) => {
+                if (isCloudStorageSupported) {
+                    Telegram.WebApp.CloudStorage.getItem(key, (error, value) => {
+                        if (error) {
+                            console.error(`Error fetching ${key} from CloudStorage:`, error);
+                            callback(error, null);
+                        } else {
+                            callback(null, value);
+                        }
+                    });
+                } else {
+                    try {
+                        const value = localStorage.getItem(key);
+                        callback(null, value);
+                    } catch (error) {
+                        console.error(`Error fetching ${key} from localStorage:`, error);
+                        callback(error, null);
+                    }
+                }
+            },
+            setItem: (key, value, callback) => {
+                if (isCloudStorageSupported) {
+                    Telegram.WebApp.CloudStorage.setItem(key, value, (error) => {
+                        if (error) {
+                            console.error(`Error setting ${key} in CloudStorage:`, error);
+                            callback(error);
+                        } else {
+                            callback(null);
+                        }
+                    });
+                } else {
+                    try {
+                        localStorage.setItem(key, value);
+                        callback(null);
+                    } catch (error) {
+                        console.error(`Error setting ${key} in localStorage:`, error);
+                        callback(error);
+                    }
+                }
+            }
+        };
+
         // Navigation Between Sections
         const sections = document.querySelectorAll('.section');
         const navButtons = document.querySelectorAll('.nav-button');
@@ -671,14 +718,14 @@
 
         // Simplified Data Storage Logic
         function initializeUserData() {
-            // Check if the user has a gem balance stored
-            Telegram.WebApp.CloudStorage.getItem('gems', (error, gems) => {
+            // Initialize gems
+            Storage.getItem('gems', (error, gems) => {
                 if (error) {
                     console.error('Error loading gems:', error);
                     return;
                 }
-                if (gems === undefined) {
-                    Telegram.WebApp.CloudStorage.setItem('gems', '0', (error) => {
+                if (gems === null || gems === undefined) {
+                    Storage.setItem('gems', '0', (error) => {
                         if (error) {
                             console.error('Error setting default gems:', error);
                         }
@@ -689,15 +736,15 @@
                 }
             });
 
-            // Check if the user has a referral count stored
+            // Initialize referrals and invite records
             const userId = Telegram.WebApp.initDataUnsafe.user.id;
-            Telegram.WebApp.CloudStorage.getItem(`referrals_${userId}`, (error, referrals) => {
+            Storage.getItem(`referrals_${userId}`, (error, referrals) => {
                 if (error) {
                     console.error('Error loading referrals:', error);
                     return;
                 }
-                if (referrals === undefined) {
-                    Telegram.WebApp.CloudStorage.setItem(`referrals_${userId}`, '0', (error) => {
+                if (referrals === null || referrals === undefined) {
+                    Storage.setItem(`referrals_${userId}`, '0', (error) => {
                         if (error) {
                             console.error('Error setting default referrals:', error);
                         }
@@ -706,13 +753,13 @@
             });
 
             // Initialize invite records
-            Telegram.WebApp.CloudStorage.getItem(`invite_records_${userId}`, (error, records) => {
+            Storage.getItem(`invite_records_${userId}`, (error, records) => {
                 if (error) {
                     console.error('Error loading invite records:', error);
                     return;
                 }
-                if (records === undefined) {
-                    Telegram.WebApp.CloudStorage.setItem(`invite_records_${userId}`, JSON.stringify([]), (error) => {
+                if (records === null || records === undefined) {
+                    Storage.setItem(`invite_records_${userId}`, JSON.stringify([]), (error) => {
                         if (error) {
                             console.error('Error setting default invite records:', error);
                         }
@@ -721,15 +768,30 @@
             });
 
             // Initialize USDT balance
-            Telegram.WebApp.CloudStorage.getItem('usdt', (error, usdt) => {
+            Storage.getItem('usdt', (error, usdt) => {
                 if (error) {
                     console.error('Error loading USDT:', error);
                     return;
                 }
-                if (usdt === undefined) {
-                    Telegram.WebApp.CloudStorage.setItem('usdt', '0.1000', (error) => {
+                if (usdt === null || usdt === undefined) {
+                    Storage.setItem('usdt', '0.1000', (error) => {
                         if (error) {
                             console.error('Error setting default USDT:', error);
+                        }
+                    });
+                }
+            });
+
+            // Initialize isReferred flag
+            Storage.getItem('isReferred', (error, isReferred) => {
+                if (error) {
+                    console.error('Error loading isReferred:', error);
+                    return;
+                }
+                if (isReferred === null || isReferred === undefined) {
+                    Storage.setItem('isReferred', 'false', (error) => {
+                        if (error) {
+                            console.error('Error setting default isReferred:', error);
                         }
                     });
                 }
@@ -741,7 +803,7 @@
         }
 
         function updateUserData(key, value, callback) {
-            Telegram.WebApp.CloudStorage.setItem(key, value.toString(), (error) => {
+            Storage.setItem(key, value.toString(), (error) => {
                 if (error) {
                     console.error(`Error updating ${key}:`, error);
                     callback(false);
@@ -779,7 +841,7 @@
                     return;
                 }
 
-                Telegram.WebApp.CloudStorage.getItem('isReferred', (error, isReferred) => {
+                Storage.getItem('isReferred', (error, isReferred) => {
                     if (error) {
                         console.error('Error checking referral status:', error);
                         return;
@@ -789,27 +851,27 @@
                         return;
                     }
 
-                    Telegram.WebApp.CloudStorage.setItem('isReferred', 'true', (error) => {
+                    Storage.setItem('isReferred', 'true', (error) => {
                         if (error) {
                             console.error('Error marking user as referred:', error);
                             return;
                         }
 
-                        Telegram.WebApp.CloudStorage.getItem(`referrals_${referrerId}`, (error, referralCount) => {
+                        Storage.getItem(`referrals_${referrerId}`, (error, referralCount) => {
                             if (error) {
                                 console.error('Error fetching referral count:', error);
                                 return;
                             }
 
                             const newReferralCount = (parseInt(referralCount) || 0) + 1;
-                            Telegram.WebApp.CloudStorage.setItem(`referrals_${referrerId}`, newReferralCount.toString(), (error) => {
+                            Storage.setItem(`referrals_${referrerId}`, newReferralCount.toString(), (error) => {
                                 if (error) {
                                     console.error('Error updating referral count:', error);
                                     return;
                                 }
 
                                 // Add to invite records
-                                Telegram.WebApp.CloudStorage.getItem(`invite_records_${referrerId}`, (error, records) => {
+                                Storage.getItem(`invite_records_${referrerId}`, (error, records) => {
                                     if (error) {
                                         console.error('Error fetching invite records:', error);
                                         return;
@@ -823,20 +885,20 @@
                                     };
                                     inviteRecords.push(newRecord);
 
-                                    Telegram.WebApp.CloudStorage.setItem(`invite_records_${referrerId}`, JSON.stringify(inviteRecords), (error) => {
+                                    Storage.setItem(`invite_records_${referrerId}`, JSON.stringify(inviteRecords), (error) => {
                                         if (error) {
                                             console.error('Error updating invite records:', error);
                                             return;
                                         }
 
-                                        Telegram.WebApp.CloudStorage.getItem(`gems_${referrerId}`, (error, referrerGems) => {
+                                        Storage.getItem(`gems_${referrerId}`, (error, referrerGems) => {
                                             if (error) {
                                                 console.error('Error fetching referrer gems:', error);
                                                 return;
                                             }
 
                                             const newGems = (parseFloat(referrerGems) || 0) + 50;
-                                            Telegram.WebApp.CloudStorage.setItem(`gems_${referrerId}`, newGems.toString(), (error) => {
+                                            Storage.setItem(`gems_${referrerId}`, newGems.toString(), (error) => {
                                                 if (error) {
                                                     console.error('Error updating referrer gems:', error);
                                                 }
@@ -853,7 +915,7 @@
 
         function updateInviteSectionUI() {
             const userId = Telegram.WebApp.initDataUnsafe.user.id;
-            Telegram.WebApp.CloudStorage.getItem(`referrals_${userId}`, (error, referralCount) => {
+            Storage.getItem(`referrals_${userId}`, (error, referralCount) => {
                 if (error) {
                     console.error('Error fetching referral count for UI:', error);
                     return;
@@ -867,7 +929,7 @@
                 document.querySelector('.invite-record h3').textContent = `Invite Record (${referrals})`;
 
                 // Update Invite Record list
-                Telegram.WebApp.CloudStorage.getItem(`invite_records_${userId}`, (error, records) => {
+                Storage.getItem(`invite_records_${userId}`, (error, records) => {
                     if (error) {
                         console.error('Error fetching invite records for UI:', error);
                         return;
@@ -906,7 +968,7 @@
         // Claim Credits Logic
         document.querySelector('.invite-section .claim-button').addEventListener('click', function() {
             const userId = Telegram.WebApp.initDataUnsafe.user.id;
-            Telegram.WebApp.CloudStorage.getItem(`referrals_${userId}`, (error, referralCount) => {
+            Storage.getItem(`referrals_${userId}`, (error, referralCount) => {
                 if (error) {
                     console.error('Error fetching referral count for claim:', error);
                     return;
@@ -926,21 +988,21 @@
                 const newReferralCount = Math.floor(remainingCredits / 10);
 
                 // Update USDT balance
-                Telegram.WebApp.CloudStorage.getItem('usdt', (error, usdt) => {
+                Storage.getItem('usdt', (error, usdt) => {
                     if (error) {
                         console.error('Error fetching USDT balance:', error);
                         return;
                     }
 
                     const newUsdt = (parseFloat(usdt) || 0) + usdtToClaim;
-                    Telegram.WebApp.CloudStorage.setItem('usdt', newUsdt.toString(), (error) => {
+                    Storage.setItem('usdt', newUsdt.toString(), (error) => {
                         if (error) {
                             console.error('Error updating USDT balance:', error);
                             return;
                         }
 
                         // Update referral count and invite records
-                        Telegram.WebApp.CloudStorage.setItem(`referrals_${userId}`, newReferralCount.toString(), (error) => {
+                        Storage.setItem(`referrals_${userId}`, newReferralCount.toString(), (error) => {
                             if (error) {
                                 console.error('Error updating referral count after claim:', error);
                                 return;
@@ -1040,7 +1102,7 @@
         updateChest();
 
         function openChest() {
-            Telegram.WebApp.CloudStorage.getItem('gems', (error, gems) => {
+            Storage.getItem('gems', (error, gems) => {
                 if (error) {
                     console.error('Error fetching gems for chest opening:', error);
                     return;
@@ -1067,7 +1129,7 @@
         // Earn Section Interactions
         document.querySelectorAll('.go-button').forEach(button => {
             button.addEventListener('click', function() {
-                Telegram.WebApp.CloudStorage.getItem('gems', (error, gems) => {
+                Storage.getItem('gems', (error, gems) => {
                     if (error) {
                         console.error('Error fetching gems:', error);
                         return;
@@ -1128,7 +1190,7 @@
         function showAd() {
             if (typeof window.Monetag !== 'undefined' && window.Monetag.showRewardedPopup) {
                 window.Monetag.showRewardedPopup(() => {
-                    Telegram.WebApp.CloudStorage.getItem('gems', (error, gems) => {
+                    Storage.getItem('gems', (error, gems) => {
                         if (error) {
                             console.error('Error fetching gems:', error);
                             return;
