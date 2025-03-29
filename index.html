@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4Metas Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Firebase CDN SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js"></script>
+    <!-- Updated Firebase SDK to the latest version -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js"></script>
     <style>
         body {
             background: linear-gradient(to bottom, #330033, #000000);
@@ -458,15 +458,15 @@
         </div>
         <div class="metric">
             <img src="assets/icons/gem.png" alt="Gem">
-            <span id="gems">0</span> <!-- Default to 0 -->
+            <span id="gems">0</span>
         </div>
         <div class="metric">
             <img src="assets/icons/usdt.png" alt="USDT">
-            <span id="usdt">0.0000</span> <!-- Default to 0 -->
+            <span id="usdt">0.0000</span>
         </div>
         <div class="metric">
             <img src="assets/icons/ton.png" alt="TON">
-            <span id="ton">0.0000</span> <!-- Default to 0 -->
+            <span id="ton">0.0000</span>
         </div>
         <div class="profile-pic">
             <img src="assets/icons/user-avatar.png" alt="User Profile">
@@ -481,7 +481,6 @@
         <div class="quest-section">
             <h2>DAILY QUEST <span class="badge" id="daily-quest-count">0</span></h2>
             <ul class="quest-list" id="daily-quest-list">
-                <!-- Default: Empty, to be populated dynamically -->
                 <li class="no-quests">
                     <p>No daily quests available</p>
                 </li>
@@ -490,7 +489,6 @@
         <div class="quest-section">
             <h2>BASIC QUEST <span class="badge" id="basic-quest-count">0</span></h2>
             <ul class="quest-list" id="basic-quest-list">
-                <!-- Default: Empty, to be populated dynamically -->
                 <li class="no-quests">
                     <p>No basic quests available</p>
                 </li>
@@ -504,7 +502,7 @@
         <div class="balance-card usdt-card">
             <img src="assets/icons/usdt.png" alt="USDT Icon">
             <div class="balance-info">
-                <span id="wallet-usdt">0.0000</span> <!-- Default to 0 -->
+                <span id="wallet-usdt">0.0000</span>
                 <small>USDT</small>
             </div>
             <button class="withdraw-button">WITHDRAW</button>
@@ -513,7 +511,7 @@
         <div class="balance-card ton-card">
             <img src="assets/icons/ton.png" alt="TON Icon">
             <div class="balance-info">
-                <span id="wallet-ton">0.0000</span> <!-- Default to 0 -->
+                <span id="wallet-ton">0.0000</span>
                 <small>TON</small>
             </div>
             <button class="withdraw-button">WITHDRAW</button>
@@ -592,7 +590,7 @@
     <!-- Invite Section -->
     <section id="invite" class="section invite-section">
         <div class="invite-stats">
-            <span id="my-invite">My Invite: 0</span> <!-- Default to 0 -->
+            <span id="my-invite">My Invite: 0</span>
             <div class="spin-info">
                 <span>Spin x0</span>
                 <span class="warning">!</span>
@@ -604,7 +602,7 @@
         </div>
         <div class="total-credit">
             <div class="credit-info">
-                <span id="total-credit">Total Credit <span class="warning">!</span> : 0</span> <!-- Default to 0 -->
+                <span id="total-credit">Total Credit <span class="warning">!</span> : 0</span>
                 <small>10,000 = 1 <img src="assets/icons/usdt.png" alt="USDT"></small>
             </div>
             <button class="claim-button">Claim</button>
@@ -617,14 +615,13 @@
             </div>
         </div>
         <div class="invite-record">
-            <h3 id="invite-record-title">Invite Record (0)</h3> <!-- Default to 0 -->
+            <h3 id="invite-record-title">Invite Record (0)</h3>
             <div class="record-header">
                 <span>User</span>
                 <span>Join Time</span>
                 <span>Credit</span>
             </div>
             <div class="record-list">
-                <!-- Default: Empty, to be populated dynamically -->
                 <div class="no-frens">
                     <img src="assets/icons/nofrens.png" alt="No Frens">
                     <p>No invites yet</p>
@@ -670,7 +667,6 @@
     <section id="top" class="section top-section">
         <h2>Medal Ranking <span class="warning">!</span></h2>
         <ul class="ranking-list" id="ranking-list">
-            <!-- Default: Empty, to be populated dynamically -->
             <li class="no-rankings">
                 <p>No rankings available</p>
             </li>
@@ -749,6 +745,10 @@
         // Storage abstraction using Firebase Firestore
         const Storage = {
             getItem: async (key) => {
+                if (!db) {
+                    console.error("Firestore database is not initialized. Cannot fetch item:", key);
+                    return null;
+                }
                 try {
                     const doc = await db.collection('userData')
                         .doc(telegramUser?.id.toString()).get();
@@ -759,6 +759,10 @@
                 }
             },
             setItem: async (key, value) => {
+                if (!db) {
+                    console.error("Firestore database is not initialized. Cannot set item:", key);
+                    return false;
+                }
                 try {
                     await db.collection('userData')
                         .doc(telegramUser?.id.toString())
@@ -828,7 +832,13 @@
                 return;
             }
 
+            if (!db) {
+                console.error("Firestore database is not initialized. Cannot initialize user data.");
+                return;
+            }
+
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+            const rankingDocRef = db.collection('users').doc(telegramUser.id.toString());
             try {
                 const doc = await userDocRef.get();
                 if (!doc.exists) {
@@ -843,6 +853,14 @@
                         isReferred: false,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
+
+                    // Also create a document in the users collection for rankings
+                    await rankingDocRef.set({
+                        username: telegramUser.username || telegramUser.first_name || 'Anonymous',
+                        foxMedals: 0,
+                        photoUrl: telegramUser.photo_url || 'https://via.placeholder.com/40/808080/000000?text=U'
+                    });
+
                     analytics.logEvent('user_signup', { userId: telegramUser.id });
                     console.log("New user data initialized");
                 }
@@ -854,6 +872,11 @@
 
         async function updateUserStatsUI() {
             if (!telegramUser) return;
+
+            if (!db) {
+                console.error("Firestore database is not initialized. Cannot update user stats UI.");
+                return;
+            }
 
             try {
                 const userDoc = await db.collection('userData')
@@ -872,6 +895,10 @@
 
         // Fetch and Update Earn Section (Quests)
         async function updateEarnSectionUI() {
+            if (!db) {
+                console.error("Firestore database is not initialized. Please check Firebase setup.");
+                return;
+            }
             try {
                 // Fetch Daily Quests
                 const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get();
@@ -938,6 +965,11 @@
         async function handleReferral() {
             if (!telegramUser) return;
 
+            if (!db) {
+                console.error("Firestore database is not initialized. Cannot handle referral.");
+                return;
+            }
+
             const initData = Telegram.WebApp.initDataUnsafe;
             const startParam = initData.start_param;
 
@@ -980,6 +1012,11 @@
         async function updateInviteSectionUI() {
             if (!telegramUser) return;
 
+            if (!db) {
+                console.error("Firestore database is not initialized. Cannot update invite section UI.");
+                return;
+            }
+
             try {
                 const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
                 const data = userDoc.data();
@@ -1014,6 +1051,11 @@
 
         // Fetch and Update Top Section (Medal Rankings)
         async function updateTopSectionUI() {
+            if (!db) {
+                console.error("Firestore database is not initialized. Cannot update top section UI.");
+                return;
+            }
+
             try {
                 const rankingsSnapshot = await db.collection('users')
                     .orderBy('foxMedals', 'desc')
@@ -1055,6 +1097,12 @@
         document.querySelector('.invite-section .claim-button').addEventListener('click', async () => {
             if (!telegramUser) {
                 alert("User not authenticated. Please try again.");
+                return;
+            }
+
+            if (!db) {
+                console.error("Firestore database is not initialized. Cannot claim credits.");
+                alert("Database not initialized. Please try again later.");
                 return;
             }
 
@@ -1161,6 +1209,12 @@
                 return;
             }
 
+            if (!db) {
+                console.error("Firestore database is not initialized. Cannot open chest.");
+                alert("Database not initialized. Please try again later.");
+                return;
+            }
+
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
             try {
                 const userDoc = await userDocRef.get();
@@ -1185,6 +1239,11 @@
                     foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
                 });
 
+                // Also update the users collection for rankings
+                await db.collection('users').doc(telegramUser.id.toString()).update({
+                    foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
+                });
+
                 await updateUserStatsUI();
                 alert(`Opened ${chest.name}! Rewards: ${rewards.usdt} USDT, ${rewards.landPiece} Land Piece, ${rewards.foxMedal} Fox Medal`);
                 analytics.logEvent('chest_opened', { chestName: chest.name, userId: telegramUser.id });
@@ -1201,6 +1260,12 @@
             if (event.target.classList.contains('go-button')) {
                 if (!telegramUser) {
                     alert("User not authenticated. Please try again.");
+                    return;
+                }
+
+                if (!db) {
+                    console.error("Firestore database is not initialized. Cannot complete task.");
+                    alert("Database not initialized. Please try again later.");
                     return;
                 }
 
@@ -1264,6 +1329,20 @@
         // Initialize the app
         (async () => {
             try {
+                // Wait for Firebase to initialize
+                await new Promise((resolve, reject) => {
+                    if (typeof firebase === 'undefined') {
+                        reject(new Error("Firebase SDK not loaded"));
+                    }
+                    app = firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    auth = firebase.auth();
+                    storage = firebase.storage();
+                    analytics = firebase.analytics();
+                    console.log("Firebase initialized successfully");
+                    resolve();
+                });
+
                 await initializeUserData();
                 generateReferralLink();
                 await handleReferral();
