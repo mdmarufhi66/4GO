@@ -736,7 +736,7 @@
                 }
             });
 
-            // Initialize referrals and invite records
+            // Initialize referrals, spins, and invite records
             const userId = Telegram.WebApp.initDataUnsafe.user.id;
             Storage.getItem(`referrals_${userId}`, (error, referrals) => {
                 if (error) {
@@ -752,7 +752,20 @@
                 }
             });
 
-            // Initialize invite records
+            Storage.getItem(`spins_${userId}`, (error, spins) => {
+                if (error) {
+                    console.error('Error loading spins:', error);
+                    return;
+                }
+                if (spins === null || spins === undefined) {
+                    Storage.setItem(`spins_${userId}`, '0', (error) => {
+                        if (error) {
+                            console.error('Error setting default spins:', error);
+                        }
+                    });
+                }
+            });
+
             Storage.getItem(`invite_records_${userId}`, (error, records) => {
                 if (error) {
                     console.error('Error loading invite records:', error);
@@ -825,7 +838,7 @@
             const botUsername = 'fourgobot'; // Replace with your bot's actual username (without the @)
             const referralLink = `https://t.me/${botUsername}?start=ref_${userId}`;
             
-            console.log('Generated referral link:', referralLink); // Debug log
+            console.log('Generated referral link:', referralLink);
             
             document.querySelector('.invite-friend').setAttribute('data-link', referralLink);
             document.querySelector('.copy-link').setAttribute('data-link', referralLink);
@@ -834,12 +847,15 @@
         function handleReferral() {
             const initData = Telegram.WebApp.initDataUnsafe;
             const startParam = initData.start_param;
+            console.log('Start param:', startParam); // Debug log
 
             if (startParam && startParam.startsWith('ref_')) {
                 const referrerId = startParam.split('_')[1];
                 const currentUserId = initData.user.id;
+                console.log('Referrer ID:', referrerId, 'Current User ID:', currentUserId); // Debug log
 
                 if (referrerId === currentUserId.toString()) {
+                    console.log('Self-referral detected, skipping.');
                     return;
                 }
 
@@ -848,8 +864,10 @@
                         console.error('Error checking referral status:', error);
                         return;
                     }
+                    console.log('Is Referred:', isReferred); // Debug log
 
                     if (isReferred === 'true') {
+                        console.log('User already referred, skipping.');
                         return;
                     }
 
@@ -858,12 +876,14 @@
                             console.error('Error marking user as referred:', error);
                             return;
                         }
+                        console.log('Marked user as referred.');
 
                         Storage.getItem(`referrals_${referrerId}`, (error, referralCount) => {
                             if (error) {
                                 console.error('Error fetching referral count:', error);
                                 return;
                             }
+                            console.log('Current referral count:', referralCount); // Debug log
 
                             const newReferralCount = (parseInt(referralCount) || 0) + 1;
                             Storage.setItem(`referrals_${referrerId}`, newReferralCount.toString(), (error) => {
@@ -871,6 +891,23 @@
                                     console.error('Error updating referral count:', error);
                                     return;
                                 }
+                                console.log('Updated referral count to:', newReferralCount);
+
+                                // Update spins
+                                Storage.getItem(`spins_${referrerId}`, (error, spinCount) => {
+                                    if (error) {
+                                        console.error('Error fetching spin count:', error);
+                                        return;
+                                    }
+                                    const newSpinCount = (parseInt(spinCount) || 0) + 1;
+                                    Storage.setItem(`spins_${referrerId}`, newSpinCount.toString(), (error) => {
+                                        if (error) {
+                                            console.error('Error updating spin count:', error);
+                                            return;
+                                        }
+                                        console.log('Updated spin count to:', newSpinCount);
+                                    });
+                                });
 
                                 // Add to invite records
                                 Storage.getItem(`invite_records_${referrerId}`, (error, records) => {
@@ -892,7 +929,9 @@
                                             console.error('Error updating invite records:', error);
                                             return;
                                         }
+                                        console.log('Updated invite records:', inviteRecords);
 
+                                        // Update referrer's gems
                                         Storage.getItem(`gems_${referrerId}`, (error, referrerGems) => {
                                             if (error) {
                                                 console.error('Error fetching referrer gems:', error);
@@ -903,6 +942,13 @@
                                             Storage.setItem(`gems_${referrerId}`, newGems.toString(), (error) => {
                                                 if (error) {
                                                     console.error('Error updating referrer gems:', error);
+                                                    return;
+                                                }
+                                                console.log('Updated referrer gems to:', newGems);
+
+                                                // Refresh UI for the referrer (if they are the current user)
+                                                if (referrerId === Telegram.WebApp.initDataUnsafe.user.id) {
+                                                    updateInviteSectionUI();
                                                 }
                                             });
                                         });
@@ -912,6 +958,8 @@
                         });
                     });
                 });
+            } else {
+                console.log('No referral detected.');
             }
         }
 
@@ -925,10 +973,22 @@
 
                 const referrals = parseInt(referralCount) || 0;
                 const totalCredit = referrals * 10; // 10 credits per invite
+                console.log('Referrals for UI:', referrals, 'Total Credit:', totalCredit); // Debug log
 
                 document.querySelector('.invite-stats span').textContent = `My Invite: ${referrals}`;
                 document.querySelector('.total-credit .credit-info span').textContent = `Total Credit ! : ${totalCredit}`;
                 document.querySelector('.invite-record h3').textContent = `Invite Record (${referrals})`;
+
+                // Update spin count
+                Storage.getItem(`spins_${userId}`, (error, spinCount) => {
+                    if (error) {
+                        console.error('Error fetching spin count for UI:', error);
+                        return;
+                    }
+                    const spins = parseInt(spinCount) || 0;
+                    console.log('Spins for UI:', spins); // Debug log
+                    document.querySelector('.spin-info span').textContent = `Spin x${spins}`;
+                });
 
                 // Update Invite Record list
                 Storage.getItem(`invite_records_${userId}`, (error, records) => {
@@ -938,6 +998,7 @@
                     }
 
                     const inviteRecords = records ? JSON.parse(records) : [];
+                    console.log('Invite records for UI:', inviteRecords); // Debug log
                     const recordList = document.querySelector('.invite-record .record-list');
                     recordList.innerHTML = '';
 
@@ -1180,7 +1241,7 @@
 
         document.querySelector('.copy-link').addEventListener('click', function() {
             const referralLink = this.getAttribute('data-link');
-            console.log('Copying referral link:', referralLink); // Debug log
+            console.log('Copying referral link:', referralLink);
             navigator.clipboard.writeText(referralLink).then(() => {
                 alert('Invite link copied to clipboard: ' + referralLink);
             }).catch(err => {
