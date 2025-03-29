@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4Metas Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Firebase CDN SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-analytics.js"></script>
+    <!-- Your existing styles remain unchanged -->
+    <style>
+        /* Your existing CSS styles remain here */
+        body {
+            background: linear-gradient(to bottom, #330033, #000000);
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        /* ... rest of your styles ... */
+    </style>
+</head>
+<body>
+    <!-- Existing HTML structure remains unchanged -->
+    <header>
+        <div class="back-arrow">X</div>
+        <h1>4Metas</h1>
+        <div class="menu-dots">⋮</div>
+    </header>
+    <section class="user-stats">
+        <div class="logo">
+            <img src="assets/icons/logo.png" alt="4Metas Logo">
+        </div>
+        <div class="metric">
+            <img src="assets/icons/gem.png" alt="Gem">
+            <span>0</span>
+        </div>
+        <div class="metric">
+            <img src="assets/icons/usdt.png" alt="USDT">
+            <span>0.1000</span>
+        </div>
+        <div class="metric">
+            <img src="assets/icons/ton.png" alt="TON">
+            <span>0.0000</span>
+        </div>
+        <div class="profile-pic">
+            <img src="assets/icons/user-avatar.png" alt="User Profile">
+        </div>
+    </section>
+
+    <!-- Earn Section -->
+    <section id="earn" class="section earn-section">
+        <div class="banner-placeholder">
+            <img src="assets/icons/banner.png" alt="Banner">
+        </div>
+        <div class="quest-section">
+            <h2>BASIC QUEST</h2>
+            <span class="badge">0</span>
+            <ul class="quest-list">
+                <li class="quest-item">
+                    <img src="https://via.placeholder.com/30/FFFFFF/000000?text=T1" alt="Task 1">
+                    <span>Task 1</span>
+                    <div class="quest-reward">
+                        <img src="assets/icons/gem.png" alt="Gem">
+                        <span>+10</span>
+                        <button class="go-button">GO</button>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Wallet Section -->
+    <section id="wallet" class="section wallet-section">
+        <h2>Wallet</h2>
+        <div class="balance-card usdt-card">
+            <img src="assets/icons/usdt.png" alt="USDT Icon">
+            <div class="balance-info">
+                <span>0.1000</span>
+                <small>USDT</small>
+            </div>
+            <button class="withdraw-button">WITHDRAW</button>
+            <button class="warning-button">!</button>
+        </div>
+        <div class="balance-card ton-card">
+            <img src="assets/icons/ton.png" alt="TON Icon">
+            <div class="balance-info">
+                <span>0.0000</span>
+                <small>TON</small>
+            </div>
+            <button class="withdraw-button">WITHDRAW</button>
+            <button class="warning-button">!</button>
+        </div>
+        <p class="instruction">Connect wallet to withdraw your balance.</p>
+        <button class="connect-button">CONNECT TON WALLET</button>
+    </section>
+
+    <!-- Game Section -->
+    <section id="game" class="section game-section">
+        <div class="banner-placeholder">
+            <img src="assets/icons/banner.png" alt="Banner">
+        </div>
+        <h2>Game List</h2>
+        <div class="game-list">
+            <div class="no-games">
+                <p>Add your games here</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Invite Section -->
+    <section id="invite" class="section invite-section">
+        <div class="invite-stats">
+            <span>My Invite: 0</span>
+            <div class="spin-info">
+                <span>Spin x0</span>
+                <span class="warning">!</span>
+            </div>
+        </div>
+        <div class="action-buttons">
+            <button class="action-button invite-friend">Invite Friend</button>
+            <button class="action-button copy-link">Copy Link</button>
+        </div>
+        <div class="total-credit">
+            <div class="credit-info">
+                <span>Total Credit <span class="warning">!</span> : 0</span>
+                <small>10,000 = 1 <img src="assets/icons/usdt.png" alt="USDT" style="vertical-align: middle;"></small>
+            </div>
+            <button class="claim-button">Claim</button>
+        </div>
+        <div class="record-section">
+            <h3>Claim Record</h3>
+            <div class="no-frens">
+                <img src="assets/icons/nofrens.png" alt="No Frens">
+                <p>No Frens yet</p>
+            </div>
+        </div>
+        <div class="invite-record">
+            <h3>Invite Record (0)</h3>
+            <div class="record-header">
+                <span>User</span>
+                <span>Join Time</span>
+                <span>Credit</span>
+            </div>
+            <div class="record-list">
+                <div class="no-frens">
+                    <img src="assets/icons/nofrens.png" alt="No Frens">
+                    <p>No invites yet</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Chest Section -->
+    <section id="chest" class="section chest-section active">
+        <div class="chest-slider">
+            <button class="nav-arrow left" onclick="prevChest()"><</button>
+            <div class="chest-container" id="chestContainer">
+                <!-- Chest items will be dynamically added here -->
+            </div>
+            <button class="nav-arrow right" onclick="nextChest()">></button>
+        </div>
+        <div class="rewards">
+            <div class="reward-item usdt">
+                <img src="assets/icons/usdt.png" alt="USDT">
+                <p>USDT</p>
+            </div>
+            <div class="reward-item land-piece">
+                <img src="assets/icons/land-piece.png" alt="Land Piece">
+                <p>Land Piece</p>
+            </div>
+            <div class="reward-item fox-medal">
+                <img src="assets/icons/fox-medal.png" alt="Fox Medal">
+                <p>Fox Medal</p>
+            </div>
+        </div>
+        <div class="cost" id="chestCost">
+            <span>200</span>
+            <img src="assets/icons/gem.png" alt="Gem">
+        </div>
+        <div class="vip-requirement" id="chestVipRequirement" style="display: none;">
+            NEED VIP 1
+        </div>
+        <button class="open-chest-button" onclick="openChest()">Open Chest</button>
+    </section>
+
+    <!-- Top Section -->
+    <section id="top" class="section top-section">
+        <h2>Medal Ranking <span class="warning">!</span></h2>
+        <ul class="ranking-list">
+            <div class="no-frens">
+                <p>No rankings available</p>
+            </div>
+        </ul>
+    </section>
+
+    <button id="adBtn">Watch Ad for Bonus</button>
+
+    <nav class="bottom-nav">
+        <button class="nav-button" data-section="earn">
+            <img src="assets/icons/earn.png" alt="Earn">
+            Earn
+        </button>
+        <button class="nav-button" data-section="wallet">
+            <img src="assets/icons/wallet.png" alt="Wallet">
+            Wallet
+        </button>
+        <button class="nav-button" data-section="game">
+            <img src="assets/icons/game.png" alt="Game">
+            Game
+        </button>
+        <button class="nav-button" data-section="invite">
+            <img src="assets/icons/invite.png" alt="Invite">
+            Invite
+        </button>
+        <button class="nav-button active" data-section="chest">
+            <img src="assets/icons/chest.png" alt="Chest">
+            Chest
+        </button>
+        <button class="nav-button" data-section="top">
+            <img src="assets/icons/top.png" alt="Top">
+            Top
+        </button>
+    </nav>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCUkEmFmJK2vr8k7M6JqYaxlcgBDf7WdJI",
+            authDomain: "fourgo-cd98f.firebaseapp.com",
+            projectId: "fourgo-cd98f",
+            storageBucket: "fourgo-cd98f.firebasestorage.app",
+            messagingSenderId: "511215742272",
+            appId: "1:511215742272:web:04bd85a284919ae123dea5",
+            measurementId: "G-DC7E6ECF2L"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+        const storage = firebase.storage();
+        const analytics = firebase.analytics();
+
+        // Telegram Web App Setup
+        window.Telegram.WebApp.ready();
+        const telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
+        if (telegramUser) {
+            const profilePic = document.querySelector('.profile-pic img');
+            profilePic.src = telegramUser.photo_url || 'assets/icons/user-avatar.png';
+            document.querySelector('h1').innerText = `4Metas - ${telegramUser.first_name}`;
+        }
+
+        // Storage abstraction using Firebase Firestore
+        const Storage = {
+            getItem: async (key) => {
+                try {
+                    const doc = await db.collection('userData')
+                        .doc(telegramUser?.id.toString()).get();
+                    return doc.exists ? doc.data()[key] : null;
+                } catch (error) {
+                    console.error(`Error fetching ${key}:`, error);
+                    return null;
+                }
+            },
+            setItem: async (key, value) => {
+                try {
+                    await db.collection('userData')
+                        .doc(telegramUser?.id.toString())
+                        .set({ [key]: value }, { merge: true });
+                    return true;
+                } catch (error) {
+                    console.error(`Error setting ${key}:`, error);
+                    return false;
+                }
+            }
+        };
+
+        // Navigation Between Sections
+        const sections = document.querySelectorAll('.section');
+        const navButtons = document.querySelectorAll('.nav-button');
+        navButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const sectionId = this.getAttribute('data-section');
+                sections.forEach(section => section.classList.remove('active'));
+                navButtons.forEach(btn => btn.classList.remove('active'));
+                document.getElementById(sectionId)?.classList.add('active');
+                this.classList.add('active');
+                if (sectionId === 'invite') updateInviteSectionUI();
+            });
+        });
+
+        // Default to Chest Section
+        document.getElementById('chest').classList.add('active');
+
+        // User Data Management
+        async function initializeUserData() {
+            const userDocRef = db.collection('userData').doc(telegramUser?.id.toString());
+            const doc = await userDocRef.get();
+
+            if (!doc.exists) {
+                await userDocRef.set({
+                    gems: 0,
+                    usdt: 0.1000,
+                    ton: 0.0000,
+                    referrals: 0,
+                    inviteRecords: [],
+                    landPieces: 0,
+                    foxMedals: 0,
+                    isReferred: false,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                firebase.analytics().logEvent('user_signup', { userId: telegramUser.id });
+            }
+            await updateUserStatsUI();
+        }
+
+        async function updateUserStatsUI() {
+            const userDoc = await db.collection('userData')
+                .doc(telegramUser?.id.toString()).get();
+            const data = userDoc.data();
+            document.querySelector('.user-stats .metric:nth-child(2) span').textContent = data.gems || 0;
+            document.querySelector('.user-stats .metric:nth-child(3) span').textContent = (data.usdt || 0).toFixed(4);
+            document.querySelector('.user-stats .metric:nth-child(4) span').textContent = (data.ton || 0).toFixed(4);
+        }
+
+        // Referral System
+        function generateReferralLink() {
+            if (!telegramUser) return;
+            const botUsername = 'fourgobot'; // Replace with your bot's username
+            const referralLink = `https://t.me/${botUsername}?start=ref_${telegramUser.id}`;
+            document.querySelector('.invite-friend').setAttribute('data-link', referralLink);
+            document.querySelector('.copy-link').setAttribute('data-link', referralLink);
+        }
+
+        async function handleReferral() {
+            const initData = Telegram.WebApp.initDataUnsafe;
+            const startParam = initData.start_param;
+
+            if (startParam && startParam.startsWith('ref_')) {
+                const referrerId = startParam.split('_')[1];
+                if (referrerId === telegramUser.id.toString()) return;
+
+                const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+                const referrerDocRef = db.collection('userData').doc(referrerId);
+
+                const userDoc = await userDocRef.get();
+                if (userDoc.data().isReferred) return;
+
+                await userDocRef.update({ isReferred: true });
+                const referrerDoc = await referrerDocRef.get();
+                const newReferralCount = (referrerDoc.data().referrals || 0) + 1;
+                const newGems = (referrerDoc.data().gems || 0) + 50;
+
+                const newRecord = {
+                    username: telegramUser.username || telegramUser.first_name,
+                    joinTime: new Date().toISOString().replace('T', ' ').split('.')[0],
+                    credit: 10
+                };
+
+                await referrerDocRef.update({
+                    referrals: newReferralCount,
+                    gems: newGems,
+                    inviteRecords: firebase.firestore.FieldValue.arrayUnion(newRecord)
+                });
+
+                firebase.analytics().logEvent('referral_success', { referrerId, newUserId: telegramUser.id });
+            }
+        }
+
+        async function updateInviteSectionUI() {
+            const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
+            const data = userDoc.data();
+            const referrals = data.referrals || 0;
+            const totalCredit = referrals * 10;
+
+            document.querySelector('.invite-stats span').textContent = `My Invite: ${referrals}`;
+            document.querySelector('.total-credit .credit-info span').textContent = `Total Credit ! : ${totalCredit}`;
+            document.querySelector('.invite-record h3').textContent = `Invite Record (${referrals})`;
+
+            const recordList = document.querySelector('.invite-record .record-list');
+            recordList.innerHTML = data.inviteRecords.length === 0 ? `
+                <div class="no-frens">
+                    <img src="assets/icons/nofrens.png" alt="No Frens">
+                    <p>No invites yet</p>
+                </div>
+            ` : data.inviteRecords.map(record => `
+                <div class="record-item">
+                    <img src="https://via.placeholder.com/40/808080/000000?text=${record.username[0]}" alt="${record.username}">
+                    <div class="user-info">
+                        <span>${record.username}</span>
+                        <small>${record.joinTime}</small>
+                    </div>
+                    <span class="credit">${record.credit}</span>
+                </div>
+            `).join('');
+        }
+
+        // Claim Credits Logic
+        document.querySelector('.invite-section .claim-button').addEventListener('click', async () => {
+            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+            const userDoc = await userDocRef.get();
+            const data = userDoc.data();
+            const totalCredit = (data.referrals || 0) * 10;
+
+            if (totalCredit < 10000) {
+                alert(`You need 10,000 credits to claim 1 US estiloDT. You have ${totalCredit}.`);
+                return;
+            }
+
+            const usdtToClaim = Math.floor(totalCredit / 10000);
+            const remainingCredits = totalCredit % 10000;
+            const newReferralCount = Math.floor(remainingCredits / 10);
+
+            await userDocRef.update({
+                usdt: firebase.firestore.FieldValue.increment(usdtToClaim),
+                referrals: newReferralCount
+            });
+
+            await updateUserStatsUI();
+            await updateInviteSectionUI();
+            alert(`Successfully claimed ${usdtToClaim} USDT!`);
+            firebase.analytics().logEvent('credit_claim', { userId: telegramUser.id, usdt: usdtToClaim });
+        });
+
+        // Chest Slider Logic
+        const chests = [
+            { name: "Wood Chest", next: "Bronze", image: "wood-chest.png", gemCost: 200, vip: 0 },
+            { name: "Bronze Chest", next: "Silver", image: "bronze-chest.png", gemCost: 500, vip: 1 },
+            { name: "Silver Chest", next: "Gold", image: "silver-chest.png", gemCost: 1000, vip: 2 },
+            { name: "Gold Chest", next: "Master", image: "gold-chest.png", gemCost: 2000, vip: 3 },
+            { name: "Master Chest", next: "Legendary", image: "master-chest.png", gemCost: 5000, vip: 4 },
+            { name: "Legendary Chest", next: "Mythic", image: "legendary-chest.png", gemCost: 10000, vip: 5 },
+            { name: "Mythic Chest", next: "", image: "mythic-chest.png", gemCost: 20000, vip: 6 }
+        ];
+
+        let currentChestIndex = 0;
+        const chestContainer = document.getElementById('chestContainer');
+        const chestCostElement = document.getElementById('chestCost');
+        const chestVipRequirementElement = document.getElementById('chestVipRequirement');
+
+        chests.forEach(chest => {
+            const chestItem = document.createElement('div');
+            chestItem.classList.add('chest-item');
+            chestItem.innerHTML = `
+                <div class="chest-title">
+                    <h2>${chest.name}</h2>
+                    <span>${chest.next}</span>
+                </div>
+                <div class="chest-image">
+                    <img src="assets/graphics/${chest.image}" alt="${chest.name}">
+                </div>
+                <div class="not-enough">
+                    <span>NOT ENOUGH</span>
+                    <img src="assets/icons/gem.png" alt="Gem">
+                </div>
+            `;
+            chestContainer.appendChild(chestItem);
+        });
+
+        function updateChest() {
+            const chest = chests[currentChestIndex];
+            chestContainer.style.transform = `translateX(-${currentChestIndex * 100}%)`;
+
+            if (chest.vip === 0) {
+                chestCostElement.style.display = 'flex';
+                chestCostElement.querySelector('span').textContent = chest.gemCost;
+                chestVipRequirementElement.style.display = 'none';
+            } else {
+                chestCostElement.style.display = 'none';
+                chestVipRequirementElement.style.display = 'block';
+                chestVipRequirementElement.textContent = `NEED VIP ${chest.vip}`;
+            }
+
+            document.querySelector('.nav-arrow.left').style.display = currentChestIndex === 0 ?.Concurrent 'none' : 'block';
+            document.querySelector('.nav-arrow.right').style.display = currentChestIndex === chests.length - 1 ? 'none' : 'block';
+        }
+
+        function nextChest() {
+            if (currentChestIndex < chests.length - 1) {
+                currentChestIndex++;
+                updateChest();
+            }
+        }
+
+        function prevChest() {
+            if (currentChestIndex > 0) {
+                currentChestIndex--;
+                updateChest();
+            }
+        }
+
+        chestContainer.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+        chestContainer.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > 50) nextChest();
+            else if (touchEndX - touchStartX > 50) prevChest();
+        });
+
+        updateChest();
+
+        async function openChest() {
+            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+            const userDoc = await userDocRef.get();
+            const userData = userDoc.data();
+            const chest = chests[currentChestIndex];
+
+            if (userData.gems < chest.gemCost) {
+                alert(`You need ${chest.gemCost} gems to open the ${chest.name}! Current: ${userData.gems}`);
+                return;
+            }
+
+            const rewards = {
+                usdt: (Math.random() * 0.5 + 0.1).toFixed(4),
+                landPiece: 1,
+                foxMedal: 1
+            };
+
+            await userDocRef.update({
+                gems: userData.gems - chest.gemCost,
+                usdt: userData.usdt + parseFloat(rewards.usdt),
+                landPieces: firebase.firestore.FieldValue.increment(rewards.landPiece),
+                foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
+            });
+
+            await updateUserStatsUI();
+            alert(`Opened ${chest.name}! Rewards: ${rewards.usdt} USDT, ${rewards.landPiece} Land Piece, ${rewards.foxMedal} Fox Medal`);
+            firebase.analytics().logEvent('chest_opened', { chestName: chest.name, userId: telegramUser.id });
+        }
+
+        // Admin Panel
+        async function isAdmin(userId) {
+            const adminDoc = await db.collection('admins').doc(userId.toString()).get();
+            return adminDoc.exists;
+        }
+
+        async function loadAdminPanel() {
+            if (!telegramUser || !await isAdmin(telegramUser.id)) return;
+
+            const adminSection = document.createElement('section');
+            adminSection.id = 'admin';
+            adminSection.className = 'section admin-section';
+            adminSection.innerHTML = `
+                <h2>Admin Panel</h2>
+                <button onclick="viewAllUsers()">View Users</button>
+                <button onclick="adjustUserBalance()">Adjust Balance</button>
+                <div id="admin-content"></div>
+            `;
+            document.body.appendChild(adminSection);
+
+            const adminNavButton = document.createElement('button');
+            adminNavButton.className = 'nav-button';
+            adminNavButton.setAttribute('data-section', 'admin');
+            adminNavButton.innerHTML = `
+                <img src="assets/icons/admin.png" alt="Admin">
+                Admin
+            `;
+            document.querySelector('.bottom-nav').appendChild(adminNavButton);
+        }
+
+        async function viewAllUsers() {
+            const usersSnapshot = await db.collection('userData').get();
+            const adminContent = document.getElementById('admin-content');
+            adminContent.innerHTML = usersSnapshot.docs.map(doc => `
+                <div>
+                    <p>User ID: ${doc.id}</p>
+                    <p>Gems: ${doc.data().gems}</p>
+                    <p>USDT: ${doc.data().usdt}</p>
+                    <p>TON: ${doc.data().ton}</p>
+                    <p>Referrals: ${doc.data().referrals}</p>
+                </div>
+            `).join('');
+        }
+
+        async function adjustUserBalance() {
+            const userId = prompt("Enter User ID:");
+            const gems = parseFloat(prompt("Enter Gems:"));
+            const usdt = parseFloat(prompt("Enter USDT:"));
+            const ton = parseFloat(prompt("Enter TON:"));
+
+            if (userId && !isNaN(gems) && !isNaN(usdt) && !isNaN(ton)) {
+                await db.collection('userData').doc(userId).update({
+                    gems,
+                    usdt,
+                    ton
+                });
+                alert("Balance updated!");
+                viewAllUsers();
+                firebase.analytics().logEvent('admin_balance_adjust', { userId, gems, usdt, ton });
+            } else {
+                alert("Invalid input!");
+            }
+        }
+
+        // Earn Section Interactions
+        document.querySelectorAll('.go-button').forEach(button => {
+            button.addEventListener('click', async () => {
+                const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+                const userDoc = await userDocRef.get();
+                const newGems = (userDoc.data().gems || 0) + 10;
+
+                await userDocRef.update({ gems: newGems });
+                await updateUserStatsUI();
+                alert('Task completed! +10 Gems');
+                firebase.analytics().logEvent('task_completed', { userId: telegramUser.id });
+            });
+        });
+
+        // Wallet Section Interactions
+        document.querySelectorAll('.withdraw-button').forEach(button => {
+            button.addEventListener('click', () => {
+                alert('Withdrawal not implemented yet. Connect your wallet first!');
+            });
+        });
+
+        document.querySelectorAll('.warning-button').forEach(button => {
+            button.addEventListener('click', () => {
+                alert('Warning: Ensure your wallet is connected to withdraw funds.');
+            });
+        });
+
+        document.querySelector('.connect-button').addEventListener('click', () => {
+            alert('Connecting to TON Wallet... (placeholder)');
+        });
+
+        // Invite Section Interactions
+        document.querySelector('.invite-friend').addEventListener('click', function() {
+            const referralLink = this.getAttribute('data-link');
+            Telegram.WebApp.openTelegramLink(referralLink);
+            firebase.analytics().logEvent('invite_friend_clicked', { userId: telegramUser.id });
+        });
+
+        document.querySelector('.copy-link').addEventListener('click', function() {
+            const referralLink = this.getAttribute('data-link');
+            navigator.clipboard.writeText(referralLink).then(() => {
+                alert('Invite link copied to clipboard: ' + referralLink);
+                firebase.analytics().logEvent('copy_link', { userId: telegramUser.id });
+            }).catch(err => alert('Failed to copy link: ' + err));
+        });
+
+        // Ad Button Interaction
+        document.getElementById('adBtn').addEventListener('click', async () => {
+            // Placeholder for Monetag ad integration
+            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+            const userDoc = await userDocRef.get();
+            const newGems = (userDoc.data().gems || 0) + 20;
+
+            await userDocRef.update({ gems: newGems });
+            await updateUserStatsUI();
+            alert('Bonus awarded! +20 Gems (Ad placeholder)');
+            firebase.analytics().logEvent('ad_watched', { userId: telegramUser.id });
+        });
+
+        // Initialize the app
+        (async () => {
+            await initializeUserData();
+            generateReferralLink();
+            await handleReferral();
+            await loadAdminPanel();
+            await updateInviteSectionUI();
+            updateChest();
+        })();
+    </script>
+</body>
+</html>
