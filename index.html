@@ -756,9 +756,24 @@
         let app, db, auth, storage, analytics;
         let firebaseInitialized = false;
         async function initializeFirebase(maxRetries = 3) {
-            if (firebaseInitialized) return true;
-            let attempts = 0;
+            if (firebaseInitialized) {
+                console.log("Firebase already initialized, skipping reinitialization.");
+                return true;
+            }
 
+            // Check if Firebase is already in global scope
+            if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+                console.log("Firebase already loaded and initialized in global scope.");
+                app = firebase.apps[0]; // Use the existing app instance
+                db = firebase.firestore();
+                auth = firebase.auth();
+                storage = firebase.storage();
+                analytics = firebase.analytics();
+                firebaseInitialized = true;
+                return true;
+            }
+
+            let attempts = 0;
             while (attempts < maxRetries && !firebaseInitialized) {
                 try {
                     console.log(`Attempt ${attempts + 1}/${maxRetries} to initialize Firebase...`);
@@ -780,26 +795,31 @@
                         'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-analytics-compat.js'
                     ];
 
-                    let scriptsLoaded = false;
-                    try {
-                        console.log("Loading scripts from primary CDN...");
-                        await Promise.all(scriptUrls.map(url => loadScript(url)));
-                        scriptsLoaded = true;
-                        console.log("Primary CDN scripts loaded successfully");
-                    } catch (error) {
-                        console.error("Primary CDN failed:", error.message);
-                        console.log("Attempting fallback CDN...");
-                        await Promise.all(fallbackUrls.map(url => loadScript(url)));
-                        scriptsLoaded = true;
-                        console.log("Fallback CDN scripts loaded successfully");
-                    }
-
-                    if (!scriptsLoaded) {
-                        throw new Error("Failed to load Firebase scripts from both CDNs");
-                    }
-
+                    // Only load scripts if Firebase isn’t already defined
                     if (typeof firebase === 'undefined') {
-                        throw new Error("Firebase SDK not loaded into global scope");
+                        let scriptsLoaded = false;
+                        try {
+                            console.log("Loading scripts from primary CDN...");
+                            await Promise.all(scriptUrls.map(url => loadScript(url)));
+                            scriptsLoaded = true;
+                            console.log("Primary CDN scripts loaded successfully");
+                        } catch (error) {
+                            console.error("Primary CDN failed:", error.message);
+                            console.log("Attempting fallback CDN...");
+                            await Promise.all(fallbackUrls.map(url => loadScript(url)));
+                            scriptsLoaded = true;
+                            console.log("Fallback CDN scripts loaded successfully");
+                        }
+
+                        if (!scriptsLoaded) {
+                            throw new Error("Failed to load Firebase scripts from both CDNs");
+                        }
+
+                        if (typeof firebase === 'undefined') {
+                            throw new Error("Firebase SDK not loaded into global scope after script load");
+                        }
+                    } else {
+                        console.log("Firebase already defined in global scope, skipping script load.");
                     }
 
                     console.log("Initializing Firebase app...");
