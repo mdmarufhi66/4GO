@@ -474,7 +474,7 @@
     </section>
 
     <!-- Earn Section -->
-    <section id="earn" class="section earn-section">
+    <section id="earn" class="section earn-section active">
         <div class="banner-placeholder">
             <img src="assets/icons/banner.png" alt="Banner">
         </div>
@@ -691,7 +691,7 @@
     </section>
 
     <!-- Chest Section -->
-    <section id="chest" class="section chest-section active">
+    <section id="chest" class="section chest-section">
         <div class="chest-slider">
             <button class="nav-arrow left" onclick="prevChest()"><</button>
             <div class="chest-container" id="chestContainer">
@@ -835,7 +835,7 @@
     </section>
 
     <nav class="bottom-nav">
-        <button class="nav-button" data-section="earn">
+        <button class="nav-button active" data-section="earn">
             <img src="assets/icons/earn.png" alt="Earn">
             Earn
         </button>
@@ -851,7 +851,7 @@
             <img src="assets/icons/invite.png" alt="Invite">
             Invite
         </button>
-        <button class="nav-button active" data-section="chest">
+        <button class="nav-button" data-section="chest">
             <img src="assets/icons/chest.png" alt="Chest">
             Chest
         </button>
@@ -917,22 +917,35 @@
         // Navigation Between Sections
         const sections = document.querySelectorAll('.section');
         const navButtons = document.querySelectorAll('.nav-button');
+
+        function switchSection(sectionId) {
+            // Hide all sections and remove active class from all buttons
+            sections.forEach(section => section.classList.remove('active'));
+            navButtons.forEach(btn => btn.classList.remove('active'));
+
+            // Show the selected section and add active class to the clicked button
+            const targetSection = document.getElementById(sectionId);
+            const targetButton = document.querySelector(`.nav-button[data-section="${sectionId}"]`);
+            if (targetSection && targetButton) {
+                targetSection.classList.add('active');
+                targetButton.classList.add('active');
+            } else {
+                console.error(`Section or button not found for sectionId: ${sectionId}`);
+            }
+
+            // Update UI for specific sections
+            if (sectionId === 'invite') updateInviteSectionUI();
+        }
+
         navButtons.forEach(button => {
             button.addEventListener('click', function() {
                 const sectionId = this.getAttribute('data-section');
-                sections.forEach(section => section.classList.remove('active'));
-                navButtons.forEach(btn => btn.classList.remove('active'));
-                document.getElementById(sectionId)?.classList.add('active');
-                this.classList.add('active');
-                if (sectionId === 'invite') updateInviteSectionUI();
+                switchSection(sectionId);
             });
         });
 
         // Default to Earn Section
-        document.getElementById('earn').classList.add('active');
-        navButtons.forEach(btn => {
-            if (btn.getAttribute('data-section') === 'earn') btn.classList.add('active');
-        });
+        switchSection('earn');
 
         // User Data Management
         async function initializeUserData() {
@@ -1297,3 +1310,5 @@
             updateChest();
         })();
     </script>
+</body>
+</html>
