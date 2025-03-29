@@ -1236,17 +1236,26 @@
         // Invite Section Interactions
         document.querySelector('.invite-friend').addEventListener('click', function() {
             const referralLink = this.getAttribute('data-link');
-            Telegram.WebApp.openTelegramLink(referralLink);
+            Telegram.WebApp.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(referralLink));
         });
 
         document.querySelector('.copy-link').addEventListener('click', function() {
             const referralLink = this.getAttribute('data-link');
             console.log('Copying referral link:', referralLink);
-            navigator.clipboard.writeText(referralLink).then(() => {
-                alert('Invite link copied to clipboard: ' + referralLink);
-            }).catch(err => {
-                alert('Failed to copy link: ' + err);
-            });
+
+            // Try using the Clipboard API
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(referralLink).then(() => {
+                    alert('Invite link copied to clipboard: ' + referralLink);
+                }).catch(err => {
+                    console.error('Clipboard API failed:', err);
+                    // Fallback: Show the link in an alert
+                    alert('Failed to copy link automatically. Please copy this link manually:\n\n' + referralLink);
+                });
+            } else {
+                // Fallback for environments where Clipboard API is not available
+                alert('Clipboard API not supported. Please copy this link manually:\n\n' + referralLink);
+            }
         });
 
         // Ad Button Interaction
