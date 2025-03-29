@@ -724,16 +724,16 @@
             measurementId: "G-DC7E6ECF2L"
         };
 
-        // Initialize Firebase with dynamic loading
+        // Initialize Firebase with dynamic loading using compat scripts
         let app, db, auth, storage, analytics;
         async function initializeFirebase() {
             try {
-                // Load Firebase SDK scripts dynamically
-                await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
-                await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
-                await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
-                await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js');
-                await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js');
+                // Load Firebase compat scripts dynamically
+                await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+                await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js');
+                await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
+                await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js');
+                await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js');
 
                 // Check if firebase is defined
                 if (typeof firebase === 'undefined') {
