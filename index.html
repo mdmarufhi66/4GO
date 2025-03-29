@@ -474,7 +474,7 @@
     </section>
 
     <!-- Earn Section -->
-    <section id="earn" class="section earn-section">
+    <section id="earn" class="section earn-section active">
         <div class="banner-placeholder">
             <img src="assets/icons/banner.png" alt="Banner">
         </div>
@@ -873,20 +873,34 @@
             measurementId: "G-DC7E6ECF2L"
         };
 
-        // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
-        const storage = firebase.storage();
-        const analytics = firebase.analytics();
+        // Initialize Firebase with error handling
+        let app, db, auth, storage, analytics;
+        try {
+            app = firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            auth = firebase.auth();
+            storage = firebase.storage();
+            analytics = firebase.analytics();
+            console.log("Firebase initialized successfully");
+        } catch (error) {
+            console.error("Firebase initialization failed:", error);
+        }
 
-        // Telegram Web App Setup
-        window.Telegram.WebApp.ready();
-        const telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
-        if (telegramUser) {
-            const profilePic = document.querySelector('.profile-pic img');
-            profilePic.src = telegramUser.photo_url || 'assets/icons/user-avatar.png';
-            document.querySelector('h1').innerText = `4Metas`;
+        // Telegram Web App Setup with error handling
+        let telegramUser;
+        try {
+            window.Telegram.WebApp.ready();
+            telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
+            if (telegramUser) {
+                const profilePic = document.querySelector('.profile-pic img');
+                profilePic.src = telegramUser.photo_url || 'assets/icons/user-avatar.png';
+                document.querySelector('h1').innerText = `4Metas`;
+                console.log("Telegram Web App initialized successfully");
+            } else {
+                console.warn("No Telegram user data available");
+            }
+        } catch (error) {
+            console.error("Telegram Web App initialization failed:", error);
         }
 
         // Storage abstraction using Firebase Firestore
@@ -919,7 +933,7 @@
         const navButtons = document.querySelectorAll('.nav-button');
 
         function switchSection(sectionId) {
-            console.log(`Switching to section: ${sectionId}`);
+            console.log(`Attempting to switch to section: ${sectionId}`);
 
             // Hide all sections and remove active class from all buttons
             sections.forEach(section => {
@@ -938,9 +952,9 @@
             if (targetSection && targetButton) {
                 targetSection.classList.add('active');
                 targetButton.classList.add('active');
-                console.log(`Showing section: ${sectionId}`);
+                console.log(`Successfully showing section: ${sectionId}`);
             } else {
-                console.error(`Section or button not found for sectionId: ${sectionId}`);
+                console.error(`Failed to switch to section: ${sectionId}`);
                 if (!targetSection) console.error(`Section with id "${sectionId}" not found`);
                 if (!targetButton) console.error(`Button with data-section "${sectionId}" not found`);
             }
@@ -953,50 +967,65 @@
         navButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const sectionId = button.getAttribute('data-section');
-                console.log(`Button clicked for section: ${sectionId}`);
+                console.log(`Navigation button clicked for section: ${sectionId}`);
                 switchSection(sectionId);
             });
         });
 
         // Set default section to Earn
-        document.getElementById('earn').classList.add('active');
-        document.querySelector('.nav-button[data-section="earn"]').classList.add('active');
-        console.log('Default section set to Earn');
+        console.log('Setting default section to Earn');
+        switchSection('earn');
 
         // User Data Management
         async function initializeUserData() {
-            const userDocRef = db.collection('userData').doc(telegramUser?.id.toString());
-            const doc = await userDocRef.get();
-
-            if (!doc.exists) {
-                await userDocRef.set({
-                    gems: 73,
-                    usdt: 0.1137,
-                    ton: 0.0000,
-                    referrals: 3,
-                    inviteRecords: [
-                        { username: "LazyPromoter", joinTime: "2025-03-26 13:23:46", credit: 210 },
-                        { username: "mdmarufhossen", joinTime: "2025-03-26 13:25:18", credit: 10 }
-                    ],
-                    landPieces: 0,
-                    foxMedals: 0,
-                    isReferred: false,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                firebase.analytics().logEvent('user_signup', { userId: telegramUser.id });
+            if (!telegramUser) {
+                console.warn("Cannot initialize user data: No Telegram user available");
+                return;
             }
-            await updateUserStatsUI();
+
+            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+            try {
+                const doc = await userDocRef.get();
+                if (!doc.exists) {
+                    await userDocRef.set({
+                        gems: 73,
+                        usdt: 0.1137,
+                        ton: 0.0000,
+                        referrals: 3,
+                        inviteRecords: [
+                            { username: "LazyPromoter", joinTime: "2025-03-26 13:23:46", credit: 210 },
+                            { username: "mdmarufhossen", joinTime: "2025-03-26 13:25:18", credit: 10 }
+                        ],
+                        landPieces: 0,
+                        foxMedals: 0,
+                        isReferred: false,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    analytics.logEvent('user_signup', { userId: telegramUser.id });
+                    console.log("New user data initialized");
+                }
+                await updateUserStatsUI();
+            } catch (error) {
+                console.error("Error initializing user data:", error);
+            }
         }
 
         async function updateUserStatsUI() {
-            const userDoc = await db.collection('userData')
-                .doc(telegramUser?.id.toString()).get();
-            const data = userDoc.data();
-            document.getElementById('gems').textContent = data.gems || 0;
-            document.getElementById('usdt').textContent = (data.usdt || 0).toFixed(4);
-            document.getElementById('ton').textContent = (data.ton || 0).toFixed(4);
-            document.getElementById('wallet-usdt').textContent = (data.usdt || 0).toFixed(4);
-            document.getElementById('wallet-ton').textContent = (data.ton || 0).toFixed(4);
+            if (!telegramUser) return;
+
+            try {
+                const userDoc = await db.collection('userData')
+                    .doc(telegramUser.id.toString()).get();
+                const data = userDoc.data();
+                document.getElementById('gems').textContent = data.gems || 0;
+                document.getElementById('usdt').textContent = (data.usdt || 0).toFixed(4);
+                document.getElementById('ton').textContent = (data.ton || 0).toFixed(4);
+                document.getElementById('wallet-usdt').textContent = (data.usdt || 0).toFixed(4);
+                document.getElementById('wallet-ton').textContent = (data.ton || 0).toFixed(4);
+                console.log("User stats updated successfully");
+            } catch (error) {
+                console.error("Error updating user stats UI:", error);
+            }
         }
 
         // Referral System
@@ -1006,9 +1035,12 @@
             const referralLink = `https://t.me/${botUsername}?start=ref_${telegramUser.id}`;
             document.querySelector('.invite-friend').setAttribute('data-link', referralLink);
             document.querySelector('.copy-link').setAttribute('data-link', referralLink);
+            console.log("Referral link generated:", referralLink);
         }
 
         async function handleReferral() {
+            if (!telegramUser) return;
+
             const initData = Telegram.WebApp.initDataUnsafe;
             const startParam = initData.start_param;
 
@@ -1019,83 +1051,105 @@
                 const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
                 const referrerDocRef = db.collection('userData').doc(referrerId);
 
-                const userDoc = await userDocRef.get();
-                if (userDoc.data().isReferred) return;
+                try {
+                    const userDoc = await userDocRef.get();
+                    if (userDoc.data().isReferred) return;
 
-                await userDocRef.update({ isReferred: true });
-                const referrerDoc = await referrerDocRef.get();
-                const newReferralCount = (referrerDoc.data().referrals || 0) + 1;
-                const newGems = (referrerDoc.data().gems || 0) + 50;
+                    await userDocRef.update({ isReferred: true });
+                    const referrerDoc = await referrerDocRef.get();
+                    const newReferralCount = (referrerDoc.data().referrals || 0) + 1;
+                    const newGems = (referrerDoc.data().gems || 0) + 50;
 
-                const newRecord = {
-                    username: telegramUser.username || telegramUser.first_name,
-                    joinTime: new Date().toISOString().replace('T', ' ').split('.')[0],
-                    credit: 10
-                };
+                    const newRecord = {
+                        username: telegramUser.username || telegramUser.first_name,
+                        joinTime: new Date().toISOString().replace('T', ' ').split('.')[0],
+                        credit: 10
+                    };
 
-                await referrerDocRef.update({
-                    referrals: newReferralCount,
-                    gems: newGems,
-                    inviteRecords: firebase.firestore.FieldValue.arrayUnion(newRecord)
-                });
+                    await referrerDocRef.update({
+                        referrals: newReferralCount,
+                        gems: newGems,
+                        inviteRecords: firebase.firestore.FieldValue.arrayUnion(newRecord)
+                    });
 
-                firebase.analytics().logEvent('referral_success', { referrerId, newUserId: telegramUser.id });
+                    analytics.logEvent('referral_success', { referrerId, newUserId: telegramUser.id });
+                    console.log("Referral handled successfully");
+                } catch (error) {
+                    console.error("Error handling referral:", error);
+                }
             }
         }
 
         async function updateInviteSectionUI() {
-            const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
-            const data = userDoc.data();
-            const referrals = data.referrals || 0;
-            const totalCredit = referrals * 10;
+            if (!telegramUser) return;
 
-            document.getElementById('my-invite').textContent = `My Invite: ${referrals}`;
-            document.getElementById('total-credit').textContent = `Total Credit ! : ${totalCredit}`;
-            document.getElementById('invite-record-title').textContent = `Invite Record (${referrals})`;
+            try {
+                const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
+                const data = userDoc.data();
+                const referrals = data.referrals || 0;
+                const totalCredit = referrals * 10;
 
-            const recordList = document.querySelector('.invite-record .record-list');
-            recordList.innerHTML = data.inviteRecords.length === 0 ? `
-                <div class="no-frens">
-                    <img src="assets/icons/nofrens.png" alt="No Frens">
-                    <p>No invites yet</p>
-                </div>
-            ` : data.inviteRecords.map(record => `
-                <div class="record-item">
-                    <img src="https://via.placeholder.com/40/808080/000000?text=${record.username[0]}" alt="${record.username}">
-                    <div class="user-info">
-                        <span>${record.username}</span>
-                        <small>${record.joinTime}</small>
+                document.getElementById('my-invite').textContent = `My Invite: ${referrals}`;
+                document.getElementById('total-credit').textContent = `Total Credit ! : ${totalCredit}`;
+                document.getElementById('invite-record-title').textContent = `Invite Record (${referrals})`;
+
+                const recordList = document.querySelector('.invite-record .record-list');
+                recordList.innerHTML = data.inviteRecords.length === 0 ? `
+                    <div class="no-frens">
+                        <img src="assets/icons/nofrens.png" alt="No Frens">
+                        <p>No invites yet</p>
                     </div>
-                    <span class="credit">${record.credit}</span>
-                </div>
-            `).join('');
+                ` : data.inviteRecords.map(record => `
+                    <div class="record-item">
+                        <img src="https://via.placeholder.com/40/808080/000000?text=${record.username[0]}" alt="${record.username}">
+                        <div class="user-info">
+                            <span>${record.username}</span>
+                            <small>${record.joinTime}</small>
+                        </div>
+                        <span class="credit">${record.credit}</span>
+                    </div>
+                `).join('');
+                console.log("Invite section UI updated successfully");
+            } catch (error) {
+                console.error("Error updating invite section UI:", error);
+            }
         }
 
         // Claim Credits Logic
         document.querySelector('.invite-section .claim-button').addEventListener('click', async () => {
-            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-            const userDoc = await userDocRef.get();
-            const data = userDoc.data();
-            const totalCredit = (data.referrals || 0) * 10;
-
-            if (totalCredit < 10000) {
-                alert(`You need 10,000 credits to claim 1 USDT. You have ${totalCredit}.`);
+            if (!telegramUser) {
+                alert("User not authenticated. Please try again.");
                 return;
             }
 
-            const usdtToClaim = Math.floor(totalCredit / 10000);
-            const remainingCredits = totalCredit % 10000;
-            const newReferralCount = Math.floor(remainingCredits / 10);
+            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+            try {
+                const userDoc = await userDocRef.get();
+                const data = userDoc.data();
+                const totalCredit = (data.referrals || 0) * 10;
 
-            await userDocRef.update({
-                usdt: firebase.firestore.FieldValue.increment(usdtToClaim),
-                referrals: newReferralCount
-            });
+                if (totalCredit < 10000) {
+                    alert(`You need 10,000 credits to claim 1 USDT. You have ${totalCredit}.`);
+                    return;
+                }
 
-            await updateUserStatsUI();
-            await updateInviteSectionUI();
-            alert(`Successfully claimed ${usdtToClaim} USDT!`);
-            firebase.analytics().logEvent('credit_claim', { userId: telegramUser.id, usdt: usdtToClaim });
+                const usdtToClaim = Math.floor(totalCredit / 10000);
+                const remainingCredits = totalCredit % 10000;
+                const newReferralCount = Math.floor(remainingCredits / 10);
+
+                await userDocRef.update({
+                    usdt: firebase.firestore.FieldValue.increment(usdtToClaim),
+                    referrals: newReferralCount
+                });
+
+                await updateUserStatsUI();
+                await updateInviteSectionUI();
+                alert(`Successfully claimed ${usdtToClaim} USDT!`);
+                analytics.logEvent('credit_claim', { userId: telegramUser.id, usdt: usdtToClaim });
+            } catch (error) {
+                console.error("Error claiming credits:", error);
+                alert("Failed to claim credits. Please try again.");
+            }
         });
 
         // Chest Slider Logic
@@ -1166,32 +1220,42 @@
         }
 
         async function openChest() {
-            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-            const userDoc = await userDocRef.get();
-            const userData = userDoc.data();
-            const chest = chests[currentChestIndex];
-
-            if (userData.gems < chest.gemCost) {
-                alert(`You need ${chest.gemCost} gems to open the ${chest.name}! Current: ${userData.gems}`);
+            if (!telegramUser) {
+                alert("User not authenticated. Please try again.");
                 return;
             }
 
-            const rewards = {
-                usdt: (Math.random() * 0.5 + 0.1).toFixed(4),
-                landPiece: 1,
-                foxMedal: 1
-            };
+            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+            try {
+                const userDoc = await userDocRef.get();
+                const userData = userDoc.data();
+                const chest = chests[currentChestIndex];
 
-            await userDocRef.update({
-                gems: userData.gems - chest.gemCost,
-                usdt: userData.usdt + parseFloat(rewards.usdt),
-                landPieces: firebase.firestore.FieldValue.increment(rewards.landPiece),
-                foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
-            });
+                if (userData.gems < chest.gemCost) {
+                    alert(`You need ${chest.gemCost} gems to open the ${chest.name}! Current: ${userData.gems}`);
+                    return;
+                }
 
-            await updateUserStatsUI();
-            alert(`Opened ${chest.name}! Rewards: ${rewards.usdt} USDT, ${rewards.landPiece} Land Piece, ${rewards.foxMedal} Fox Medal`);
-            firebase.analytics().logEvent('chest_opened', { chestName: chest.name, userId: telegramUser.id });
+                const rewards = {
+                    usdt: (Math.random() * 0.5 + 0.1).toFixed(4),
+                    landPiece: 1,
+                    foxMedal: 1
+                };
+
+                await userDocRef.update({
+                    gems: userData.gems - chest.gemCost,
+                    usdt: userData.usdt + parseFloat(rewards.usdt),
+                    landPieces: firebase.firestore.FieldValue.increment(rewards.landPiece),
+                    foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
+                });
+
+                await updateUserStatsUI();
+                alert(`Opened ${chest.name}! Rewards: ${rewards.usdt} USDT, ${rewards.landPiece} Land Piece, ${rewards.foxMedal} Fox Medal`);
+                analytics.logEvent('chest_opened', { chestName: chest.name, userId: telegramUser.id });
+            } catch (error) {
+                console.error("Error opening chest:", error);
+                alert("Failed to open chest. Please try again.");
+            }
         }
 
         updateChest();
@@ -1199,15 +1263,25 @@
         // Earn Section Interactions
         document.querySelectorAll('.go-button').forEach(button => {
             button.addEventListener('click', async () => {
-                const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-                const userDoc = await userDocRef.get();
-                const reward = parseInt(button.previousElementSibling.textContent.replace('+', ''));
-                const newGems = (userDoc.data().gems || 0) + reward;
+                if (!telegramUser) {
+                    alert("User not authenticated. Please try again.");
+                    return;
+                }
 
-                await userDocRef.update({ gems: newGems });
-                await updateUserStatsUI();
-                alert(`Task completed! +${reward} Gems`);
-                firebase.analytics().logEvent('task_completed', { userId: telegramUser.id });
+                const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+                try {
+                    const userDoc = await userDocRef.get();
+                    const reward = parseInt(button.previousElementSibling.textContent.replace('+', ''));
+                    const newGems = (userDoc.data().gems || 0) + reward;
+
+                    await userDocRef.update({ gems: newGems });
+                    await updateUserStatsUI();
+                    alert(`Task completed! +${reward} Gems`);
+                    analytics.logEvent('task_completed', { userId: telegramUser.id });
+                } catch (error) {
+                    console.error("Error completing task:", error);
+                    alert("Failed to complete task. Please try again.");
+                }
             });
         });
 
@@ -1231,25 +1305,38 @@
         // Invite Section Interactions
         document.querySelector('.invite-friend').addEventListener('click', function() {
             const referralLink = this.getAttribute('data-link');
-            Telegram.WebApp.openTelegramLink(referralLink);
-            firebase.analytics().logEvent('invite_friend_clicked', { userId: telegramUser.id });
+            try {
+                Telegram.WebApp.openTelegramLink(referralLink);
+                analytics.logEvent('invite_friend_clicked', { userId: telegramUser.id });
+            } catch (error) {
+                console.error("Error opening Telegram link:", error);
+                alert("Failed to open invite link. Please try again.");
+            }
         });
 
         document.querySelector('.copy-link').addEventListener('click', function() {
             const referralLink = this.getAttribute('data-link');
             navigator.clipboard.writeText(referralLink).then(() => {
                 alert('Invite link copied to clipboard: ' + referralLink);
-                firebase.analytics().logEvent('copy_link', { userId: telegramUser.id });
-            }).catch(err => alert('Failed to copy link: ' + err));
+                analytics.logEvent('copy_link', { userId: telegramUser.id });
+            }).catch(err => {
+                console.error("Error copying link:", err);
+                alert('Failed to copy link: ' + err);
+            });
         });
 
         // Initialize the app
         (async () => {
-            await initializeUserData();
-            generateReferralLink();
-            await handleReferral();
-            await updateInviteSectionUI();
-            updateChest();
+            try {
+                await initializeUserData();
+                generateReferralLink();
+                await handleReferral();
+                await updateInviteSectionUI();
+                updateChest();
+                console.log("App initialized successfully");
+            } catch (error) {
+                console.error("Error initializing app:", error);
+            }
         })();
     </script>
 </body>
