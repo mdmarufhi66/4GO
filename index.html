@@ -822,8 +822,10 @@
             }
 
             const userId = user.id;
-            const botUsername = 'My4MetasBot'; // Replace with your bot's username
+            const botUsername = 'fourgobot'; // Replace with your bot's actual username (without the @)
             const referralLink = `https://t.me/${botUsername}?start=ref_${userId}`;
+            
+            console.log('Generated referral link:', referralLink); // Debug log
             
             document.querySelector('.invite-friend').setAttribute('data-link', referralLink);
             document.querySelector('.copy-link').setAttribute('data-link', referralLink);
@@ -1178,6 +1180,7 @@
 
         document.querySelector('.copy-link').addEventListener('click', function() {
             const referralLink = this.getAttribute('data-link');
+            console.log('Copying referral link:', referralLink); // Debug log
             navigator.clipboard.writeText(referralLink).then(() => {
                 alert('Invite link copied to clipboard: ' + referralLink);
             }).catch(err => {
