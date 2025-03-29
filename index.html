@@ -448,53 +448,47 @@
     </header>
     <section class="user-stats">
         <div class="logo">
-            <img src="assets/icons/logo.png" alt="4Metas Logo">
+            <img src="assets/icons/logo.png" alt="4Metas Logo" onerror="this.src='https://via.placeholder.com/50'">
         </div>
         <div class="metric">
-            <img src="assets/icons/gem.png" alt="Gem">
+            <img src="assets/icons/gem.png" alt="Gem" onerror="this.src='https://via.placeholder.com/20'">
             <span id="gems">0</span>
         </div>
         <div class="metric">
-            <img src="assets/icons/usdt.png" alt="USDT">
+            <img src="assets/icons/usdt.png" alt="USDT" onerror="this.src='https://via.placeholder.com/20'">
             <span id="usdt">0.0000</span>
         </div>
         <div class="metric">
-            <img src="assets/icons/ton.png" alt="TON">
+            <img src="assets/icons/ton.png" alt="TON" onerror="this.src='https://via.placeholder.com/20'">
             <span id="ton">0.0000</span>
         </div>
         <div class="profile-pic">
-            <img src="assets/icons/user-avatar.png" alt="User Profile">
+            <img src="assets/icons/user-avatar.png" alt="User Profile" onerror="this.src='https://via.placeholder.com/40'">
         </div>
     </section>
 
-    <!-- Earn Section -->
     <section id="earn" class="section earn-section active">
         <div class="banner-placeholder">
-            <img src="assets/icons/banner.png" alt="Banner">
+            <img src="assets/icons/banner.png" alt="Banner" onerror="this.src='https://via.placeholder.com/300x100'">
         </div>
         <div class="quest-section">
             <h2>DAILY QUEST <span class="badge" id="daily-quest-count">0</span></h2>
             <ul class="quest-list" id="daily-quest-list">
-                <li class="no-quests">
-                    <p>No daily quests available</p>
-                </li>
+                <li class="no-quests"><p>No daily quests available</p></li>
             </ul>
         </div>
         <div class="quest-section">
             <h2>BASIC QUEST <span class="badge" id="basic-quest-count">0</span></h2>
             <ul class="quest-list" id="basic-quest-list">
-                <li class="no-quests">
-                    <p>No basic quests available</p>
-                </li>
+                <li class="no-quests"><p>No basic quests available</p></li>
             </ul>
         </div>
     </section>
 
-    <!-- Wallet Section -->
     <section id="wallet" class="section wallet-section">
         <h2>Wallet</h2>
         <div class="balance-card usdt-card">
-            <img src="assets/icons/usdt.png" alt="USDT Icon">
+            <img src="assets/icons/usdt.png" alt="USDT Icon" onerror="this.src='https://via.placeholder.com/30'">
             <div class="balance-info">
                 <span id="wallet-usdt">0.0000</span>
                 <small>USDT</small>
@@ -503,7 +497,7 @@
             <button class="warning-button">!</button>
         </div>
         <div class="balance-card ton-card">
-            <img src="assets/icons/ton.png" alt="TON Icon">
+            <img src="assets/icons/ton.png" alt="TON Icon" onerror="this.src='https://via.placeholder.com/30'">
             <div class="balance-info">
                 <span id="wallet-ton">0.0000</span>
                 <small>TON</small>
@@ -515,10 +509,9 @@
         <button class="connect-button">CONNECT TON WALLET</button>
     </section>
 
-    <!-- Game Section -->
     <section id="game" class="section game-section">
         <div class="banner-placeholder">
-            <img src="assets/icons/game-banner.png" alt="Game Banner">
+            <img src="assets/icons/game-banner.png" alt="Game Banner" onerror="this.src='https://via.placeholder.com/300x100'">
         </div>
         <h2>Game List</h2>
         <div class="game-list">
@@ -581,7 +574,6 @@
         </div>
     </section>
 
-    <!-- Invite Section -->
     <section id="invite" class="section invite-section">
         <div class="invite-stats">
             <span id="my-invite">My Invite: 0</span>
@@ -597,14 +589,14 @@
         <div class="total-credit">
             <div class="credit-info">
                 <span id="total-credit">Total Credit <span class="warning">!</span> : 0</span>
-                <small>10,000 = 1 <img src="assets/icons/usdt.png" alt="USDT"></small>
+                <small>10,000 = 1 <img src="assets/icons/usdt.png" alt="USDT" onerror="this.src='https://via.placeholder.com/15'"></small>
             </div>
             <button class="claim-button">Claim</button>
         </div>
         <div class="record-section">
             <h3>Claim Record</h3>
             <div class="no-frens">
-                <img src="assets/icons/nofrens.png" alt="No Frens">
+                <img src="assets/icons/nofrens.png" alt="No Frens" onerror="this.src='https://via.placeholder.com/50'">
                 <p>No Frens yet</p>
             </div>
         </div>
@@ -617,85 +609,77 @@
             </div>
             <div class="record-list">
                 <div class="no-frens">
-                    <img src="assets/icons/nofrens.png" alt="No Frens">
+                    <img src="assets/icons/nofrens.png" alt="No Frens" onerror="this.src='https://via.placeholder.com/50'">
                     <p>No invites yet</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Chest Section -->
     <section id="chest" class="section chest-section">
         <div class="chest-slider">
-            <button class="nav-arrow left" onclick="prevChest()"><</button>
-            <div class="chest-container" id="chestContainer">
-                <!-- Chest items will be dynamically added here -->
-            </div>
-            <button class="nav-arrow right" onclick="nextChest()">></button>
+            <button class="nav-arrow left" onclick="prevChest()">&lt;</button>
+            <div class="chest-container" id="chestContainer"></div>
+            <button class="nav-arrow right" onclick="nextChest()">&gt;</button>
         </div>
         <div class="rewards">
             <div class="reward-item usdt">
-                <img src="assets/icons/usdt.png" alt="USDT">
+                <img src="assets/icons/usdt.png" alt="USDT" onerror="this.src='https://via.placeholder.com/40'">
                 <p>USDT</p>
             </div>
             <div class="reward-item land-piece">
-                <img src="assets/icons/land-piece.png" alt="Land Piece">
+                <img src="assets/icons/land-piece.png" alt="Land Piece" onerror="this.src='https://via.placeholder.com/40'">
                 <p>Land Piece</p>
             </div>
             <div class="reward-item fox-medal">
-                <img src="assets/icons/fox-medal.png" alt="Fox Medal">
+                <img src="assets/icons/fox-medal.png" alt="Fox Medal" onerror="this.src='https://via.placeholder.com/40'">
                 <p>Fox Medal</p>
             </div>
         </div>
         <div class="cost" id="chestCost">
             <span>200</span>
-            <img src="assets/icons/gem.png" alt="Gem">
+            <img src="assets/icons/gem.png" alt="Gem" onerror="this.src='https://via.placeholder.com/20'">
         </div>
-        <div class="vip-requirement" id="chestVipRequirement" style="display: none;">
-            NEED VIP 1
-        </div>
+        <div class="vip-requirement" id="chestVipRequirement" style="display: none;">NEED VIP 1</div>
         <button class="open-chest-button" onclick="openChest()">Open Chest</button>
     </section>
 
-    <!-- Top Section -->
     <section id="top" class="section top-section">
         <h2>Medal Ranking <span class="warning">!</span></h2>
         <ul class="ranking-list" id="ranking-list">
-            <li class="no-rankings">
-                <p>No rankings available</p>
-            </li>
+            <li class="no-rankings"><p>No rankings available</p></li>
         </ul>
     </section>
 
     <nav class="bottom-nav">
         <button class="nav-button active" data-section="earn">
-            <img src="assets/icons/earn.png" alt="Earn">
+            <img src="assets/icons/earn.png" alt="Earn" onerror="this.src='https://via.placeholder.com/24'">
             Earn
         </button>
         <button class="nav-button" data-section="wallet">
-            <img src="assets/icons/wallet.png" alt="Wallet">
+            <img src="assets/icons/wallet.png" alt="Wallet" onerror="this.src='https://via.placeholder.com/24'">
             Wallet
         </button>
         <button class="nav-button" data-section="game">
-            <img src="assets/icons/game.png" alt="Game">
+            <img src="assets/icons/game.png" alt="Game" onerror="this.src='https://via.placeholder.com/24'">
             Game
         </button>
         <button class="nav-button" data-section="invite">
-            <img src="assets/icons/invite.png" alt="Invite">
+            <img src="assets/icons/invite.png" alt="Invite" onerror="this.src='https://via.placeholder.com/24'">
             Invite
         </button>
         <button class="nav-button" data-section="chest">
-            <img src="assets/icons/chest.png" alt="Chest">
+            <img src="assets/icons/chest.png" alt="Chest" onerror="this.src='https://via.placeholder.com/24'">
             Chest
         </button>
         <button class="nav-button" data-section="top">
-            <img src="assets/icons/top.png" alt="Top">
+            <img src="assets/icons/top.png" alt="Top" onerror="this.src='https://via.placeholder.com/24'">
             Top
         </button>
     </nav>
 
     <script>
-        // Function to dynamically load a script and return a Promise
+        // Utility to load scripts with retries
         function loadScript(src, retries = 3, delay = 1000) {
             return new Promise((resolve, reject) => {
                 let attempts = 0;
@@ -703,19 +687,11 @@
                     const script = document.createElement('script');
                     script.src = src;
                     script.async = true;
-                    script.onload = () => {
-                        console.log(`Script loaded successfully: ${src}`);
-                        resolve();
-                    };
+                    script.onload = () => resolve();
                     script.onerror = () => {
                         attempts++;
-                        if (attempts < retries) {
-                            console.warn(`Failed to load script: ${src}. Retrying (${attempts}/${retries})...`);
-                            setTimeout(tryLoad, delay);
-                        } else {
-                            console.error(`Failed to load script after ${retries} attempts: ${src}`);
-                            reject(new Error(`Failed to load script after ${retries} attempts: ${src}`));
-                        }
+                        if (attempts < retries) setTimeout(tryLoad, delay);
+                        else reject(new Error(`Failed to load ${src} after ${retries} attempts`));
                     };
                     document.head.appendChild(script);
                 };
@@ -723,7 +699,7 @@
             });
         }
 
-        // Firebase Configuration
+        // Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyCUkEmFmJK2vr8k7M6JqYaxlcgBDf7WdJI",
             authDomain: "fourgo-cd98f.firebaseapp.com",
@@ -734,528 +710,255 @@
             measurementId: "G-DC7E6ECF2L"
         };
 
-        // Validate Firebase Configuration
-        function validateFirebaseConfig(config) {
-            const requiredFields = [
-                'apiKey',
-                'authDomain',
-                'projectId',
-                'storageBucket',
-                'messagingSenderId',
-                'appId'
-            ];
-            for (const field of requiredFields) {
-                if (!config[field]) {
-                    throw new Error(`Firebase config is missing required field: ${field}`);
-                }
-            }
-            console.log("Firebase config validated successfully");
-        }
-
-        // Initialize Firebase with dynamic loading using compat scripts
+        // Firebase Instances
         let app, db, auth, storage, analytics;
         let firebaseInitialized = false;
+
+        // Initialize Firebase
         async function initializeFirebase() {
+            if (firebaseInitialized) return;
             try {
-                console.log("Starting Firebase initialization...");
-
-                // Validate Firebase config
-                validateFirebaseConfig(firebaseConfig);
-
-                // Use Firebase compat scripts version 9.22.0
-                const primaryUrls = [
+                const scripts = [
                     'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js',
                     'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js',
                     'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js',
                     'https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js',
                     'https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js'
                 ];
+                await Promise.all(scripts.map(url => loadScript(url)));
+                if (typeof firebase === 'undefined') throw new Error("Firebase SDK not loaded");
 
-                const fallbackUrls = [
-                    'https://cdn.jsdelivr.net/npm/firebase@9.22.0/lib/firebase-app-compat.js',
-                    'https://cdn.jsdelivr.net/npm/firebase@9.22.0/lib/firebase-auth-compat.js',
-                    'https://cdn.jsdelivr.net/npm/firebase@9.22.0/lib/firebase-firestore-compat.js',
-                    'https://cdn.jsdelivr.net/npm/firebase@9.22.0/lib/firebase-storage-compat.js',
-                    'https://cdn.jsdelivr.net/npm/firebase@9.22.0/lib/firebase-analytics-compat.js'
-                ];
-
-                let scriptsLoaded = false;
-                try {
-                    console.log("Attempting to load scripts from primary CDN...");
-                    await Promise.all(primaryUrls.map(url => loadScript(url)));
-                    scriptsLoaded = true;
-                    console.log("Primary CDN scripts loaded successfully");
-                } catch (error) {
-                    console.error("Primary CDN failed, falling back to jsdelivr:", error);
-                    console.log("Attempting to load scripts from fallback CDN...");
-                    await Promise.all(fallbackUrls.map(url => loadScript(url)));
-                    scriptsLoaded = true;
-                    console.log("Fallback CDN scripts loaded successfully");
-                }
-
-                if (!scriptsLoaded) {
-                    throw new Error("Failed to load Firebase scripts from both primary and fallback CDNs");
-                }
-
-                console.log("Checking if firebase is defined...");
-                if (typeof firebase === 'undefined') {
-                    throw new Error("Firebase SDK not loaded properly after script loading");
-                }
-
-                console.log("Checking if firebase.firestore is defined...");
-                if (typeof firebase.firestore !== 'function') {
-                    throw new Error("firebase.firestore is not a function. Firestore compat script may have failed to execute properly.");
-                }
-
-                console.log("Initializing Firebase app...");
                 app = firebase.initializeApp(firebaseConfig);
-                console.log("Firebase app initialized successfully");
-
-                console.log("Initializing Firestore...");
                 db = firebase.firestore();
-                console.log("Firestore instance:", db); // Debug: Log the db instance
-                if (!db) {
-                    throw new Error("Firestore initialization returned undefined");
-                }
-                console.log("Firestore initialized successfully");
-
-                console.log("Initializing Auth...");
                 auth = firebase.auth();
-                console.log("Auth initialized successfully");
-
-                console.log("Initializing Storage...");
                 storage = firebase.storage();
-                console.log("Storage initialized successfully");
-
-                console.log("Initializing Analytics...");
                 analytics = firebase.analytics();
-                console.log("Analytics initialized successfully");
 
+                // Verify Firestore
+                await db.collection('test').doc('init').set({ timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 firebaseInitialized = true;
-                console.log("Firebase fully initialized successfully");
+                console.log("Firebase initialized successfully");
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
-                firebaseInitialized = false;
                 throw error;
             }
         }
 
-        // Telegram Web App Setup with error handling
+        // Wait for Firebase
+        async function ensureFirebase() {
+            if (!firebaseInitialized) await initializeFirebase();
+            if (!firebaseInitialized) throw new Error("Firebase not initialized");
+        }
+
+        // Telegram Setup
         let telegramUser;
         try {
             window.Telegram.WebApp.ready();
-            telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
-            if (telegramUser) {
-                const profilePic = document.querySelector('.profile-pic img');
-                profilePic.src = telegramUser.photo_url || 'assets/icons/user-avatar.png';
-                document.querySelector('h1').innerText = `4Metas`;
-                console.log("Telegram Web App initialized successfully");
-            } else {
-                console.warn("No Telegram user data available. Running in test mode.");
-                telegramUser = {
-                    id: "test_user_123",
-                    username: "TestUser",
-                    first_name: "Test",
-                    photo_url: "https://via.placeholder.com/40/808080/000000?text=T"
-                };
-            }
-        } catch (error) {
-            console.error("Telegram Web App initialization failed:", error);
-            telegramUser = {
+            telegramUser = window.Telegram.WebApp.initDataUnsafe.user || {
                 id: "test_user_123",
                 username: "TestUser",
                 first_name: "Test",
-                photo_url: "https://via.placeholder.com/40/808080/000000?text=T"
+                photo_url: "https://via.placeholder.com/40"
             };
+            document.querySelector('.profile-pic img').src = telegramUser.photo_url || 'assets/icons/user-avatar.png';
+        } catch (error) {
+            console.error("Telegram setup failed:", error);
+            telegramUser = { id: "test_user_123", username: "TestUser", first_name: "Test" };
         }
 
-        // Storage abstraction using Firebase Firestore
-        const Storage = {
-            getItem: async (key) => {
-                if (!firebaseInitialized || !db) {
-                    console.error("Firestore database is not initialized. Cannot fetch item:", key);
-                    return null;
-                }
-                try {
-                    const doc = await db.collection('userData')
-                        .doc(telegramUser?.id.toString()).get();
-                    return doc.exists ? doc.data()[key] : null;
-                } catch (error) {
-                    console.error(`Error fetching ${key}:`, error);
-                    return null;
-                }
-            },
-            setItem: async (key, value) => {
-                if (!firebaseInitialized || !db) {
-                    console.error("Firestore database is not initialized. Cannot set item:", key);
-                    return false;
-                }
-                try {
-                    await db.collection('userData')
-                        .doc(telegramUser?.id.toString())
-                        .set({ [key]: value }, { merge: true });
-                    return true;
-                } catch (error) {
-                    console.error(`Error setting ${key}:`, error);
-                    return false;
-                }
-            }
-        };
+        // User Data Cache
+        let userDataCache = null;
 
-        // Navigation Logic
+        // Navigation
         const sections = document.querySelectorAll('.section');
         const navButtons = document.querySelectorAll('.nav-button');
-
         function switchSection(sectionId) {
-            console.log(`Attempting to switch to section: ${sectionId}`);
-
-            sections.forEach(section => {
-                section.classList.remove('active');
-                console.log(`Hiding section: ${section.id}`);
-            });
-            navButtons.forEach(btn => {
-                btn.classList.remove('active');
-                console.log(`Removing active from button: ${btn.getAttribute('data-section')}`);
-            });
-
-            const targetSection = document.getElementById(sectionId);
-            const targetButton = document.querySelector(`.nav-button[data-section="${sectionId}"]`);
-
-            if (targetSection && targetButton) {
-                targetSection.classList.add('active');
-                targetButton.classList.add('active');
-                console.log(`Successfully showing section: ${sectionId}`);
-            } else {
-                console.error(`Failed to switch to section: ${sectionId}`);
-                if (!targetSection) console.error(`Section with id "${sectionId}" not found`);
-                if (!targetButton) console.error(`Button with data-section "${sectionId}" not found`);
-            }
-
+            sections.forEach(s => s.classList.remove('active'));
+            navButtons.forEach(b => b.classList.remove('active'));
+            document.getElementById(sectionId)?.classList.add('active');
+            document.querySelector(`.nav-button[data-section="${sectionId}"]`)?.classList.add('active');
             if (sectionId === 'earn') updateEarnSectionUI();
             if (sectionId === 'invite') updateInviteSectionUI();
             if (sectionId === 'top') updateTopSectionUI();
         }
-
-        navButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const sectionId = button.getAttribute('data-section');
-                console.log(`Navigation button clicked for section: ${sectionId}`);
-                switchSection(sectionId);
-            });
-        });
-
-        console.log('Setting default section to Earn');
+        navButtons.forEach(btn => btn.addEventListener('click', () => switchSection(btn.getAttribute('data-section'))));
         switchSection('earn');
 
-        // User Data Management
+        // User Data
         async function initializeUserData() {
-            if (!telegramUser) {
-                console.warn("Cannot initialize user data: No Telegram user available");
-                return;
-            }
-
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore database is not initialized. Cannot initialize user data.");
-                return;
-            }
-
+            await ensureFirebase();
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
             const rankingDocRef = db.collection('users').doc(telegramUser.id.toString());
-            try {
-                const doc = await userDocRef.get();
-                if (!doc.exists) {
-                    await userDocRef.set({
-                        gems: 0,
-                        usdt: 0,
-                        ton: 0,
-                        referrals: 0,
-                        inviteRecords: [],
-                        landPieces: 0,
-                        foxMedals: 0,
-                        isReferred: false,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-
-                    await rankingDocRef.set({
-                        username: telegramUser.username || telegramUser.first_name || 'Anonymous',
-                        foxMedals: 0,
-                        photoUrl: telegramUser.photo_url || 'https://via.placeholder.com/40/808080/000000?text=U'
-                    });
-
-                    analytics.logEvent('user_signup', { userId: telegramUser.id });
-                    console.log("New user data initialized");
-                }
-                await updateUserStatsUI();
-            } catch (error) {
-                console.error("Error initializing user data:", error);
+            const doc = await userDocRef.get();
+            if (!doc.exists) {
+                await userDocRef.set({
+                    gems: 0,
+                    usdt: 0,
+                    ton: 0,
+                    referrals: 0,
+                    inviteRecords: [],
+                    landPieces: 0,
+                    foxMedals: 0,
+                    isReferred: false,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                await rankingDocRef.set({
+                    username: telegramUser.username || telegramUser.first_name || 'Anonymous',
+                    foxMedals: 0,
+                    photoUrl: telegramUser.photo_url || 'https://via.placeholder.com/40'
+                });
+                analytics.logEvent('user_signup', { userId: telegramUser.id });
             }
+            await updateUserStatsUI();
         }
 
         async function updateUserStatsUI() {
-            if (!telegramUser) return;
-
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore database is not initialized. Cannot update user stats UI.");
-                return;
+            await ensureFirebase();
+            if (!userDataCache) {
+                const doc = await db.collection('userData').doc(telegramUser.id.toString()).get();
+                userDataCache = doc.data() || {};
             }
-
-            try {
-                const userDoc = await db.collection('userData')
-                    .doc(telegramUser.id.toString()).get();
-                const data = userDoc.data();
-                document.getElementById('gems').textContent = data.gems || 0;
-                document.getElementById('usdt').textContent = (data.usdt || 0).toFixed(4);
-                document.getElementById('ton').textContent = (data.ton || 0).toFixed(4);
-                document.getElementById('wallet-usdt').textContent = (data.usdt || 0).toFixed(4);
-                document.getElementById('wallet-ton').textContent = (data.ton || 0).toFixed(4);
-                console.log("User stats updated successfully");
-            } catch (error) {
-                console.error("Error updating user stats UI:", error);
-            }
+            const d = userDataCache;
+            document.getElementById('gems').textContent = d.gems || 0;
+            document.getElementById('usdt').textContent = (d.usdt || 0).toFixed(4);
+            document.getElementById('ton').textContent = (d.ton || 0).toFixed(4);
+            document.getElementById('wallet-usdt').textContent = (d.usdt || 0).toFixed(4);
+            document.getElementById('wallet-ton').textContent = (d.ton || 0).toFixed(4);
         }
 
-        // Fetch and Update Earn Section (Quests)
+        // Earn Section
         async function updateEarnSectionUI() {
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore database is not initialized. Please check Firebase setup.");
-                return;
-            }
-            try {
-                const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get();
-                const dailyQuests = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data().tasks : [];
-                const dailyQuestList = document.getElementById('daily-quest-list');
-                const dailyQuestCount = document.getElementById('daily-quest-count');
-
-                dailyQuestCount.textContent = dailyQuests.length;
-                dailyQuestList.innerHTML = dailyQuests.length === 0 ? `
-                    <li class="no-quests">
-                        <p>No daily quests available</p>
-                    </li>
-                ` : dailyQuests.map(quest => `
-                    <li class="quest-item">
-                        <img src="${quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q'}" alt="${quest.title}">
-                        <span>${quest.title}</span>
-                        <div class="quest-reward">
-                            <img src="assets/icons/gem.png" alt="Gem">
-                            <span>+${quest.reward}</span>
-                            <button class="go-button">${quest.action || 'GO'}</button>
-                        </div>
-                    </li>
-                `).join('');
-
-                const basicQuestsSnapshot = await db.collection('quests').doc('basic').get();
-                const basicQuests = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data().tasks : [];
-                const basicQuestList = document.getElementById('basic-quest-list');
-                const basicQuestCount = document.getElementById('basic-quest-count');
-
-                basicQuestCount.textContent = basicQuests.length;
-                basicQuestList.innerHTML = basicQuests.length === 0 ? `
-                    <li class="no-quests">
-                        <p>No basic quests available</p>
-                    </li>
-                ` : basicQuests.map(quest => `
-                    <li class="quest-item">
-                        <img src="${quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q'}" alt="${quest.title}">
-                        <span>${quest.title}</span>
-                        <div class="quest-reward">
-                            <img src="assets/icons/gem.png" alt="Gem">
-                            <span>+${quest.reward}</span>
-                            <button class="go-button">${quest.action || 'GO'}</button>
-                        </div>
-                    </li>
-                `).join('');
-
-                console.log("Earn section UI updated successfully");
-            } catch (error) {
-                console.error("Error updating earn section UI:", error);
-            }
+            await ensureFirebase();
+            const [daily, basic] = await Promise.all([
+                db.collection('quests').doc('daily').get(),
+                db.collection('quests').doc('basic').get()
+            ]);
+            const dailyQuests = daily.exists ? daily.data().tasks : [];
+            const basicQuests = basic.exists ? basic.data().tasks : [];
+            document.getElementById('daily-quest-count').textContent = dailyQuests.length;
+            document.getElementById('daily-quest-list').innerHTML = dailyQuests.length ? dailyQuests.map(q => `
+                <li class="quest-item">
+                    <img src="${q.icon || 'https://via.placeholder.com/30'}" alt="${q.title}">
+                    <span>${q.title}</span>
+                    <div class="quest-reward">
+                        <img src="assets/icons/gem.png" alt="Gem">
+                        <span>+${q.reward}</span>
+                        <button class="go-button">${q.action || 'GO'}</button>
+                    </div>
+                </li>
+            `).join('') : '<li class="no-quests"><p>No daily quests available</p></li>';
+            document.getElementById('basic-quest-count').textContent = basicQuests.length;
+            document.getElementById('basic-quest-list').innerHTML = basicQuests.length ? basicQuests.map(q => `
+                <li class="quest-item">
+                    <img src="${q.icon || 'https://via.placeholder.com/30'}" alt="${q.title}">
+                    <span>${q.title}</span>
+                    <div class="quest-reward">
+                        <img src="assets/icons/gem.png" alt="Gem">
+                        <span>+${q.reward}</span>
+                        <button class="go-button">${q.action || 'GO'}</button>
+                    </div>
+                </li>
+            `).join('') : '<li class="no-quests"><p>No basic quests available</p></li>';
         }
 
         // Referral System
         function generateReferralLink() {
-            if (!telegramUser) return;
-            const botUsername = 'fourgobot';
-            const referralLink = `https://t.me/${botUsername}?start=ref_${telegramUser.id}`;
-            document.querySelector('.invite-friend').setAttribute('data-link', referralLink);
-            document.querySelector('.copy-link').setAttribute('data-link', referralLink);
-            console.log("Referral link generated:", referralLink);
+            const link = `https://t.me/fourgobot?start=ref_${telegramUser.id}`;
+            document.querySelector('.invite-friend').setAttribute('data-link', link);
+            document.querySelector('.copy-link').setAttribute('data-link', link);
         }
 
         async function handleReferral() {
-            if (!telegramUser) return;
-
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore database is not initialized. Cannot handle referral.");
-                return;
-            }
-
-            const initData = Telegram.WebApp.initDataUnsafe;
-            const startParam = initData.start_param;
-
-            if (startParam && startParam.startsWith('ref_')) {
+            await ensureFirebase();
+            const startParam = Telegram.WebApp.initDataUnsafe.start_param;
+            if (startParam?.startsWith('ref_')) {
                 const referrerId = startParam.split('_')[1];
                 if (referrerId === telegramUser.id.toString()) return;
-
                 const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
                 const referrerDocRef = db.collection('userData').doc(referrerId);
-
-                try {
-                    const userDoc = await userDocRef.get();
-                    if (userDoc.data().isReferred) return;
-
+                const userDoc = await userDocRef.get();
+                if (!userDoc.data().isReferred) {
                     await userDocRef.update({ isReferred: true });
                     const referrerDoc = await referrerDocRef.get();
-                    const newReferralCount = (referrerDoc.data().referrals || 0) + 1;
-                    const newGems = (referrerDoc.data().gems || 0) + 50;
-
+                    const d = referrerDoc.data();
                     const newRecord = {
                         username: telegramUser.username || telegramUser.first_name,
                         joinTime: new Date().toISOString().replace('T', ' ').split('.')[0],
                         credit: 10
                     };
-
                     await referrerDocRef.update({
-                        referrals: newReferralCount,
-                        gems: newGems,
+                        referrals: (d.referrals || 0) + 1,
+                        gems: (d.gems || 0) + 50,
                         inviteRecords: firebase.firestore.FieldValue.arrayUnion(newRecord)
                     });
-
                     analytics.logEvent('referral_success', { referrerId, newUserId: telegramUser.id });
-                    console.log("Referral handled successfully");
-                } catch (error) {
-                    console.error("Error handling referral:", error);
                 }
             }
         }
 
         async function updateInviteSectionUI() {
-            if (!telegramUser) return;
-
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore database is not initialized. Cannot update invite section UI.");
-                return;
-            }
-
-            try {
-                const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
-                const data = userDoc.data();
-                const referrals = data.referrals || 0;
-                const totalCredit = referrals * 10;
-
-                document.getElementById('my-invite').textContent = `My Invite: ${referrals}`;
-                document.getElementById('total-credit').textContent = `Total Credit ! : ${totalCredit}`;
-                document.getElementById('invite-record-title').textContent = `Invite Record (${referrals})`;
-
-                const recordList = document.querySelector('.invite-record .record-list');
-                recordList.innerHTML = data.inviteRecords.length === 0 ? `
-                    <div class="no-frens">
-                        <img src="assets/icons/nofrens.png" alt="No Frens">
-                        <p>No invites yet</p>
+            await ensureFirebase();
+            const doc = await db.collection('userData').doc(telegramUser.id.toString()).get();
+            const d = doc.data() || {};
+            const referrals = d.referrals || 0;
+            document.getElementById('my-invite').textContent = `My Invite: ${referrals}`;
+            document.getElementById('total-credit').textContent = `Total Credit ! : ${referrals * 10}`;
+            document.getElementById('invite-record-title').textContent = `Invite Record (${referrals})`;
+            document.querySelector('.record-list').innerHTML = d.inviteRecords?.length ? d.inviteRecords.map(r => `
+                <div class="record-item">
+                    <img src="https://via.placeholder.com/40?text=${r.username[0]}" alt="${r.username}">
+                    <div class="user-info">
+                        <span>${r.username}</span>
+                        <small>${r.joinTime}</small>
                     </div>
-                ` : data.inviteRecords.map(record => `
-                    <div class="record-item">
-                        <img src="https://via.placeholder.com/40/808080/000000?text=${record.username[0]}" alt="${record.username}">
-                        <div class="user-info">
-                            <span>${record.username}</span>
-                            <small>${record.joinTime}</small>
-                        </div>
-                        <span class="credit">${record.credit}</span>
-                    </div>
-                `).join('');
-                console.log("Invite section UI updated successfully");
-            } catch (error) {
-                console.error("Error updating invite section UI:", error);
-            }
+                    <span class="credit">${r.credit}</span>
+                </div>
+            `).join('') : '<div class="no-frens"><img src="assets/icons/nofrens.png" alt="No Frens"><p>No invites yet</p></div>';
         }
 
-        // Fetch and Update Top Section (Medal Rankings)
+        // Top Section
         async function updateTopSectionUI() {
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore database is not initialized. Cannot update top section UI.");
-                return;
-            }
-
-            try {
-                const rankingsSnapshot = await db.collection('users')
-                    .orderBy('foxMedals', 'desc')
-                    .limit(20)
-                    .get();
-                const rankings = [];
-                rankingsSnapshot.forEach(doc => {
-                    const data = doc.data();
-                    rankings.push({
-                        username: data.username || 'Anonymous',
-                        foxMedals: data.foxMedals || 0,
-                        photoUrl: data.photoUrl || 'https://via.placeholder.com/40/808080/000000?text=U'
-                    });
-                });
-
-                const rankingList = document.getElementById('ranking-list');
-                rankingList.innerHTML = rankings.length === 0 ? `
-                    <li class="no-rankings">
-                        <p>No rankings available</p>
-                    </li>
-                ` : rankings.map(user => `
+            await ensureFirebase();
+            const rankings = await db.collection('users').orderBy('foxMedals', 'desc').limit(20).get();
+            document.getElementById('ranking-list').innerHTML = rankings.empty ? '<li class="no-rankings"><p>No rankings available</p></li>' : rankings.docs.map(doc => {
+                const u = doc.data();
+                return `
                     <li class="ranking-item">
-                        <img src="${user.photoUrl}" alt="${user.username}">
-                        <span>${user.username}</span>
+                        <img src="${u.photoUrl || 'https://via.placeholder.com/40'}" alt="${u.username}">
+                        <span>${u.username}</span>
                         <div class="medal-count">
-                            <span>${user.foxMedals}</span>
+                            <span>${u.foxMedals || 0}</span>
                             <img src="assets/icons/fox-medal.png" alt="Fox Medal">
                         </div>
                     </li>
-                `).join('');
-
-                console.log("Top section UI updated successfully");
-            } catch (error) {
-                console.error("Error updating top section UI:", error);
-            }
+                `;
+            }).join('');
         }
 
-        // Claim Credits Logic
-        document.querySelector('.invite-section .claim-button').addEventListener('click', async () => {
-            if (!telegramUser) {
-                alert("User not authenticated. Please try again.");
-                return;
-            }
-
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore database is not initialized. Cannot claim credits.");
-                alert("Database not initialized. Please try again later.");
-                return;
-            }
-
+        // Claim Credits
+        document.querySelector('.claim-button').addEventListener('click', async () => {
+            await ensureFirebase();
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-            try {
-                const userDoc = await userDocRef.get();
-                const data = userDoc.data();
-                const totalCredit = (data.referrals || 0) * 10;
-
-                if (totalCredit < 10000) {
-                    alert(`You need 10,000 credits to claim 1 USDT. You have ${totalCredit}.`);
-                    return;
-                }
-
-                const usdtToClaim = Math.floor(totalCredit / 10000);
-                const remainingCredits = totalCredit % 10000;
-                const newReferralCount = Math.floor(remainingCredits / 10);
-
-                await userDocRef.update({
-                    usdt: firebase.firestore.FieldValue.increment(usdtToClaim),
-                    referrals: newReferralCount
-                });
-
-                await updateUserStatsUI();
-                await updateInviteSectionUI();
-                alert(`Successfully claimed ${usdtToClaim} USDT!`);
-                analytics.logEvent('credit_claim', { userId: telegramUser.id, usdt: usdtToClaim });
-            } catch (error) {
-                console.error("Error claiming credits:", error);
-                alert("Failed to claim credits. Please try again.");
+            const doc = await userDocRef.get();
+            const d = doc.data();
+            const totalCredit = (d.referrals || 0) * 10;
+            if (totalCredit < 10000) {
+                alert(`Need 10,000 credits for 1 USDT. Current: ${totalCredit}`);
+                return;
             }
+            const usdt = Math.floor(totalCredit / 10000);
+            await userDocRef.update({
+                usdt: firebase.firestore.FieldValue.increment(usdt),
+                referrals: Math.floor((totalCredit % 10000) / 10)
+            });
+            userDataCache = null;
+            await updateUserStatsUI();
+            await updateInviteSectionUI();
+            alert(`Claimed ${usdt} USDT!`);
+            analytics.logEvent('credit_claim', { userId: telegramUser.id, usdt });
         });
 
-        // Chest Slider Logic
+        // Chest Logic
         const chests = [
             { name: "Wood Chest", next: "Bronze", image: "wood-chest.png", gemCost: 200, vip: 0 },
             { name: "Bronze Chest", next: "Silver", image: "bronze-chest.png", gemCost: 500, vip: 1 },
@@ -1265,205 +968,116 @@
             { name: "Legendary Chest", next: "Mythic", image: "legendary-chest.png", gemCost: 10000, vip: 5 },
             { name: "Mythic Chest", next: "", image: "mythic-chest.png", gemCost: 20000, vip: 6 }
         ];
-
         let currentChestIndex = 0;
         const chestContainer = document.getElementById('chestContainer');
-        const chestCostElement = document.getElementById('chestCost');
-        const chestVipRequirementElement = document.getElementById('chestVipRequirement');
-
-        chests.forEach(chest => {
-            const chestItem = document.createElement('div');
-            chestItem.classList.add('chest-item');
-            chestItem.innerHTML = `
-                <div class="chest-title">
-                    <h2>${chest.name}</h2>
-                    <span>${chest.next}</span>
-                </div>
-                <div class="chest-image">
-                    <img src="assets/graphics/${chest.image}" alt="${chest.name}">
-                </div>
-                <div class="not-enough">
-                    <span>NOT ENOUGH</span>
-                    <img src="assets/icons/gem.png" alt="Gem">
+        chests.forEach(c => {
+            chestContainer.innerHTML += `
+                <div class="chest-item">
+                    <div class="chest-title">
+                        <h2>${c.name}</h2>
+                        <span>${c.next}</span>
+                    </div>
+                    <div class="chest-image">
+                        <img src="assets/graphics/${c.image}" alt="${c.name}" onerror="this.src='https://via.placeholder.com/150'">
+                    </div>
+                    <div class="not-enough">
+                        <span>NOT ENOUGH</span>
+                        <img src="assets/icons/gem.png" alt="Gem">
+                    </div>
                 </div>
             `;
-            chestContainer.appendChild(chestItem);
         });
 
         function updateChest() {
-            const chest = chests[currentChestIndex];
+            const c = chests[currentChestIndex];
             chestContainer.style.transform = `translateX(-${currentChestIndex * 100}%)`;
-
-            if (chest.vip === 0) {
-                chestCostElement.style.display = 'flex';
-                chestCostElement.querySelector('span').textContent = chest.gemCost;
-                chestVipRequirementElement.style.display = 'none';
-            } else {
-                chestCostElement.style.display = 'none';
-                chestVipRequirementElement.style.display = 'block';
-                chestVipRequirementElement.textContent = `NEED VIP ${chest.vip}`;
-            }
-
+            document.getElementById('chestCost').querySelector('span').textContent = c.gemCost;
+            document.getElementById('chestCost').style.display = c.vip === 0 ? 'flex' : 'none';
+            document.getElementById('chestVipRequirement').style.display = c.vip > 0 ? 'block' : 'none';
+            if (c.vip > 0) document.getElementById('chestVipRequirement').textContent = `NEED VIP ${c.vip}`;
             document.querySelector('.nav-arrow.left').style.display = currentChestIndex === 0 ? 'none' : 'block';
             document.querySelector('.nav-arrow.right').style.display = currentChestIndex === chests.length - 1 ? 'none' : 'block';
         }
 
-        function nextChest() {
-            if (currentChestIndex < chests.length - 1) {
-                currentChestIndex++;
-                updateChest();
-            }
-        }
-
-        function prevChest() {
-            if (currentChestIndex > 0) {
-                currentChestIndex--;
-                updateChest();
-            }
-        }
-
-        async function openChest() {
-            if (!telegramUser) {
-                alert("User not authenticated. Please try again.");
-                return;
-            }
-
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore database is not initialized. Cannot open chest.");
-                alert("Database not initialized. Please try again later.");
-                return;
-            }
-
+        window.prevChest = () => { if (currentChestIndex > 0) currentChestIndex--; updateChest(); };
+        window.nextChest = () => { if (currentChestIndex < chests.length - 1) currentChestIndex++; updateChest(); };
+        window.openChest = async () => {
+            await ensureFirebase();
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-            try {
-                const userDoc = await userDocRef.get();
-                const userData = userDoc.data();
-                const chest = chests[currentChestIndex];
-
-                if (userData.gems < chest.gemCost) {
-                    alert(`You need ${chest.gemCost} gems to open the ${chest.name}! Current: ${userData.gems}`);
-                    return;
-                }
-
-                const rewards = {
-                    usdt: (Math.random() * 0.5 + 0.1).toFixed(4),
-                    landPiece: 1,
-                    foxMedal: 1
-                };
-
-                await userDocRef.update({
-                    gems: userData.gems - chest.gemCost,
-                    usdt: userData.usdt + parseFloat(rewards.usdt),
-                    landPieces: firebase.firestore.FieldValue.increment(rewards.landPiece),
-                    foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
-                });
-
-                await db.collection('users').doc(telegramUser.id.toString()).update({
-                    foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
-                });
-
-                await updateUserStatsUI();
-                alert(`Opened ${chest.name}! Rewards: ${rewards.usdt} USDT, ${rewards.landPiece} Land Piece, ${rewards.foxMedal} Fox Medal`);
-                analytics.logEvent('chest_opened', { chestName: chest.name, userId: telegramUser.id });
-            } catch (error) {
-                console.error("Error opening chest:", error);
-                alert("Failed to open chest. Please try again.");
+            const doc = await userDocRef.get();
+            const d = doc.data();
+            const c = chests[currentChestIndex];
+            if (d.gems < c.gemCost) {
+                alert(`Need ${c.gemCost} gems for ${c.name}! Current: ${d.gems}`);
+                return;
             }
-        }
-
+            const rewards = {
+                usdt: parseFloat((Math.random() * 0.5 + 0.1).toFixed(4)),
+                landPiece: 1,
+                foxMedal: 1
+            };
+            await userDocRef.update({
+                gems: d.gems - c.gemCost,
+                usdt: d.usdt + rewards.usdt,
+                landPieces: firebase.firestore.FieldValue.increment(rewards.landPiece),
+                foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
+            });
+            await db.collection('users').doc(telegramUser.id.toString()).update({
+                foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
+            });
+            userDataCache = null;
+            await updateUserStatsUI();
+            alert(`Opened ${c.name}! Rewards: ${rewards.usdt} USDT, ${rewards.landPiece} Land Piece, ${rewards.foxMedal} Fox Medal`);
+            analytics.logEvent('chest_opened', { chestName: c.name, userId: telegramUser.id });
+        };
         updateChest();
 
-        // Earn Section Interactions
-        document.addEventListener('click', async (event) => {
-            if (event.target.classList.contains('go-button')) {
-                if (!telegramUser) {
-                    alert("User not authenticated. Please try again.");
-                    return;
-                }
-
-                if (!firebaseInitialized || !db) {
-                    console.error("Firestore database is not initialized. Cannot complete task.");
-                    alert("Database not initialized. Please try again later.");
-                    return;
-                }
-
+        // Earn Interactions
+        document.addEventListener('click', async e => {
+            if (e.target.classList.contains('go-button')) {
+                await ensureFirebase();
                 const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-                try {
-                    const userDoc = await userDocRef.get();
-                    const reward = parseInt(event.target.previousElementSibling.textContent.replace('+', ''));
-                    const newGems = (userDoc.data().gems || 0) + reward;
-
-                    await userDocRef.update({ gems: newGems });
-                    await updateUserStatsUI();
-                    alert(`Task completed! +${reward} Gems`);
-                    analytics.logEvent('task_completed', { userId: telegramUser.id });
-                } catch (error) {
-                    console.error("Error completing task:", error);
-                    alert("Failed to complete task. Please try again.");
-                }
+                const doc = await userDocRef.get();
+                const reward = parseInt(e.target.previousElementSibling.textContent.replace('+', ''));
+                await userDocRef.update({ gems: (doc.data().gems || 0) + reward });
+                userDataCache = null;
+                await updateUserStatsUI();
+                alert(`Task completed! +${reward} Gems`);
+                analytics.logEvent('task_completed', { userId: telegramUser.id });
             }
         });
 
-        // Wallet Section Interactions
-        document.querySelectorAll('.withdraw-button').forEach(button => {
-            button.addEventListener('click', () => {
-                alert('Withdrawal not implemented yet. Connect your wallet first!');
-            });
-        });
+        // Wallet Interactions
+        document.querySelectorAll('.withdraw-button').forEach(b => b.addEventListener('click', () => alert('Withdrawal not implemented yet')));
+        document.querySelectorAll('.warning-button').forEach(b => b.addEventListener('click', () => alert('Ensure wallet is connected')));
+        document.querySelector('.connect-button').addEventListener('click', () => alert('Connecting TON Wallet... (placeholder)'));
 
-        document.querySelectorAll('.warning-button').forEach(button => {
-            button.addEventListener('click', () => {
-                alert('Warning: Ensure your wallet is connected to withdraw funds.');
-            });
-        });
-
-        document.querySelector('.connect-button').addEventListener('click', () => {
-            alert('Connecting to TON Wallet... (placeholder)');
-        });
-
-        // Invite Section Interactions
+        // Invite Interactions
         document.querySelector('.invite-friend').addEventListener('click', function() {
-            const referralLink = this.getAttribute('data-link');
-            try {
-                Telegram.WebApp.openTelegramLink(referralLink);
-                analytics.logEvent('invite_friend_clicked', { userId: telegramUser.id });
-            } catch (error) {
-                console.error("Error opening Telegram link:", error);
-                alert("Failed to open invite link. Please try again.");
-            }
+            Telegram.WebApp.openTelegramLink(this.getAttribute('data-link'));
+            analytics.logEvent('invite_friend_clicked', { userId: telegramUser.id });
         });
-
         document.querySelector('.copy-link').addEventListener('click', function() {
-            const referralLink = this.getAttribute('data-link');
-            navigator.clipboard.writeText(referralLink).then(() => {
-                alert('Invite link copied to clipboard: ' + referralLink);
+            navigator.clipboard.writeText(this.getAttribute('data-link')).then(() => {
+                alert('Invite link copied!');
                 analytics.logEvent('copy_link', { userId: telegramUser.id });
-            }).catch(err => {
-                console.error("Error copying link:", err);
-                alert('Failed to copy link: ' + err);
             });
         });
 
-        // Initialize the app
+        // Initialize App
         (async () => {
             try {
                 await initializeFirebase();
-
-                if (firebaseInitialized) {
-                    await initializeUserData();
-                    generateReferralLink();
-                    await handleReferral();
-                    await updateEarnSectionUI();
-                    await updateInviteSectionUI();
-                    await updateTopSectionUI();
-                    updateChest();
-                    console.log("App initialized successfully");
-                } else {
-                    throw new Error("Firebase initialization failed, cannot proceed with app initialization");
-                }
+                await initializeUserData();
+                generateReferralLink();
+                await handleReferral();
+                await updateEarnSectionUI();
+                await updateInviteSectionUI();
+                await updateTopSectionUI();
+                console.log("App initialized");
             } catch (error) {
-                console.error("Error initializing app:", error);
-                alert("Failed to initialize the app. Please check your internet connection and try again.");
+                console.error("App init failed:", error);
+                alert("Failed to load app. Check connection and refresh.");
             }
         })();
     </script>
