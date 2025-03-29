@@ -458,15 +458,15 @@
         </div>
         <div class="metric">
             <img src="assets/icons/gem.png" alt="Gem">
-            <span id="gems">73</span>
+            <span id="gems">0</span> <!-- Default to 0 -->
         </div>
         <div class="metric">
             <img src="assets/icons/usdt.png" alt="USDT">
-            <span id="usdt">0.1137</span>
+            <span id="usdt">0.0000</span> <!-- Default to 0 -->
         </div>
         <div class="metric">
             <img src="assets/icons/ton.png" alt="TON">
-            <span id="ton">0.0000</span>
+            <span id="ton">0.0000</span> <!-- Default to 0 -->
         </div>
         <div class="profile-pic">
             <img src="assets/icons/user-avatar.png" alt="User Profile">
@@ -479,66 +479,20 @@
             <img src="assets/icons/banner.png" alt="Banner">
         </div>
         <div class="quest-section">
-            <h2>DAILY QUEST <span class="badge">5</span></h2>
-            <ul class="quest-list">
-                <li class="quest-item">
-                    <img src="https://via.placeholder.com/30/FFFFFF/000000?text=LP" alt="Play Lepasa">
-                    <span>Play Lepasa!</span>
-                    <div class="quest-reward">
-                        <img src="assets/icons/gem.png" alt="Gem">
-                        <span>+20</span>
-                        <button class="go-button">GO</button>
-                    </div>
-                </li>
-                <li class="quest-item">
-                    <img src="https://via.placeholder.com/30/FFFFFF/000000?text=MN" alt="Play Megamine">
-                    <span>Play Megamine Now!</span>
-                    <div class="quest-reward">
-                        <img src="assets/icons/gem.png" alt="Gem">
-                        <span>+20</span>
-                        <button class="go-button">Claim</button>
-                    </div>
-                </li>
-                <li class="quest-item">
-                    <img src="https://via.placeholder.com/30/FFFFFF/000000?text=BTC" alt="Play BTC">
-                    <span>Play and Earn BTC</span>
-                    <div class="quest-reward">
-                        <img src="assets/icons/gem.png" alt="Gem">
-                        <span>+20</span>
-                        <button class="go-button">Claim</button>
-                    </div>
-                </li>
-                <li class="quest-item">
-                    <img src="https://via.placeholder.com/30/FFFFFF/000000?text=MM" alt="Play Mememarket">
-                    <span>Play Mememarket</span>
-                    <div class="quest-reward">
-                        <img src="assets/icons/gem.png" alt="Gem">
-                        <span>+20</span>
-                        <button class="go-button">Claim</button>
-                    </div>
-                </li>
-                <li class="quest-item">
-                    <img src="https://via.placeholder.com/30/FFFFFF/000000?text=DC" alt="Daily Check-in">
-                    <span>Daily Check-in</span>
-                    <div class="quest-reward">
-                        <img src="assets/icons/gem.png" alt="Gem">
-                        <span>+100</span>
-                        <button class="go-button">GO</button>
-                    </div>
+            <h2>DAILY QUEST <span class="badge" id="daily-quest-count">0</span></h2>
+            <ul class="quest-list" id="daily-quest-list">
+                <!-- Default: Empty, to be populated dynamically -->
+                <li class="no-quests">
+                    <p>No daily quests available</p>
                 </li>
             </ul>
         </div>
         <div class="quest-section">
-            <h2>BASIC QUEST <span class="badge">57</span></h2>
-            <ul class="quest-list">
-                <li class="quest-item">
-                    <img src="https://via.placeholder.com/30/FFFFFF/000000?text=RT" alt="Retweet">
-                    <span>Retweet @4metas</span>
-                    <div class="quest-reward">
-                        <img src="assets/icons/gem.png" alt="Gem">
-                        <span>+50</span>
-                        <button class="go-button">GO</button>
-                    </div>
+            <h2>BASIC QUEST <span class="badge" id="basic-quest-count">0</span></h2>
+            <ul class="quest-list" id="basic-quest-list">
+                <!-- Default: Empty, to be populated dynamically -->
+                <li class="no-quests">
+                    <p>No basic quests available</p>
                 </li>
             </ul>
         </div>
@@ -550,7 +504,7 @@
         <div class="balance-card usdt-card">
             <img src="assets/icons/usdt.png" alt="USDT Icon">
             <div class="balance-info">
-                <span id="wallet-usdt">0.1137</span>
+                <span id="wallet-usdt">0.0000</span> <!-- Default to 0 -->
                 <small>USDT</small>
             </div>
             <button class="withdraw-button">WITHDRAW</button>
@@ -559,7 +513,7 @@
         <div class="balance-card ton-card">
             <img src="assets/icons/ton.png" alt="TON Icon">
             <div class="balance-info">
-                <span id="wallet-ton">0.0000</span>
+                <span id="wallet-ton">0.0000</span> <!-- Default to 0 -->
                 <small>TON</small>
             </div>
             <button class="withdraw-button">WITHDRAW</button>
@@ -638,7 +592,7 @@
     <!-- Invite Section -->
     <section id="invite" class="section invite-section">
         <div class="invite-stats">
-            <span id="my-invite">My Invite: 3</span>
+            <span id="my-invite">My Invite: 0</span> <!-- Default to 0 -->
             <div class="spin-info">
                 <span>Spin x0</span>
                 <span class="warning">!</span>
@@ -650,7 +604,7 @@
         </div>
         <div class="total-credit">
             <div class="credit-info">
-                <span id="total-credit">Total Credit <span class="warning">!</span> : 430</span>
+                <span id="total-credit">Total Credit <span class="warning">!</span> : 0</span> <!-- Default to 0 -->
                 <small>10,000 = 1 <img src="assets/icons/usdt.png" alt="USDT"></small>
             </div>
             <button class="claim-button">Claim</button>
@@ -663,28 +617,17 @@
             </div>
         </div>
         <div class="invite-record">
-            <h3 id="invite-record-title">Invite Record (3)</h3>
+            <h3 id="invite-record-title">Invite Record (0)</h3> <!-- Default to 0 -->
             <div class="record-header">
                 <span>User</span>
                 <span>Join Time</span>
                 <span>Credit</span>
             </div>
             <div class="record-list">
-                <div class="record-item">
-                    <img src="https://via.placeholder.com/40/808080/000000?text=L" alt="LazyPromoter">
-                    <div class="user-info">
-                        <span>LazyPromoter</span>
-                        <small>2025-03-26 13:23:46</small>
-                    </div>
-                    <span class="credit">210</span>
-                </div>
-                <div class="record-item">
-                    <img src="https://via.placeholder.com/40/808080/000000?text=M" alt="mdmarufhossen">
-                    <div class="user-info">
-                        <span>mdmarufhossen</span>
-                        <small>2025-03-26 13:25:18</small>
-                    </div>
-                    <span class="credit">10</span>
+                <!-- Default: Empty, to be populated dynamically -->
+                <div class="no-frens">
+                    <img src="assets/icons/nofrens.png" alt="No Frens">
+                    <p>No invites yet</p>
                 </div>
             </div>
         </div>
@@ -726,110 +669,10 @@
     <!-- Top Section -->
     <section id="top" class="section top-section">
         <h2>Medal Ranking <span class="warning">!</span></h2>
-        <ul class="ranking-list">
-            <li class="ranking-item">
-                <img src="https://via.placeholder.com/40/808080/000000?text=Z" alt="zhang_xiao_zhi_ji">
-                <span>zhang_xiao_zhi_ji</span>
-                <div class="medal-count">
-                    <span>66175</span>
-                    <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                </div>
-            </li>
-            <li class="ranking-item">
-                <img src="https://via.placeholder.com/40/808080/000000?text=Z" alt="Zem3fw">
-                <span>Zem3fw</span>
-                <div class="medal-count">
-                    <span>65304</span>
-                    <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                </div>
-            </li>
-            <li class="ranking-item">
-                <img src="https://via.placeholder.com/40/808080/000000?text=F" alt="fishcatmonkey">
-                <span>fishcatmonkey</span>
-                <div class="medal-count">
-                    <span>65233</span>
-                    <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                </div>
-            </li>
-            <li class="ranking-item">
-                <img src="https://via.placeholder.com/40/808080/000000?text=F" alt="fHX6Jp">
-                <span>fHX6Jp</span>
-                <div class="medal-count">
-                    <span>65173</span>
-                    <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                </div>
-            </li>
-            <li class="ranking-item">
-                <img src="https://via.placeholder.com/40/808080/000000?text=D" alt="dragondog857">
-                <span>dragondog857</span>
-                <div class="medal-count">
-                    <span>64911</span>
-                    <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                </div>
-            </li>
-            <li class="ranking-item">
-                <img src="https://via.placeholder.com/40/808080/000000?text=D" alt="Dog_Cat_857">
-                <span>Dog_Cat_857</span>
-                <div class="medal-count">
-                    <span>64830</span>
-                    <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                </div>
-            </li>
-            <li class="ranking-item">
-                <img src="https://via.placeholder.com/40/808080/000000?text=F" alt="FsNrF6qm">
-                <span>FsNrF6qm</span>
-                <div class="medal-count">
-                    <span>64312</span>
-                    <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                </div>
-            </li>
-            <li class="ranking-item">
-                <img src="https://via.placeholder.com/40/808080/000000?text=Q" alt="qianthuogiqiao">
-                <span>qianthuogiqiao</span>
-                <div class="medal-count">
-                    <span>64232</span>
-                    <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                </div>
-            </li>
-            <li class="ranking-item">
-                <img src="https://via.placeholder.com/40/808080/000000?text=S" alt="SKDEuSiv">
-                <span>SKDEuSiv</span>
-                <div class="medal-count">
-                    <span>64208</span>
-                    <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                </div>
-            </li>
-            <li class="ranking-item">
-                <img src="https://via.placeholder.com/40/808080/000000?text=X" alt="ximhenshoula250">
-                <span>ximhenshoula250</span>
-                <div class="medal-count">
-                    <span>64098</span>
-                    <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                </div>
-            </li>
-            <li class="ranking-item">
-                <img src="https://via.placeholder.com/40/808080/000000?text=T" alt="TamaraROSALIND">
-                <span>TamaraROSALIND</span>
-                <div class="medal-count">
-                    <span>63780</span>
-                    <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                </div>
-            </li>
-            <li class="ranking-item">
-                <img src="https://via.placeholder.com/40/808080/000000?text=F" alt="fuckyoul31452069">
-                <span>fuckyoul31452069</span>
-                <div class="medal-count">
-                    <span>63691</span>
-                    <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                </div>
-            </li>
-            <li class="ranking-item">
-                <img src="https://via.placeholder.com/40/808080/000000?text=L" alt="LdK6Jpo">
-                <span>LdK6Jpo</span>
-                <div class="medal-count">
-                    <span>63688</span>
-                    <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                </div>
+        <ul class="ranking-list" id="ranking-list">
+            <!-- Default: Empty, to be populated dynamically -->
+            <li class="no-rankings">
+                <p>No rankings available</p>
             </li>
         </ul>
     </section>
@@ -960,7 +803,9 @@
             }
 
             // Update UI for specific sections
+            if (sectionId === 'earn') updateEarnSectionUI();
             if (sectionId === 'invite') updateInviteSectionUI();
+            if (sectionId === 'top') updateTopSectionUI();
         }
 
         // Add event listeners to navigation buttons
@@ -988,14 +833,11 @@
                 const doc = await userDocRef.get();
                 if (!doc.exists) {
                     await userDocRef.set({
-                        gems: 73,
-                        usdt: 0.1137,
-                        ton: 0.0000,
-                        referrals: 3,
-                        inviteRecords: [
-                            { username: "LazyPromoter", joinTime: "2025-03-26 13:23:46", credit: 210 },
-                            { username: "mdmarufhossen", joinTime: "2025-03-26 13:25:18", credit: 10 }
-                        ],
+                        gems: 0,
+                        usdt: 0,
+                        ton: 0,
+                        referrals: 0,
+                        inviteRecords: [],
                         landPieces: 0,
                         foxMedals: 0,
                         isReferred: false,
@@ -1025,6 +867,61 @@
                 console.log("User stats updated successfully");
             } catch (error) {
                 console.error("Error updating user stats UI:", error);
+            }
+        }
+
+        // Fetch and Update Earn Section (Quests)
+        async function updateEarnSectionUI() {
+            try {
+                // Fetch Daily Quests
+                const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get();
+                const dailyQuests = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data().tasks : [];
+                const dailyQuestList = document.getElementById('daily-quest-list');
+                const dailyQuestCount = document.getElementById('daily-quest-count');
+
+                dailyQuestCount.textContent = dailyQuests.length;
+                dailyQuestList.innerHTML = dailyQuests.length === 0 ? `
+                    <li class="no-quests">
+                        <p>No daily quests available</p>
+                    </li>
+                ` : dailyQuests.map(quest => `
+                    <li class="quest-item">
+                        <img src="${quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q'}" alt="${quest.title}">
+                        <span>${quest.title}</span>
+                        <div class="quest-reward">
+                            <img src="assets/icons/gem.png" alt="Gem">
+                            <span>+${quest.reward}</span>
+                            <button class="go-button">${quest.action || 'GO'}</button>
+                        </div>
+                    </li>
+                `).join('');
+
+                // Fetch Basic Quests
+                const basicQuestsSnapshot = await db.collection('quests').doc('basic').get();
+                const basicQuests = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data().tasks : [];
+                const basicQuestList = document.getElementById('basic-quest-list');
+                const basicQuestCount = document.getElementById('basic-quest-count');
+
+                basicQuestCount.textContent = basicQuests.length;
+                basicQuestList.innerHTML = basicQuests.length === 0 ? `
+                    <li class="no-quests">
+                        <p>No basic quests available</p>
+                    </li>
+                ` : basicQuests.map(quest => `
+                    <li class="quest-item">
+                        <img src="${quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q'}" alt="${quest.title}">
+                        <span>${quest.title}</span>
+                        <div class="quest-reward">
+                            <img src="assets/icons/gem.png" alt="Gem">
+                            <span>+${quest.reward}</span>
+                            <button class="go-button">${quest.action || 'GO'}</button>
+                        </div>
+                    </li>
+                `).join('');
+
+                console.log("Earn section UI updated successfully");
+            } catch (error) {
+                console.error("Error updating earn section UI:", error);
             }
         }
 
@@ -1112,6 +1009,45 @@
                 console.log("Invite section UI updated successfully");
             } catch (error) {
                 console.error("Error updating invite section UI:", error);
+            }
+        }
+
+        // Fetch and Update Top Section (Medal Rankings)
+        async function updateTopSectionUI() {
+            try {
+                const rankingsSnapshot = await db.collection('users')
+                    .orderBy('foxMedals', 'desc')
+                    .limit(20)
+                    .get();
+                const rankings = [];
+                rankingsSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    rankings.push({
+                        username: data.username || 'Anonymous',
+                        foxMedals: data.foxMedals || 0,
+                        photoUrl: data.photoUrl || 'https://via.placeholder.com/40/808080/000000?text=U'
+                    });
+                });
+
+                const rankingList = document.getElementById('ranking-list');
+                rankingList.innerHTML = rankings.length === 0 ? `
+                    <li class="no-rankings">
+                        <p>No rankings available</p>
+                    </li>
+                ` : rankings.map(user => `
+                    <li class="ranking-item">
+                        <img src="${user.photoUrl}" alt="${user.username}">
+                        <span>${user.username}</span>
+                        <div class="medal-count">
+                            <span>${user.foxMedals}</span>
+                            <img src="assets/icons/fox-medal.png" alt="Fox Medal">
+                        </div>
+                    </li>
+                `).join('');
+
+                console.log("Top section UI updated successfully");
+            } catch (error) {
+                console.error("Error updating top section UI:", error);
             }
         }
 
@@ -1261,8 +1197,8 @@
         updateChest();
 
         // Earn Section Interactions
-        document.querySelectorAll('.go-button').forEach(button => {
-            button.addEventListener('click', async () => {
+        document.addEventListener('click', async (event) => {
+            if (event.target.classList.contains('go-button')) {
                 if (!telegramUser) {
                     alert("User not authenticated. Please try again.");
                     return;
@@ -1271,7 +1207,7 @@
                 const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
                 try {
                     const userDoc = await userDocRef.get();
-                    const reward = parseInt(button.previousElementSibling.textContent.replace('+', ''));
+                    const reward = parseInt(event.target.previousElementSibling.textContent.replace('+', ''));
                     const newGems = (userDoc.data().gems || 0) + reward;
 
                     await userDocRef.update({ gems: newGems });
@@ -1282,7 +1218,7 @@
                     console.error("Error completing task:", error);
                     alert("Failed to complete task. Please try again.");
                 }
-            });
+            }
         });
 
         // Wallet Section Interactions
@@ -1331,7 +1267,9 @@
                 await initializeUserData();
                 generateReferralLink();
                 await handleReferral();
+                await updateEarnSectionUI();
                 await updateInviteSectionUI();
+                await updateTopSectionUI();
                 updateChest();
                 console.log("App initialized successfully");
             } catch (error) {
