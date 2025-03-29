@@ -696,20 +696,30 @@
 
     <script>
         // Function to dynamically load a script and return a Promise
-        function loadScript(src) {
+        function loadScript(src, retries = 3, delay = 1000) {
             return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = src;
-                script.async = true;
-                script.onload = () => {
-                    console.log(`Script loaded successfully: ${src}`);
-                    resolve();
+                let attempts = 0;
+                const tryLoad = () => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.async = true;
+                    script.onload = () => {
+                        console.log(`Script loaded successfully: ${src}`);
+                        resolve();
+                    };
+                    script.onerror = () => {
+                        attempts++;
+                        if (attempts < retries) {
+                            console.warn(`Failed to load script: ${src}. Retrying (${attempts}/${retries})...`);
+                            setTimeout(tryLoad, delay);
+                        } else {
+                            console.error(`Failed to load script after ${retries} attempts: ${src}`);
+                            reject(new Error(`Failed to load script after ${retries} attempts: ${src}`));
+                        }
+                    };
+                    document.head.appendChild(script);
                 };
-                script.onerror = () => {
-                    console.error(`Failed to load script: ${src}`);
-                    reject(new Error(`Failed to load script: ${src}`));
-                };
-                document.head.appendChild(script);
+                tryLoad();
             });
         }
 
@@ -729,7 +739,7 @@
         let firebaseInitialized = false;
         async function initializeFirebase() {
             try {
-                // Primary CDN (gstatic)
+                console.log("Starting Firebase initialization...");
                 const primaryUrls = [
                     'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
                     'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js',
@@ -738,7 +748,6 @@
                     'https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js'
                 ];
 
-                // Fallback CDN (jsdelivr)
                 const fallbackUrls = [
                     'https://cdn.jsdelivr.net/npm/firebase@10.12.2/lib/firebase-app-compat.js',
                     'https://cdn.jsdelivr.net/npm/firebase@10.12.2/lib/firebase-auth-compat.js',
@@ -749,37 +758,46 @@
 
                 let scriptsLoaded = false;
                 try {
-                    // Try primary CDN
+                    console.log("Attempting to load scripts from primary CDN...");
                     await Promise.all(primaryUrls.map(url => loadScript(url)));
                     scriptsLoaded = true;
+                    console.log("Primary CDN scripts loaded successfully");
                 } catch (error) {
                     console.error("Primary CDN failed, falling back to jsdelivr:", error);
-                    // Fallback to jsdelivr
+                    console.log("Attempting to load scripts from fallback CDN...");
                     await Promise.all(fallbackUrls.map(url => loadScript(url)));
                     scriptsLoaded = true;
+                    console.log("Fallback CDN scripts loaded successfully");
                 }
 
                 if (!scriptsLoaded) {
                     throw new Error("Failed to load Firebase scripts from both primary and fallback CDNs");
                 }
 
-                // Check if firebase is defined
+                console.log("Checking if firebase is defined...");
                 if (typeof firebase === 'undefined') {
                     throw new Error("Firebase SDK not loaded properly after script loading");
                 }
 
-                // Initialize Firebase
+                console.log("Initializing Firebase app...");
                 app = firebase.initializeApp(firebaseConfig);
+                console.log("Initializing Firestore...");
                 db = firebase.firestore();
+                console.log("Initializing Auth...");
                 auth = firebase.auth();
+                console.log("Initializing Storage...");
                 storage = firebase.storage();
+                console.log("Initializing Analytics...");
                 analytics = firebase.analytics();
+                // Temporarily remove signInAnonymously until OAuth domain is authorized
+                // await auth.signInAnonymously();
+                // console.log("Signed in anonymously");
                 firebaseInitialized = true;
                 console.log("Firebase initialized successfully");
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
                 firebaseInitialized = false;
-                throw error; // Re-throw to handle in the main app initialization
+                throw error;
             }
         }
 
@@ -794,10 +812,24 @@
                 document.querySelector('h1').innerText = `4Metas`;
                 console.log("Telegram Web App initialized successfully");
             } else {
-                console.warn("No Telegram user data available");
+                console.warn("No Telegram user data available. Running in test mode.");
+                // Fallback for testing
+                telegramUser = {
+                    id: "test_user_123",
+                    username: "TestUser",
+                    first_name: "Test",
+                    photo_url: "https://via.placeholder.com/40/808080/000000?text=T"
+                };
             }
         } catch (error) {
             console.error("Telegram Web App initialization failed:", error);
+            // Fallback for testing
+            telegramUser = {
+                id: "test_user_123",
+                username: "TestUser",
+                first_name: "Test",
+                photo_url: "https://via.placeholder.com/40/808080/000000?text=T"
+            };
         }
 
         // Storage abstraction using Firebase Firestore
@@ -840,7 +872,6 @@
         function switchSection(sectionId) {
             console.log(`Attempting to switch to section: ${sectionId}`);
 
-            // Hide all sections and remove active class from all buttons
             sections.forEach(section => {
                 section.classList.remove('active');
                 console.log(`Hiding section: ${section.id}`);
@@ -850,7 +881,6 @@
                 console.log(`Removing active from button: ${btn.getAttribute('data-section')}`);
             });
 
-            // Show the selected section and add active class to the clicked button
             const targetSection = document.getElementById(sectionId);
             const targetButton = document.querySelector(`.nav-button[data-section="${sectionId}"]`);
 
@@ -864,13 +894,11 @@
                 if (!targetButton) console.error(`Button with data-section "${sectionId}" not found`);
             }
 
-            // Update UI for specific sections
             if (sectionId === 'earn') updateEarnSectionUI();
             if (sectionId === 'invite') updateInviteSectionUI();
             if (sectionId === 'top') updateTopSectionUI();
         }
 
-        // Add event listeners to navigation buttons
         navButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const sectionId = button.getAttribute('data-section');
@@ -879,7 +907,6 @@
             });
         });
 
-        // Set default section to Earn
         console.log('Setting default section to Earn');
         switchSection('earn');
 
@@ -912,7 +939,6 @@
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
                     });
 
-                    // Also create a document in the users collection for rankings
                     await rankingDocRef.set({
                         username: telegramUser.username || telegramUser.first_name || 'Anonymous',
                         foxMedals: 0,
@@ -958,7 +984,6 @@
                 return;
             }
             try {
-                // Fetch Daily Quests
                 const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get();
                 const dailyQuests = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data().tasks : [];
                 const dailyQuestList = document.getElementById('daily-quest-list');
@@ -981,7 +1006,6 @@
                     </li>
                 `).join('');
 
-                // Fetch Basic Quests
                 const basicQuestsSnapshot = await db.collection('quests').doc('basic').get();
                 const basicQuests = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data().tasks : [];
                 const basicQuestList = document.getElementById('basic-quest-list');
@@ -1013,7 +1037,7 @@
         // Referral System
         function generateReferralLink() {
             if (!telegramUser) return;
-            const botUsername = 'fourgobot'; // Replace with your bot's username
+            const botUsername = 'fourgobot';
             const referralLink = `https://t.me/${botUsername}?start=ref_${telegramUser.id}`;
             document.querySelector('.invite-friend').setAttribute('data-link', referralLink);
             document.querySelector('.copy-link').setAttribute('data-link', referralLink);
@@ -1297,7 +1321,6 @@
                     foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
                 });
 
-                // Also update the users collection for rankings
                 await db.collection('users').doc(telegramUser.id.toString()).update({
                     foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
                 });
@@ -1387,10 +1410,8 @@
         // Initialize the app
         (async () => {
             try {
-                // Initialize Firebase by dynamically loading the SDK
                 await initializeFirebase();
 
-                // Proceed with app initialization only if Firebase is initialized
                 if (firebaseInitialized) {
                     await initializeUserData();
                     generateReferralLink();
