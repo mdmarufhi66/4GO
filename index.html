@@ -717,7 +717,7 @@
             try {
                 validateFirebaseConfig(firebaseConfig);
 
-                const primaryUrls = [
+                const scriptUrls = [
                     'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js',
                     'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js',
                     'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js',
@@ -725,61 +725,41 @@
                     'https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js'
                 ];
 
-                const fallbackUrls = [
-                    'https://cdn.jsdelivr.net/npm/firebase@9.22.0/lib/firebase-app-compat.js',
-                    'https://cdn.jsdelivr.net/npm/firebase@9.22.0/lib/firebase-auth-compat.js',
-                    'https://cdn.jsdelivr.net/npm/firebase@9.22.0/lib/firebase-firestore-compat.js',
-                    'https://cdn.jsdelivr.net/npm/firebase@9.22.0/lib/firebase-storage-compat.js',
-                    'https://cdn.jsdelivr.net/npm/firebase@9.22.0/lib/firebase-analytics-compat.js'
-                ];
+                console.log("Loading Firebase scripts...");
+                await Promise.all(scriptUrls.map(url => loadScript(url)));
+                console.log("Firebase scripts loaded successfully");
 
-                // Try primary CDN
-                console.log("Attempting to load Firebase from primary CDN...");
-                try {
-                    await Promise.all(primaryUrls.map(url => loadScript(url)));
-                    console.log("Primary CDN scripts loaded successfully");
-                } catch (primaryError) {
-                    console.error("Primary CDN failed:", primaryError);
-                    console.log("Switching to fallback CDN...");
-                    await Promise.all(fallbackUrls.map(url => loadScript(url)));
-                    console.log("Fallback CDN scripts loaded successfully");
-                }
-
-                // Verify Firebase is available
                 if (typeof firebase === 'undefined') {
-                    throw new Error("Firebase SDK not loaded into global scope after script loading");
+                    throw new Error("Firebase SDK not loaded into global scope");
                 }
 
-                // Initialize Firebase
                 console.log("Initializing Firebase app...");
                 app = firebase.initializeApp(firebaseConfig);
-                console.log("Firebase app initialized");
+                console.log("Firebase app initialized:", app.name);
 
-                // Initialize Firestore
                 console.log("Initializing Firestore...");
                 db = firebase.firestore();
                 if (!db) {
-                    throw new Error("Firestore initialization returned undefined");
+                    throw new Error("Firestore initialization failed: db is undefined");
                 }
-                console.log("Firestore instance created:", db);
+                console.log("Firestore initialized:", db);
 
-                // Initialize other services
                 auth = firebase.auth();
                 storage = firebase.storage();
                 analytics = firebase.analytics();
 
-                // Test Firestore connectivity
-                console.log("Testing Firestore connection...");
+                console.log("Verifying Firestore connectivity...");
                 await db.collection('test').doc('init').set({
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    test: "Initialization check"
                 });
-                console.log("Firestore connection verified");
+                console.log("Firestore connectivity verified");
 
                 firebaseInitialized = true;
             } catch (error) {
-                console.error("Firebase initialization failed:", error.message);
+                console.error("Firebase initialization error:", error.message);
                 firebaseInitialized = false;
-                throw error; // Ensure the error propagates to the caller
+                throw error;
             }
         }
 
@@ -1159,19 +1139,19 @@
                 console.log("Starting app initialization...");
                 await initializeFirebase();
                 if (!firebaseInitialized || !db) {
-                    throw new Error("Firebase initialization completed but Firestore is not ready");
+                    throw new Error("Firebase initialized but Firestore is not available");
                 }
-                console.log("Firebase setup complete, proceeding with app init...");
+                console.log("Firebase and Firestore ready, proceeding with app setup...");
                 await initializeUserData();
                 generateReferralLink();
                 await handleReferral();
                 await updateEarnSectionUI();
                 await updateInviteSectionUI();
                 await updateTopSectionUI();
-                console.log("App fully initialized");
+                console.log("App initialization complete");
             } catch (error) {
                 console.error("App initialization failed:", error.message);
-                alert(`Failed to start the app: ${error.message}. Please check your internet connection and refresh.`);
+                alert(`Failed to initialize app: ${error.message}. Please check your connection and try again.`);
             }
         })();
     </script>
