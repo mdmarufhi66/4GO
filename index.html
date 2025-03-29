@@ -726,14 +726,42 @@
 
         // Initialize Firebase with dynamic loading using compat scripts
         let app, db, auth, storage, analytics;
+        let firebaseInitialized = false;
         async function initializeFirebase() {
             try {
-                // Load Firebase compat scripts dynamically
-                await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
-                await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js');
-                await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
-                await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js');
-                await loadScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js');
+                // Primary CDN (gstatic)
+                const primaryUrls = [
+                    'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
+                    'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js',
+                    'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js',
+                    'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js',
+                    'https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js'
+                ];
+
+                // Fallback CDN (jsdelivr)
+                const fallbackUrls = [
+                    'https://cdn.jsdelivr.net/npm/firebase@10.12.2/lib/firebase-app-compat.js',
+                    'https://cdn.jsdelivr.net/npm/firebase@10.12.2/lib/firebase-auth-compat.js',
+                    'https://cdn.jsdelivr.net/npm/firebase@10.12.2/lib/firebase-firestore-compat.js',
+                    'https://cdn.jsdelivr.net/npm/firebase@10.12.2/lib/firebase-storage-compat.js',
+                    'https://cdn.jsdelivr.net/npm/firebase@10.12.2/lib/firebase-analytics-compat.js'
+                ];
+
+                let scriptsLoaded = false;
+                try {
+                    // Try primary CDN
+                    await Promise.all(primaryUrls.map(url => loadScript(url)));
+                    scriptsLoaded = true;
+                } catch (error) {
+                    console.error("Primary CDN failed, falling back to jsdelivr:", error);
+                    // Fallback to jsdelivr
+                    await Promise.all(fallbackUrls.map(url => loadScript(url)));
+                    scriptsLoaded = true;
+                }
+
+                if (!scriptsLoaded) {
+                    throw new Error("Failed to load Firebase scripts from both primary and fallback CDNs");
+                }
 
                 // Check if firebase is defined
                 if (typeof firebase === 'undefined') {
@@ -746,9 +774,11 @@
                 auth = firebase.auth();
                 storage = firebase.storage();
                 analytics = firebase.analytics();
+                firebaseInitialized = true;
                 console.log("Firebase initialized successfully");
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
+                firebaseInitialized = false;
                 throw error; // Re-throw to handle in the main app initialization
             }
         }
@@ -773,7 +803,7 @@
         // Storage abstraction using Firebase Firestore
         const Storage = {
             getItem: async (key) => {
-                if (!db) {
+                if (!firebaseInitialized || !db) {
                     console.error("Firestore database is not initialized. Cannot fetch item:", key);
                     return null;
                 }
@@ -787,7 +817,7 @@
                 }
             },
             setItem: async (key, value) => {
-                if (!db) {
+                if (!firebaseInitialized || !db) {
                     console.error("Firestore database is not initialized. Cannot set item:", key);
                     return false;
                 }
@@ -860,7 +890,7 @@
                 return;
             }
 
-            if (!db) {
+            if (!firebaseInitialized || !db) {
                 console.error("Firestore database is not initialized. Cannot initialize user data.");
                 return;
             }
@@ -901,7 +931,7 @@
         async function updateUserStatsUI() {
             if (!telegramUser) return;
 
-            if (!db) {
+            if (!firebaseInitialized || !db) {
                 console.error("Firestore database is not initialized. Cannot update user stats UI.");
                 return;
             }
@@ -923,7 +953,7 @@
 
         // Fetch and Update Earn Section (Quests)
         async function updateEarnSectionUI() {
-            if (!db) {
+            if (!firebaseInitialized || !db) {
                 console.error("Firestore database is not initialized. Please check Firebase setup.");
                 return;
             }
@@ -993,7 +1023,7 @@
         async function handleReferral() {
             if (!telegramUser) return;
 
-            if (!db) {
+            if (!firebaseInitialized || !db) {
                 console.error("Firestore database is not initialized. Cannot handle referral.");
                 return;
             }
@@ -1040,7 +1070,7 @@
         async function updateInviteSectionUI() {
             if (!telegramUser) return;
 
-            if (!db) {
+            if (!firebaseInitialized || !db) {
                 console.error("Firestore database is not initialized. Cannot update invite section UI.");
                 return;
             }
@@ -1079,7 +1109,7 @@
 
         // Fetch and Update Top Section (Medal Rankings)
         async function updateTopSectionUI() {
-            if (!db) {
+            if (!firebaseInitialized || !db) {
                 console.error("Firestore database is not initialized. Cannot update top section UI.");
                 return;
             }
@@ -1128,7 +1158,7 @@
                 return;
             }
 
-            if (!db) {
+            if (!firebaseInitialized || !db) {
                 console.error("Firestore database is not initialized. Cannot claim credits.");
                 alert("Database not initialized. Please try again later.");
                 return;
@@ -1237,7 +1267,7 @@
                 return;
             }
 
-            if (!db) {
+            if (!firebaseInitialized || !db) {
                 console.error("Firestore database is not initialized. Cannot open chest.");
                 alert("Database not initialized. Please try again later.");
                 return;
@@ -1291,7 +1321,7 @@
                     return;
                 }
 
-                if (!db) {
+                if (!firebaseInitialized || !db) {
                     console.error("Firestore database is not initialized. Cannot complete task.");
                     alert("Database not initialized. Please try again later.");
                     return;
@@ -1360,15 +1390,19 @@
                 // Initialize Firebase by dynamically loading the SDK
                 await initializeFirebase();
 
-                // Proceed with app initialization
-                await initializeUserData();
-                generateReferralLink();
-                await handleReferral();
-                await updateEarnSectionUI();
-                await updateInviteSectionUI();
-                await updateTopSectionUI();
-                updateChest();
-                console.log("App initialized successfully");
+                // Proceed with app initialization only if Firebase is initialized
+                if (firebaseInitialized) {
+                    await initializeUserData();
+                    generateReferralLink();
+                    await handleReferral();
+                    await updateEarnSectionUI();
+                    await updateInviteSectionUI();
+                    await updateTopSectionUI();
+                    updateChest();
+                    console.log("App initialized successfully");
+                } else {
+                    throw new Error("Firebase initialization failed, cannot proceed with app initialization");
+                }
             } catch (error) {
                 console.error("Error initializing app:", error);
                 alert("Failed to initialize the app. Please check your internet connection and try again.");
