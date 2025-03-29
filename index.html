@@ -734,26 +734,49 @@
             measurementId: "G-DC7E6ECF2L"
         };
 
+        // Validate Firebase Configuration
+        function validateFirebaseConfig(config) {
+            const requiredFields = [
+                'apiKey',
+                'authDomain',
+                'projectId',
+                'storageBucket',
+                'messagingSenderId',
+                'appId'
+            ];
+            for (const field of requiredFields) {
+                if (!config[field]) {
+                    throw new Error(`Firebase config is missing required field: ${field}`);
+                }
+            }
+            console.log("Firebase config validated successfully");
+        }
+
         // Initialize Firebase with dynamic loading using compat scripts
         let app, db, auth, storage, analytics;
         let firebaseInitialized = false;
         async function initializeFirebase() {
             try {
                 console.log("Starting Firebase initialization...");
+
+                // Validate Firebase config
+                validateFirebaseConfig(firebaseConfig);
+
+                // Use Firebase compat scripts version 9.22.0
                 const primaryUrls = [
-                    'https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js',
-                    'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js',
-                    'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js',
-                    'https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js',
-                    'https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js'
+                    'https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js',
+                    'https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js',
+                    'https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js',
+                    'https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js',
+                    'https://www.gstatic.com/firebasejs/9.22.0/firebase-analytics-compat.js'
                 ];
 
                 const fallbackUrls = [
-                    'https://cdn.jsdelivr.net/npm/firebase@10.12.2/lib/firebase-app-compat.js',
-                    'https://cdn.jsdelivr.net/npm/firebase@10.12.2/lib/firebase-auth-compat.js',
-                    'https://cdn.jsdelivr.net/npm/firebase@10.12.2/lib/firebase-firestore-compat.js',
-                    'https://cdn.jsdelivr.net/npm/firebase@10.12.2/lib/firebase-storage-compat.js',
-                    'https://cdn.jsdelivr.net/npm/firebase@10.12.2/lib/firebase-analytics-compat.js'
+                    'https://cdn.jsdelivr.net/npm/firebase@9.22.0/lib/firebase-app-compat.js',
+                    'https://cdn.jsdelivr.net/npm/firebase@9.22.0/lib/firebase-auth-compat.js',
+                    'https://cdn.jsdelivr.net/npm/firebase@9.22.0/lib/firebase-firestore-compat.js',
+                    'https://cdn.jsdelivr.net/npm/firebase@9.22.0/lib/firebase-storage-compat.js',
+                    'https://cdn.jsdelivr.net/npm/firebase@9.22.0/lib/firebase-analytics-compat.js'
                 ];
 
                 let scriptsLoaded = false;
@@ -779,21 +802,37 @@
                     throw new Error("Firebase SDK not loaded properly after script loading");
                 }
 
+                console.log("Checking if firebase.firestore is defined...");
+                if (typeof firebase.firestore !== 'function') {
+                    throw new Error("firebase.firestore is not a function. Firestore compat script may have failed to execute properly.");
+                }
+
                 console.log("Initializing Firebase app...");
                 app = firebase.initializeApp(firebaseConfig);
+                console.log("Firebase app initialized successfully");
+
                 console.log("Initializing Firestore...");
                 db = firebase.firestore();
+                console.log("Firestore instance:", db); // Debug: Log the db instance
+                if (!db) {
+                    throw new Error("Firestore initialization returned undefined");
+                }
+                console.log("Firestore initialized successfully");
+
                 console.log("Initializing Auth...");
                 auth = firebase.auth();
+                console.log("Auth initialized successfully");
+
                 console.log("Initializing Storage...");
                 storage = firebase.storage();
+                console.log("Storage initialized successfully");
+
                 console.log("Initializing Analytics...");
                 analytics = firebase.analytics();
-                // Temporarily remove signInAnonymously until OAuth domain is authorized
-                // await auth.signInAnonymously();
-                // console.log("Signed in anonymously");
+                console.log("Analytics initialized successfully");
+
                 firebaseInitialized = true;
-                console.log("Firebase initialized successfully");
+                console.log("Firebase fully initialized successfully");
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
                 firebaseInitialized = false;
@@ -813,7 +852,6 @@
                 console.log("Telegram Web App initialized successfully");
             } else {
                 console.warn("No Telegram user data available. Running in test mode.");
-                // Fallback for testing
                 telegramUser = {
                     id: "test_user_123",
                     username: "TestUser",
@@ -823,7 +861,6 @@
             }
         } catch (error) {
             console.error("Telegram Web App initialization failed:", error);
-            // Fallback for testing
             telegramUser = {
                 id: "test_user_123",
                 username: "TestUser",
