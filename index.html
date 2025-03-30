@@ -6,437 +6,566 @@
     <title>4Metas Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        :root {
+            --primary-purple: #330033;
+            --secondary-black: #000000;
+            --text-color-white: white;
+            --text-color-grey: #ccc;
+            --text-color-black: black;
+            --font-family-base: Arial, sans-serif;
+            --padding-small: 10px;
+            --padding-medium: 20px;
+            --border-radius-small: 5px;
+            --border-radius-medium: 10px;
+            --gradient-purple-pink: linear-gradient(to right, #ff00ff, #ff6666);
+            --gradient-green-lightgreen: linear-gradient(to right, #00ff00, #66ff66);
+            --background-dark: #1a1a3d;
+            --color-warning: #ffcc00;
+            --color-success: #00ff00;
+            --font-size-small: 12px;
+            --font-size-medium: 16px;
+            --font-size-large: 18px;
+            --icon-size-small: 15px;
+            --icon-size-medium: 20px;
+            --icon-size-large: 24px;
+        }
+
         body {
-            background: linear-gradient(to bottom, #330033, #000000);
-            color: white;
-            font-family: Arial, sans-serif;
+            background: linear-gradient(to bottom, var(--primary-purple), var(--secondary-black));
+            color: var(--text-color-white);
+            font-family: var(--font-family-base);
             margin: 0;
-            padding: 10px;
+            padding: var(--padding-small);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
+
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
+            padding: var(--padding-small) 0;
         }
+
         header h1 {
-            font-size: 24px;
+            font-size: var(--font-size-large);
             margin: 0;
         }
+
         .back-arrow, .menu-dots {
-            font-size: 24px;
+            font-size: var(--icon-size-large);
             cursor: pointer;
         }
+
         .user-stats {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin: 10px 0;
+            margin: var(--padding-small) 0;
         }
+
         .user-stats .logo img {
             width: 50px;
             height: 50px;
         }
+
         .user-stats .metric {
             display: flex;
             align-items: center;
             gap: 5px;
         }
+
         .user-stats .metric img {
-            width: 20px;
-            height: 20px;
+            width: var(--icon-size-medium);
+            height: var(--icon-size-medium);
         }
+
         .user-stats .profile-pic img {
             width: 40px;
             height: 40px;
             border-radius: 50%;
         }
+
         .section {
             display: none;
             flex: 1;
         }
+
         .section.active {
             display: block;
         }
+
         .banner-placeholder {
-            background: #1a1a3d;
-            border-radius: 10px;
-            padding: 10px;
+            background: var(--background-dark);
+            border-radius: var(--border-radius-medium);
+            padding: var(--padding-small);
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: var(--padding-medium);
         }
+
         .banner-placeholder img {
             width: 100%;
-            border-radius: 10px;
+            border-radius: var(--border-radius-medium);
+            display: block; /* Prevent extra space below image */
+            height: auto; /* Maintain aspect ratio */
         }
+
         .quest-section h2 {
-            font-size: 18px;
-            margin: 10px 0;
+            font-size: var(--font-size-large);
+            margin: var(--padding-small) 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
+
         .quest-section .badge {
             background: #ff00ff;
-            color: white;
+            color: var(--text-color-white);
             padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 12px;
+            border-radius: var(--border-radius-medium);
+            font-size: var(--font-size-small);
         }
+
         .quest-list {
             list-style: none;
             padding: 0;
         }
+
         .quest-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #1a1a3d;
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 10px;
+            background: var(--background-dark);
+            padding: var(--padding-small);
+            border-radius: var(--border-radius-medium);
+            margin-bottom: var(--padding-small);
         }
+
         .quest-item img {
             width: 30px;
             height: 30px;
             border-radius: 50%;
         }
+
         .quest-reward {
             display: flex;
             align-items: center;
             gap: 5px;
         }
+
         .quest-reward img {
-            width: 20px;
-            height: 20px;
+            width: var(--icon-size-medium);
+            height: var(--icon-size-medium);
         }
+
         .go-button, .claim-button {
-            background: linear-gradient(to right, #ff00ff, #ff6666);
+            background: var(--gradient-purple-pink);
             border: none;
-            color: white;
+            color: var(--text-color-white);
             padding: 5px 15px;
             border-radius: 15px;
             cursor: pointer;
         }
+
         .wallet-section h2 {
-            font-size: 18px;
-            margin: 10px 0;
+            font-size: var(--font-size-large);
+            margin: var(--padding-small) 0;
         }
+
         .balance-card {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #1a1a3d;
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 10px;
+            background: var(--background-dark);
+            padding: var(--padding-small);
+            border-radius: var(--border-radius-medium);
+            margin-bottom: var(--padding-small);
         }
+
         .balance-card img {
             width: 30px;
             height: 30px;
         }
+
         .balance-info span {
             display: block;
-            font-size: 16px;
+            font-size: var(--font-size-medium);
         }
+
         .balance-info small {
-            font-size: 12px;
-            color: #ccc;
+            font-size: var(--font-size-small);
+            color: var(--text-color-grey);
         }
+
         .withdraw-button {
-            background: #00ff00;
+            background: var(--color-success);
             border: none;
-            color: white;
+            color: var(--text-color-white);
             padding: 5px 10px;
             border-radius: 15px;
             cursor: pointer;
         }
+
         .warning-button {
-            background: #ffcc00;
+            background: var(--color-warning);
             border: none;
-            color: black;
+            color: var(--text-color-black);
             padding: 5px 10px;
             border-radius: 50%;
             cursor: pointer;
         }
+
         .connect-button {
-            background: linear-gradient(to right, #ff00ff, #ff6666);
+            background: var(--gradient-purple-pink);
             border: none;
-            color: white;
-            padding: 10px;
+            color: var(--text-color-white);
+            padding: var(--padding-small);
             border-radius: 15px;
             width: 100%;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: var(--padding-small);
         }
+
         .game-section h2 {
-            font-size: 18px;
-            margin: 10px 0;
+            font-size: var(--font-size-large);
+            margin: var(--padding-small) 0;
         }
+
         .game-list {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); /* Responsive grid */
+            gap: var(--padding-small);
         }
+
         .game-item {
-            background: #1a1a3d;
-            border-radius: 10px;
+            background: var(--background-dark);
+            border-radius: var(--border-radius-medium);
             text-align: center;
             padding: 5px;
         }
+
         .game-item img {
             width: 100%;
-            border-radius: 10px;
+            border-radius: var(--border-radius-medium);
+            display: block; /* Prevent extra space below image */
+            height: auto; /* Maintain aspect ratio */
         }
+
         .game-item p {
             margin: 5px 0;
-            font-size: 12px;
+            font-size: var(--font-size-small);
         }
+
         .invite-section .invite-stats {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: var(--padding-medium);
         }
+
         .invite-stats .spin-info {
             display: flex;
             align-items: center;
             gap: 5px;
         }
+
         .action-buttons {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: var(--padding-small);
+            margin-bottom: var(--padding-medium);
         }
+
         .action-button {
-            background: linear-gradient(to right, #00ff00, #66ff66);
+            background: var(--gradient-green-lightgreen);
             border: none;
-            color: white;
-            padding: 10px;
+            color: var(--text-color-white);
+            padding: var(--padding-small);
             border-radius: 15px;
             flex: 1;
             cursor: pointer;
+            text-align: center; /* Ensure text is centered */
         }
+
         .total-credit {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #1a1a3d;
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            background: var(--background-dark);
+            padding: var(--padding-small);
+            border-radius: var(--border-radius-medium);
+            margin-bottom: var(--padding-medium);
         }
+
         .total-credit small {
-            font-size: 12px;
-            color: #ccc;
+            font-size: var(--font-size-small);
+            color: var(--text-color-grey);
         }
+
         .total-credit small img {
-            width: 15px;
-            height: 15px;
+            width: var(--icon-size-small);
+            height: var(--icon-size-small);
         }
+
         .record-section h3, .invite-record h3 {
-            font-size: 16px;
-            margin: 10px 0;
+            font-size: var(--font-size-medium);
+            margin: var(--padding-small) 0;
         }
+
         .no-frens {
             text-align: center;
-            color: #ccc;
+            color: var(--text-color-grey);
         }
+
         .no-frens img {
             width: 50px;
             height: 50px;
         }
+
         .record-header {
             display: flex;
             justify-content: space-between;
-            font-size: 14px;
-            color: #ccc;
-            margin-bottom: 10px;
+            font-size: var(--font-size-small);
+            color: var(--text-color-grey);
+            margin-bottom: var(--padding-small);
         }
+
         .record-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: #1a1a3d;
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 10px;
+            background: var(--background-dark);
+            padding: var(--padding-small);
+            border-radius: var(--border-radius-medium);
+            margin-bottom: var(--padding-small);
         }
+
         .record-item img {
             width: 40px;
             height: 40px;
             border-radius: 50%;
         }
+
         .record-item .user-info {
             flex: 1;
-            margin-left: 10px;
+            margin-left: var(--padding-small);
         }
+
         .record-item .user-info small {
-            color: #ccc;
-            font-size: 12px;
+            color: var(--text-color-grey);
+            font-size: var(--font-size-small);
         }
+
         .record-item .credit {
             background: #ff00ff;
-            color: white;
+            color: var(--text-color-white);
             padding: 5px 10px;
             border-radius: 15px;
         }
+
         .chest-section .chest-slider {
             position: relative;
             overflow: hidden;
-            margin-bottom: 20px;
+            margin-bottom: var(--padding-medium);
         }
+
         .chest-container {
             display: flex;
             transition: transform 0.3s ease;
         }
+
         .chest-item {
             flex: 0 0 100%;
             text-align: center;
+            padding: var(--padding-small);
         }
+
         .chest-title {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 16px;
+            font-size: var(--font-size-medium);
         }
+
         .chest-title span {
-            color: #ccc;
+            color: var(--text-color-grey);
         }
+
         .chest-image img {
             width: 150px;
             height: 150px;
         }
+
         .not-enough {
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 5px;
-            color: #ffcc00;
-            margin-top: 10px;
+            color: var(--color-warning);
+            margin-top: var(--padding-small);
         }
+
         .not-enough img {
-            width: 20px;
-            height: 20px;
+            width: var(--icon-size-medium);
+            height: var(--icon-size-medium);
         }
+
         .nav-arrow {
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
             background: rgba(0, 0, 0, 0.5);
             border: none;
-            color: white;
-            padding: 10px;
+            color: var(--text-color-white);
+            padding: var(--padding-small);
             cursor: pointer;
+            font-size: var(--font-size-large);
+            z-index: 10; /* Ensure arrows are on top */
         }
+
         .nav-arrow.left {
             left: 0;
         }
+
         .nav-arrow.right {
             right: 0;
         }
+
         .rewards {
             display: flex;
             justify-content: space-around;
-            margin-bottom: 20px;
+            margin-bottom: var(--padding-medium);
         }
+
         .reward-item {
             text-align: center;
         }
+
         .reward-item img {
             width: 40px;
             height: 40px;
         }
+
         .reward-item p {
             margin: 5px 0;
-            font-size: 12px;
+            font-size: var(--font-size-small);
         }
+
         .cost {
             display: flex;
             justify-content: center;
             align-items: center;
             gap: 5px;
-            margin-bottom: 10px;
+            margin-bottom: var(--padding-small);
         }
+
         .cost img {
-            width: 20px;
-            height: 20px;
+            width: var(--icon-size-medium);
+            height: var(--icon-size-medium);
         }
+
         .vip-requirement {
             text-align: center;
-            color: #ffcc00;
-            margin-bottom: 10px;
+            color: var(--color-warning);
+            margin-bottom: var(--padding-small);
         }
+
         .open-chest-button {
-            background: linear-gradient(to right, #ff00ff, #ff6666);
+            background: var(--gradient-purple-pink);
             border: none;
-            color: white;
-            padding: 10px;
+            color: var(--text-color-white);
+            padding: var(--padding-small);
             border-radius: 15px;
             width: 100%;
             cursor: pointer;
         }
+
         .top-section h2 {
-            font-size: 18px;
-            margin: 10px 0;
+            font-size: var(--font-size-large);
+            margin: var(--padding-small) 0;
         }
+
         .ranking-list {
             list-style: none;
             padding: 0;
         }
+
         .ranking-item {
             display: flex;
             align-items: center;
-            background: #1a1a3d;
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 10px;
+            background: var(--background-dark);
+            padding: var(--padding-small);
+            border-radius: var(--border-radius-medium);
+            margin-bottom: var(--padding-small);
         }
+
         .ranking-item img {
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            margin-right: 10px;
+            margin-right: var(--padding-small);
         }
+
         .ranking-item span {
             flex: 1;
         }
+
         .ranking-item .medal-count {
             display: flex;
             align-items: center;
             gap: 5px;
         }
+
         .ranking-item .medal-count img {
-            width: 20px;
-            height: 20px;
+            width: var(--icon-size-medium);
+            height: var(--icon-size-medium);
         }
+
         .bottom-nav {
             display: flex;
             justify-content: space-around;
-            background: #1a1a3d;
-            padding: 10px 0;
+            background: var(--background-dark);
+            padding: var(--padding-small) 0;
             position: sticky;
             bottom: 0;
         }
+
         .nav-button {
             background: none;
             border: none;
-            color: #ccc;
+            color: var(--text-color-grey);
             display: flex;
             flex-direction: column;
             align-items: center;
             cursor: pointer;
+            padding: 5px; /* Add some padding for better touch targets */
         }
+
         .nav-button.active {
-            color: white;
+            color: var(--text-color-white);
         }
+
         .nav-button img {
             width: 24px;
             height: 24px;
             margin-bottom: 5px;
+        }
+
+        /* Basic Responsive Adjustments */
+        @media (max-width: 600px) {
+            .user-stats {
+                flex-wrap: wrap;
+                justify-content: space-around;
+                gap: 10px;
+            }
+
+            .user-stats .metric {
+                margin-bottom: 5px;
+            }
+
+            header h1 {
+                font-size: 20px;
+            }
         }
     </style>
 </head>
@@ -446,225 +575,210 @@
         <h1>4Metas</h1>
         <div class="menu-dots">⋮</div>
     </header>
-    <section class="user-stats">
-        <div class="logo">
-            <img src="assets/icons/logo.png" alt="4Metas Logo">
-        </div>
-        <div class="metric">
-            <img src="assets/icons/gem.png" alt="Gem">
-            <span id="gems">0</span>
-        </div>
-        <div class="metric">
-            <img src="assets/icons/usdt.png" alt="USDT">
-            <span id="usdt">0.0000</span>
-        </div>
-        <div class="metric">
-            <img src="assets/icons/ton.png" alt="TON">
-            <span id="ton">0.0000</span>
-        </div>
-        <div class="profile-pic">
-            <img src="assets/icons/user-avatar.png" alt="User Profile">
-        </div>
-    </section>
-
-    <!-- Earn Section -->
     <section id="earn" class="section earn-section active">
-        <div class="banner-placeholder">
-            <img src="assets/icons/banner.png" alt="Banner">
-        </div>
-        <div class="quest-section">
-            <h2>DAILY QUEST <span class="badge" id="daily-quest-count">0</span></h2>
-            <ul class="quest-list" id="daily-quest-list">
-                <li class="no-quests">
-                    <p>No daily quests available</p>
-                </li>
-            </ul>
-        </div>
-        <div class="quest-section">
-            <h2>BASIC QUEST <span class="badge" id="basic-quest-count">0</span></h2>
-            <ul class="quest-list" id="basic-quest-list">
-                <li class="no-quests">
-                    <p>No basic quests available</p>
-                </li>
-            </ul>
-        </div>
+        <main>
+            <div class="banner-placeholder">
+                <img src="assets/icons/banner.png" alt="App Banner" loading="lazy">
+            </div>
+            <div class="quest-section">
+                <h2>DAILY QUEST <span class="badge" id="daily-quest-count">0</span></h2>
+                <ul class="quest-list" id="daily-quest-list">
+                    <li class="no-quests">
+                        <p>No daily quests available</p>
+                    </li>
+                </ul>
+            </div>
+            <div class="quest-section">
+                <h2>BASIC QUEST <span class="badge" id="basic-quest-count">0</span></h2>
+                <ul class="quest-list" id="basic-quest-list">
+                    <li class="no-quests">
+                        <p>No basic quests available</p>
+                    </li>
+                </ul>
+            </div>
+        </main>
     </section>
 
-    <!-- Wallet Section -->
     <section id="wallet" class="section wallet-section">
-        <h2>Wallet</h2>
-        <div class="balance-card usdt-card">
-            <img src="assets/icons/usdt.png" alt="USDT Icon">
-            <div class="balance-info">
-                <span id="wallet-usdt">0.0000</span>
-                <small>USDT</small>
+        <main>
+            <h2>Wallet</h2>
+            <div class="balance-card usdt-card">
+                <img src="assets/icons/usdt.png" alt="USDT Icon">
+                <div class="balance-info">
+                    <span id="wallet-usdt">0.0000</span>
+                    <small>USDT</small>
+                </div>
+                <button class="withdraw-button">WITHDRAW</button>
+                <button class="warning-button">!</button>
             </div>
-            <button class="withdraw-button">WITHDRAW</button>
-            <button class="warning-button">!</button>
-        </div>
-        <div class="balance-card ton-card">
-            <img src="assets/icons/ton.png" alt="TON Icon">
-            <div class="balance-info">
-                <span id="wallet-ton">0.0000</span>
-                <small>TON</small>
+            <div class="balance-card ton-card">
+                <img src="assets/icons/ton.png" alt="TON Icon">
+                <div class="balance-info">
+                    <span id="wallet-ton">0.0000</span>
+                    <small>TON</small>
+                </div>
+                <button class="withdraw-button">WITHDRAW</button>
+                <button class="warning-button">!</button>
             </div>
-            <button class="withdraw-button">WITHDRAW</button>
-            <button class="warning-button">!</button>
-        </div>
-        <p class="instruction">Connect wallet to withdraw your balance.</p>
-        <button class="connect-button">CONNECT TON WALLET</button>
+            <p class="instruction">Connect wallet to withdraw your balance.</p>
+            <button class="connect-button">CONNECT TON WALLET</button>
+        </main>
     </section>
 
-    <!-- Game Section -->
     <section id="game" class="section game-section">
-        <div class="banner-placeholder">
-            <img src="assets/icons/game-banner.png" alt="Game Banner">
-        </div>
-        <h2>Game List</h2>
-        <div class="game-list">
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FF0000/FFFFFF?text=TG" alt="Traffic Go">
-                <p>Traffic Go</p>
+        <main>
+            <div class="banner-placeholder">
+                <img src="assets/icons/game-banner.png" alt="Game Banner" loading="lazy">
             </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/00FF00/FFFFFF?text=CM" alt="Cutting Master">
-                <p>Cutting Master</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/0000FF/FFFFFF?text=EM" alt="Element Magic">
-                <p>Element Magic</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FFFF00/FFFFFF?text=JS" alt="Juicy Splash">
-                <p>Juicy Splash</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FF00FF/FFFFFF?text=COR" alt="Creed of Rescue">
-                <p>Creed of Rescue</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/00FFFF/FFFFFF?text=FJ" alt="Farm Jam">
-                <p>Farm Jam</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FFA500/FFFFFF?text=2048" alt="2048 Blocks">
-                <p>2048 Blocks</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/800080/FFFFFF?text=CRC" alt="Cut Rope Combo">
-                <p>Cut Rope Combo</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/008000/FFFFFF?text=HJ" alt="Happy Jelly Jump">
-                <p>Happy Jelly Jump</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/000080/FFFFFF?text=UTR" alt="Undersea Tunnel Race">
-                <p>Undersea Tunnel Race</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FFC0CB/FFFFFF?text=MM" alt="Motor Master">
-                <p>Motor Master</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FFD700/FFFFFF?text=OF" alt="Open Fire">
-                <p>Open Fire</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/ADFF2F/FFFFFF?text=MTD" alt="Monster TD">
-                <p>Monster TD</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FF4500/FFFFFF?text=BW" alt="Bloody Warrior">
-                <p>Bloody Warrior</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Invite Section -->
-    <section id="invite" class="section invite-section">
-        <div class="invite-stats">
-            <span id="my-invite">My Invite: 0</span>
-            <div class="spin-info">
-                <span>Spin x0</span>
-                <span class="warning">!</span>
-            </div>
-        </div>
-        <div class="action-buttons">
-            <button class="action-button invite-friend">Invite Friend</button>
-            <button class="action-button copy-link">Copy Link</button>
-        </div>
-        <div class="total-credit">
-            <div class="credit-info">
-                <span id="total-credit">Total Credit <span class="warning">!</span> : 0</span>
-                <small>10,000 = 1 <img src="assets/icons/usdt.png" alt="USDT"></small>
-            </div>
-            <button class="claim-button">Claim</button>
-        </div>
-        <div class="record-section">
-            <h3>Claim Record</h3>
-            <div class="no-frens">
-                <img src="assets/icons/nofrens.png" alt="No Frens">
-                <p>No Frens yet</p>
-            </div>
-        </div>
-        <div class="invite-record">
-            <h3 id="invite-record-title">Invite Record (0)</h3>
-            <div class="record-header">
-                <span>User</span>
-                <span>Join Time</span>
-                <span>Credit</span>
-            </div>
-            <div class="record-list">
-                <div class="no-frens">
-                    <img src="assets/icons/nofrens.png" alt="No Frens">
-                    <p>No invites yet</p>
+            <h2>Game List</h2>
+            <div class="game-list">
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FF0000/FFFFFF?text=TG" alt="Traffic Go">
+                    <p>Traffic Go</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/00FF00/FFFFFF?text=CM" alt="Cutting Master">
+                    <p>Cutting Master</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/0000FF/FFFFFF?text=EM" alt="Element Magic">
+                    <p>Element Magic</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FFFF00/FFFFFF?text=JS" alt="Juicy Splash">
+                    <p>Juicy Splash</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FF00FF/FFFFFF?text=COR" alt="Creed of Rescue">
+                    <p>Creed of Rescue</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/00FFFF/FFFFFF?text=FJ" alt="Farm Jam">
+                    <p>Farm Jam</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FFA500/FFFFFF?text=2048" alt="2048 Blocks">
+                    <p>2048 Blocks</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/800080/FFFFFF?text=CRC" alt="Cut Rope Combo">
+                    <p>Cut Rope Combo</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/008000/FFFFFF?text=HJ" alt="Happy Jelly Jump">
+                    <p>Happy Jelly Jump</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/000080/FFFFFF?text=UTR" alt="Undersea Tunnel Race">
+                    <p>Undersea Tunnel Race</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FFC0CB/FFFFFF?text=MM" alt="Motor Master">
+                    <p>Motor Master</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FFD700/FFFFFF?text=OF" alt="Open Fire">
+                    <p>Open Fire</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/ADFF2F/FFFFFF?text=MTD" alt="Monster TD">
+                    <p>Monster TD</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FF4500/FFFFFF?text=BW" alt="Bloody Warrior">
+                    <p>Bloody Warrior</p>
                 </div>
             </div>
-        </div>
+        </main>
     </section>
 
-    <!-- Chest Section -->
+    <section id="invite" class="section invite-section">
+        <main>
+            <div class="invite-stats">
+                <span id="my-invite">My Invite: 0</span>
+                <div class="spin-info">
+                    <span>Spin x0</span>
+                    <span class="warning">!</span>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button class="action-button invite-friend" data-link="">Invite Friend</button>
+                <button class="action-button copy-link" data-link="">Copy Link</button>
+            </div>
+            <div class="total-credit">
+                <div class="credit-info">
+                    <span id="total-credit">Total Credit <span class="warning">!</span> : 0</span>
+                    <small>10,000 = 1 <img src="assets/icons/usdt.png" alt="USDT"></small>
+                </div>
+                <button class="claim-button">Claim</button>
+            </div>
+            <div class="record-section">
+                <h3>Claim Record</h3>
+                <div class="no-frens">
+                    <img src="assets/icons/nofrens.png" alt="No Friends">
+                    <p>No Friends yet</p>
+                </div>
+            </div>
+            <div class="invite-record">
+                <h3 id="invite-record-title">Invite Record (0)</h3>
+                <div class="record-header">
+                    <span>User</span>
+                    <span>Join Time</span>
+                    <span>Credit</span>
+                </div>
+                <div class="record-list">
+                    <div class="no-frens">
+                        <img src="assets/icons/nofrens.png" alt="No Invites">
+                        <p>No invites yet</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </section>
+
     <section id="chest" class="section chest-section">
-        <div class="chest-slider">
-            <button class="nav-arrow left" onclick="prevChest()"><</button>
-            <div class="chest-container" id="chestContainer">
-                <!-- Chest items will be dynamically added here -->
+        <main>
+            <div class="chest-slider">
+                <button class="nav-arrow left" onclick="prevChest()">&#60;</button>
+                <div class="chest-container" id="chestContainer">
+                    </div>
+                <button class="nav-arrow right" onclick="nextChest()">&#62;</button>
             </div>
-            <button class="nav-arrow right" onclick="nextChest()">></button>
-        </div>
-        <div class="rewards">
-            <div class="reward-item usdt">
-                <img src="assets/icons/usdt.png" alt="USDT">
-                <p>USDT</p>
+            <div class="rewards">
+                <div class="reward-item usdt">
+                    <img src="assets/icons/usdt.png" alt="USDT">
+                    <p>USDT</p>
+                </div>
+                <div class="reward-item land-piece">
+                    <img src="assets/icons/land-piece.png" alt="Land Piece">
+                    <p>Land Piece</p>
+                </div>
+                <div class="reward-item fox-medal">
+                    <img src="assets/icons/fox-medal.png" alt="Fox Medal">
+                    <p>Fox Medal</p>
+                </div>
             </div>
-            <div class="reward-item land-piece">
-                <img src="assets/icons/land-piece.png" alt="Land Piece">
-                <p>Land Piece</p>
+            <div class="cost" id="chestCost">
+                <span>200</span>
+                <img src="assets/icons/gem.png" alt="Gem">
             </div>
-            <div class="reward-item fox-medal">
-                <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                <p>Fox Medal</p>
+            <div class="vip-requirement" id="chestVipRequirement" style="display: none;">
+                NEED VIP 1
             </div>
-        </div>
-        <div class="cost" id="chestCost">
-            <span>200</span>
-            <img src="assets/icons/gem.png" alt="Gem">
-        </div>
-        <div class="vip-requirement" id="chestVipRequirement" style="display: none;">
-            NEED VIP 1
-        </div>
-        <button class="open-chest-button" onclick="openChest()">Open Chest</button>
+            <button class="open-chest-button" onclick="openChest()">Open Chest</button>
+            <div id="chest-message" style="color: var(--color-success); margin-top: var(--padding-small); text-align: center;"></div>
+        </main>
     </section>
 
-    <!-- Top Section -->
     <section id="top" class="section top-section">
-        <h2>Medal Ranking <span class="warning">!</span></h2>
-        <ul class="ranking-list" id="ranking-list">
-            <li class="no-rankings">
-                <p>No rankings available</p>
-            </li>
-        </ul>
+        <main>
+            <h2>Medal Ranking <span class="warning">!</span></h2>
+            <ul class="ranking-list" id="ranking-list">
+                <li class="no-rankings">
+                    <p>No rankings available</p>
+                </li>
+            </ul>
+        </main>
     </section>
 
     <nav class="bottom-nav">
@@ -695,6 +809,24 @@
     </nav>
 
     <script>
+        // --- Utility Functions ---
+        function showMessage(message, isError = false) {
+            const messageElement = document.getElementById('chest-message');
+            if (messageElement) {
+                messageElement.textContent = message;
+                messageElement.style.color = isError ? 'red' : 'var(--color-success)';
+            } else {
+                alert(message); // Fallback if element not found
+            }
+        }
+
+        function clearMessage() {
+            const messageElement = document.getElementById('chest-message');
+            if (messageElement) {
+                messageElement.textContent = '';
+            }
+        }
+
         // Function to dynamically load a script and return a Promise
         function loadScript(src, retries = 3, delay = 1000) {
             return new Promise((resolve, reject) => {
@@ -723,7 +855,7 @@
             });
         }
 
-        // Firebase Configuration
+        // --- Firebase Configuration and Initialization ---
         const firebaseConfig = {
             apiKey: "AIzaSyCUkEmFmJK2vr8k7M6JqYaxlcgBDf7WdJI",
             authDomain: "fourgo-cd98f.firebaseapp.com",
@@ -841,7 +973,7 @@
             return false;
         }
 
-        // Telegram Web App Setup with error handling
+        // --- Telegram Web App Setup ---
         let telegramUser;
         try {
             window.Telegram.WebApp.ready();
@@ -870,114 +1002,28 @@
             };
         }
 
-        // Storage abstraction using Firebase Firestore
-        const Storage = {
-            getItem: async (key) => {
-                if (!firebaseInitialized || !db) {
-                    console.error("Firestore not initialized. Cannot fetch item:", key);
-                    return null;
-                }
-                try {
-                    const doc = await db.collection('userData')
-                        .doc(telegramUser?.id.toString()).get();
-                    return doc.exists ? doc.data()[key] : null;
-                } catch (error) {
-                    console.error(`Error fetching ${key}:`, error.message);
-                    return null;
-                }
-            },
-            setItem: async (key, value) => {
-                if (!firebaseInitialized || !db) {
-                    console.error("Firestore not initialized. Cannot set item:", key);
-                    return false;
-                }
-                try {
-                    await db.collection('userData')
-                        .doc(telegramUser?.id.toString())
-                        .set({ [key]: value }, { merge: true });
-                    return true;
-                } catch (error) {
-                    console.error(`Error setting ${key}:`, error.message);
-                    return false;
-                }
-            }
+        // --- User Data Management ---
+        let currentUserData = {
+            gems: 0,
+            usdt: 0,
+            ton: 0,
+            referrals: 0,
+            inviteRecords: [],
+            landPieces: 0,
+            foxMedals: 0,
+            isReferred: false
         };
 
-        // Navigation Logic
-        const sections = document.querySelectorAll('.section');
-        const navButtons = document.querySelectorAll('.nav-button');
-
-        async function switchSection(sectionId) {
-            console.log(`Attempting to switch to section: ${sectionId}`);
-            sections.forEach(section => {
-                section.classList.remove('active');
-                console.log(`Hiding section: ${section.id}`);
-            });
-            navButtons.forEach(btn => {
-                btn.classList.remove('active');
-                console.log(`Removing active from button: ${btn.getAttribute('data-section')}`);
-            });
-
-            const targetSection = document.getElementById(sectionId);
-            const targetButton = document.querySelector(`.nav-button[data-section="${sectionId}"]`);
-
-            if (targetSection && targetButton) {
-                targetSection.classList.add('active');
-                targetButton.classList.add('active');
-                console.log(`Successfully showing section: ${sectionId}`);
-            } else {
-                console.error(`Failed to switch to section: ${sectionId}`);
-                if (!targetSection) console.error(`Section with id "${sectionId}" not found`);
-                if (!targetButton) console.error(`Button with data-section "${sectionId}" not found`);
-            }
-
-            if (sectionId === 'earn') await ensureFirebaseReady(updateEarnSectionUI);
-            if (sectionId === 'invite') await ensureFirebaseReady(updateInviteSectionUI);
-            if (sectionId === 'top') await ensureFirebaseReady(updateTopSectionUI);
-        }
-
-        navButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const sectionId = button.getAttribute('data-section');
-                console.log(`Navigation button clicked for section: ${sectionId}`);
-                switchSection(sectionId);
-            });
-        });
-
-        console.log('Setting default section to Earn');
-        switchSection('earn');
-
-        // Helper to ensure Firebase is ready before running a callback
-        async function ensureFirebaseReady(callback) {
-            if (!firebaseInitialized || !db) {
-                console.log("Firebase not ready, attempting initialization...");
-                const success = await initializeFirebase();
-                if (!success) {
-                    console.error("Firebase initialization failed after retries. Cannot proceed.");
-                    alert("Failed to connect to database. Please try again later.");
-                    return;
-                }
-            }
-            console.log("Firebase ready, executing callback...");
-            await callback();
-        }
-
-        // User Data Management
         async function initializeUserData() {
-            if (!telegramUser) {
-                console.warn("Cannot initialize user data: No Telegram user available");
-                return;
-            }
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot initialize user data.");
-                return;
-            }
+            if (!telegramUser || !firebaseInitialized || !db) return;
+
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
             const rankingDocRef = db.collection('users').doc(telegramUser.id.toString());
+
             try {
                 const doc = await userDocRef.get();
                 if (!doc.exists) {
-                    await userDocRef.set({
+                    const initialData = {
                         gems: 0,
                         usdt: 0,
                         ton: 0,
@@ -987,7 +1033,9 @@
                         foxMedals: 0,
                         isReferred: false,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
+                    };
+                    await userDocRef.set(initialData);
+                    Object.assign(currentUserData, initialData);
 
                     await rankingDocRef.set({
                         username: telegramUser.username || telegramUser.first_name || 'Anonymous',
@@ -997,83 +1045,63 @@
 
                     analytics.logEvent('user_signup', { userId: telegramUser.id });
                     console.log("New user data initialized");
+                } else {
+                    Object.assign(currentUserData, doc.data());
                 }
                 await updateUserStatsUI();
             } catch (error) {
                 console.error("Error initializing user data:", error.message);
+                showMessage("Failed to load user data.", true);
             }
         }
 
         async function updateUserStatsUI() {
-            if (!telegramUser) return;
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot update user stats UI.");
-                return;
-            }
-            try {
-                const userDoc = await db.collection('userData')
-                    .doc(telegramUser.id.toString()).get();
-                const data = userDoc.data();
-                document.getElementById('gems').textContent = data.gems || 0;
-                document.getElementById('usdt').textContent = (data.usdt || 0).toFixed(4);
-                document.getElementById('ton').textContent = (data.ton || 0).toFixed(4);
-                document.getElementById('wallet-usdt').textContent = (data.usdt || 0).toFixed(4);
-                document.getElementById('wallet-ton').textContent = (data.ton || 0).toFixed(4);
-                console.log("User stats updated successfully");
-            } catch (error) {
-                console.error("Error updating user stats UI:", error.message);
-            }
+            document.getElementById('gems').textContent = currentUserData.gems || 0;
+            document.getElementById('usdt').textContent = (currentUserData.usdt || 0).toFixed(4);
+            document.getElementById('ton').textContent = (currentUserData.ton || 0).toFixed(4);
+            document.getElementById('wallet-usdt').textContent = (currentUserData.usdt || 0).toFixed(4);
+            document.getElementById('wallet-ton').textContent = (currentUserData.ton || 0).toFixed(4);
+            console.log("User stats updated successfully");
         }
 
-        // Fetch and Update Earn Section (Quests)
+        // --- Earn Section (Quests) ---
         async function updateEarnSectionUI() {
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot update earn section UI.");
-                return;
-            }
+            if (!firebaseInitialized || !db) return;
+            const dailyQuestList = document.getElementById('daily-quest-list');
+            const basicQuestList = document.getElementById('basic-quest-list');
+            const dailyQuestCount = document.getElementById('daily-quest-count');
+            const basicQuestCount = document.getElementById('basic-quest-count');
+
+            dailyQuestList.innerHTML = '<li class="loading">Loading quests...</li>';
+            basicQuestList.innerHTML = '<li class="loading">Loading quests...</li>';
+
             try {
-                console.log("Fetching daily quests...");
                 const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get();
                 const dailyQuests = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data().tasks : [];
-                const dailyQuestList = document.getElementById('daily-quest-list');
-                const dailyQuestCount = document.getElementById('daily-quest-count');
-
                 dailyQuestCount.textContent = dailyQuests.length;
-                dailyQuestList.innerHTML = dailyQuests.length === 0 ? `
-                    <li class="no-quests">
-                        <p>No daily quests available</p>
-                    </li>
-                ` : dailyQuests.map(quest => `
+                dailyQuestList.innerHTML = dailyQuests.length === 0 ? '<li class="no-quests"><p>No daily quests available</p></li>' : dailyQuests.map(quest => `
                     <li class="quest-item">
                         <img src="${quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q'}" alt="${quest.title}">
                         <span>${quest.title}</span>
                         <div class="quest-reward">
                             <img src="assets/icons/gem.png" alt="Gem">
                             <span>+${quest.reward}</span>
-                            <button class="go-button">${quest.action || 'GO'}</button>
+                            <button class="go-button" data-reward="${quest.reward}">GO</button>
                         </div>
                     </li>
                 `).join('');
 
-                console.log("Fetching basic quests...");
                 const basicQuestsSnapshot = await db.collection('quests').doc('basic').get();
                 const basicQuests = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data().tasks : [];
-                const basicQuestList = document.getElementById('basic-quest-list');
-                const basicQuestCount = document.getElementById('basic-quest-count');
-
                 basicQuestCount.textContent = basicQuests.length;
-                basicQuestList.innerHTML = basicQuests.length === 0 ? `
-                    <li class="no-quests">
-                        <p>No basic quests available</p>
-                    </li>
-                ` : basicQuests.map(quest => `
+                basicQuestList.innerHTML = basicQuests.length === 0 ? '<li class="no-quests"><p>No basic quests available</p></li>' : basicQuests.map(quest => `
                     <li class="quest-item">
                         <img src="${quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q'}" alt="${quest.title}">
                         <span>${quest.title}</span>
                         <div class="quest-reward">
                             <img src="assets/icons/gem.png" alt="Gem">
                             <span>+${quest.reward}</span>
-                            <button class="go-button">${quest.action || 'GO'}</button>
+                            <button class="go-button" data-reward="${quest.reward}">GO</button>
                         </div>
                     </li>
                 `).join('');
@@ -1081,10 +1109,13 @@
                 console.log("Earn section UI updated successfully");
             } catch (error) {
                 console.error("Error updating earn section UI:", error.message);
+                showMessage("Failed to load quests.", true);
+                dailyQuestList.innerHTML = '<li class="error">Failed to load quests.</li>';
+                basicQuestList.innerHTML = '<li class="error">Failed to load quests.</li>';
             }
         }
 
-        // Referral System
+        // --- Referral System ---
         function generateReferralLink() {
             if (!telegramUser) return;
             const botUsername = 'fourgobot';
@@ -1095,32 +1126,27 @@
         }
 
         async function handleReferral() {
-            if (!telegramUser) return;
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot handle referral.");
-                return;
-            }
+            if (!telegramUser || !firebaseInitialized || !db) return;
+
             const initData = Telegram.WebApp.initDataUnsafe;
             const startParam = initData.start_param;
 
             if (startParam && startParam.startsWith('ref_')) {
                 const referrerId = startParam.split('_')[1];
-                if (referrerId === telegramUser.id.toString()) return;
+                if (referrerId === telegramUser.id.toString() || currentUserData.isReferred) return;
 
                 const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
                 const referrerDocRef = db.collection('userData').doc(referrerId);
 
                 try {
-                    const userDoc = await userDocRef.get();
-                    if (userDoc.data().isReferred) return;
-
                     await userDocRef.update({ isReferred: true });
                     const referrerDoc = await referrerDocRef.get();
-                    const newReferralCount = (referrerDoc.data().referrals || 0) + 1;
-                    const newGems = (referrerDoc.data().gems || 0) + 50;
+                    const referrerData = referrerDoc.data();
+                    const newReferralCount = (referrerData.referrals || 0) + 1;
+                    const newGems = (referrerData.gems || 0) + 50;
 
                     const newRecord = {
-                        username: telegramUser.username || telegramUser.first_name,
+                        username: telegramUser.username || telegramUser.first_name || 'Unknown',
                         joinTime: new Date().toISOString().replace('T', ' ').split('.')[0],
                         credit: 10
                     };
@@ -1131,41 +1157,46 @@
                         inviteRecords: firebase.firestore.FieldValue.arrayUnion(newRecord)
                     });
 
-                    analytics.logEvent('referral_success', { referrerId, newUserId: telegramUser.id });
+                    currentUserData.isReferred = true; // Update local state
                     console.log("Referral handled successfully");
                 } catch (error) {
                     console.error("Error handling referral:", error.message);
+                    showMessage("Failed to process referral.", true);
                 }
             }
         }
 
         async function updateInviteSectionUI() {
-            if (!telegramUser) return;
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot update invite section UI.");
-                return;
-            }
+            if (!telegramUser || !firebaseInitialized || !db) return;
+
+            const myInviteSpan = document.getElementById('my-invite');
+            const totalCreditSpan = document.getElementById('total-credit');
+            const inviteRecordTitle = document.getElementById('invite-record-title');
+            const recordListDiv = document.querySelector('.invite-record .record-list');
+
             try {
                 const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
                 const data = userDoc.data();
-                const referrals = data.referrals || 0;
+                currentUserData.referrals = data.referrals || 0;
+                currentUserData.inviteRecords = data.inviteRecords || [];
+
+                const referrals = currentUserData.referrals;
                 const totalCredit = referrals * 10;
 
-                document.getElementById('my-invite').textContent = `My Invite: ${referrals}`;
-                document.getElementById('total-credit').textContent = `Total Credit ! : ${totalCredit}`;
-                document.getElementById('invite-record-title').textContent = `Invite Record (${referrals})`;
+                myInviteSpan.textContent = `My Invite: ${referrals}`;
+                totalCreditSpan.innerHTML = `Total Credit <span class="warning">!</span> : ${totalCredit}`;
+                inviteRecordTitle.textContent = `Invite Record (${referrals})`;
 
-                const recordList = document.querySelector('.invite-record .record-list');
-                recordList.innerHTML = data.inviteRecords.length === 0 ? `
+                recordListDiv.innerHTML = currentUserData.inviteRecords.length === 0 ? `
                     <div class="no-frens">
-                        <img src="assets/icons/nofrens.png" alt="No Frens">
+                        <img src="assets/icons/nofrens.png" alt="No Invites">
                         <p>No invites yet</p>
                     </div>
-                ` : data.inviteRecords.map(record => `
+                ` : currentUserData.inviteRecords.map(record => `
                     <div class="record-item">
-                        <img src="https://via.placeholder.com/40/808080/000000?text=${record.username[0]}" alt="${record.username}">
+                        <img src="https://via.placeholder.com/40/808080/000000?text=${record.username ? record.username[0].toUpperCase() : 'U'}" alt="${record.username || 'Unknown User'}">
                         <div class="user-info">
-                            <span>${record.username}</span>
+                            <span>${record.username || 'Unknown User'}</span>
                             <small>${record.joinTime}</small>
                         </div>
                         <span class="credit">${record.credit}</span>
@@ -1174,14 +1205,18 @@
                 console.log("Invite section UI updated successfully");
             } catch (error) {
                 console.error("Error updating invite section UI:", error.message);
+                showMessage("Failed to load invite data.", true);
+                recordListDiv.innerHTML = '<div class="error">Failed to load invite records.</div>';
             }
         }
 
+        // --- Top Section (Ranking) ---
         async function updateTopSectionUI() {
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot update top section UI.");
-                return;
-            }
+            if (!firebaseInitialized || !db) return;
+
+            const rankingListElement = document.getElementById('ranking-list');
+            rankingListElement.innerHTML = '<li class="loading">Loading rankings...</li>';
+
             try {
                 const rankingsSnapshot = await db.collection('users')
                     .orderBy('foxMedals', 'desc')
@@ -1197,12 +1232,7 @@
                     });
                 });
 
-                const rankingList = document.getElementById('ranking-list');
-                rankingList.innerHTML = rankings.length === 0 ? `
-                    <li class="no-rankings">
-                        <p>No rankings available</p>
-                    </li>
-                ` : rankings.map(user => `
+                rankingListElement.innerHTML = rankings.length === 0 ? '<li class="no-rankings"><p>No rankings available</p></li>' : rankings.map(user => `
                     <li class="ranking-item">
                         <img src="${user.photoUrl}" alt="${user.username}">
                         <span>${user.username}</span>
@@ -1216,28 +1246,22 @@
                 console.log("Top section UI updated successfully");
             } catch (error) {
                 console.error("Error updating top section UI:", error.message);
+                showMessage("Failed to load rankings.", true);
+                rankingListElement.innerHTML = '<li class="error">Failed to load rankings.</li>';
             }
         }
 
-        // Claim Credits Logic
+        // --- Claim Credits Logic ---
         document.querySelector('.invite-section .claim-button').addEventListener('click', async () => {
-            if (!telegramUser) {
-                alert("User not authenticated. Please try again.");
-                return;
-            }
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot claim credits.");
-                alert("Database not initialized. Please try again later.");
-                return;
-            }
+            if (!telegramUser || !firebaseInitialized || !db) return;
+
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+
             try {
-                const userDoc = await userDocRef.get();
-                const data = userDoc.data();
-                const totalCredit = (data.referrals || 0) * 10;
+                const totalCredit = (currentUserData.referrals || 0) * 10;
 
                 if (totalCredit < 10000) {
-                    alert(`You need 10,000 credits to claim 1 USDT. You have ${totalCredit}.`);
+                    showMessage(`You need 10,000 credits to claim 1 USDT. You have ${totalCredit}.`, true);
                     return;
                 }
 
@@ -1247,20 +1271,25 @@
 
                 await userDocRef.update({
                     usdt: firebase.firestore.FieldValue.increment(usdtToClaim),
-                    referrals: newReferralCount
+                    referrals: newReferralCount,
+                    inviteRecords: [] // Clear claimed records
                 });
+
+                currentUserData.usdt += usdtToClaim;
+                currentUserData.referrals = newReferralCount;
+                currentUserData.inviteRecords = [];
 
                 await updateUserStatsUI();
                 await updateInviteSectionUI();
-                alert(`Successfully claimed ${usdtToClaim} USDT!`);
+                showMessage(`Successfully claimed ${usdtToClaim} USDT!`);
                 analytics.logEvent('credit_claim', { userId: telegramUser.id, usdt: usdtToClaim });
             } catch (error) {
                 console.error("Error claiming credits:", error.message);
-                alert("Failed to claim credits: " + error.message);
+                showMessage("Failed to claim credits: " + error.message, true);
             }
         });
 
-        // Chest Slider Logic
+        // --- Chest Slider Logic ---
         const chests = [
             { name: "Wood Chest", next: "Bronze", image: "wood-chest.png", gemCost: 200, vip: 0 },
             { name: "Bronze Chest", next: "Silver", image: "bronze-chest.png", gemCost: 500, vip: 1 },
@@ -1309,8 +1338,10 @@
                 chestVipRequirementElement.textContent = `NEED VIP ${chest.vip}`;
             }
 
-            document.querySelector('.nav-arrow.left').style.display = currentChestIndex === 0 ? 'none' : 'block';
-            document.querySelector('.nav-arrow.right').style.display = currentChestIndex === chests.length - 1 ? 'none' : 'block';
+            const leftArrow = document.querySelector('.nav-arrow.left');
+            const rightArrow = document.querySelector('.nav-arrow.right');
+            if (leftArrow) leftArrow.style.display = currentChestIndex === 0 ? 'none' : 'block';
+            if (rightArrow) rightArrow.style.display = currentChestIndex === chests.length - 1 ? 'none' : 'block';
         }
 
         window.nextChest = function() {
@@ -1328,23 +1359,15 @@
         };
 
         window.openChest = async function() {
-            if (!telegramUser) {
-                alert("User not authenticated. Please try again.");
-                return;
-            }
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot open chest.");
-                alert("Database not initialized. Please try again later.");
-                return;
-            }
+            if (!telegramUser || !firebaseInitialized || !db) return;
+
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+
             try {
-                const userDoc = await userDocRef.get();
-                const userData = userDoc.data();
                 const chest = chests[currentChestIndex];
 
-                if (userData.gems < chest.gemCost) {
-                    alert(`You need ${chest.gemCost} gems to open the ${chest.name}! Current: ${userData.gems}`);
+                if (currentUserData.gems < chest.gemCost) {
+                    showMessage(`You need ${chest.gemCost} gems to open the ${chest.name}! Current: ${currentUserData.gems}`, true);
                     return;
                 }
 
@@ -1355,8 +1378,8 @@
                 };
 
                 await userDocRef.update({
-                    gems: userData.gems - chest.gemCost,
-                    usdt: userData.usdt + parseFloat(rewards.usdt),
+                    gems: firebase.firestore.FieldValue.increment(-chest.gemCost),
+                    usdt: firebase.firestore.FieldValue.increment(parseFloat(rewards.usdt)),
                     landPieces: firebase.firestore.FieldValue.increment(rewards.landPiece),
                     foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
                 });
@@ -1365,92 +1388,110 @@
                     foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
                 });
 
+                currentUserData.gems -= chest.gemCost;
+                currentUserData.usdt += parseFloat(rewards.usdt);
+                currentUserData.landPieces += rewards.landPiece;
+                currentUserData.foxMedals += rewards.foxMedal;
+
                 await updateUserStatsUI();
-                alert(`Opened ${chest.name}! Rewards: ${rewards.usdt} USDT, ${rewards.landPiece} Land Piece, ${rewards.foxMedal} Fox Medal`);
+                showMessage(`Opened ${chest.name}! Rewards: ${rewards.usdt} USDT, ${rewards.landPiece} Land Piece, ${rewards.foxMedal} Fox Medal`);
                 analytics.logEvent('chest_opened', { chestName: chest.name, userId: telegramUser.id });
             } catch (error) {
                 console.error("Error opening chest:", error.message);
-                alert("Failed to open chest: " + error.message);
+                showMessage("Failed to open chest: " + error.message, true);
             }
         };
 
         updateChest();
 
-        // Earn Section Interactions
+        // --- Event Listeners ---
         document.addEventListener('click', async (event) => {
             if (event.target.classList.contains('go-button')) {
-                if (!telegramUser) {
-                    alert("User not authenticated. Please try again.");
-                    return;
-                }
-                if (!firebaseInitialized || !db) {
-                    console.error("Firestore not initialized. Cannot complete task.");
-                    alert("Database not initialized. Please try again later.");
-                    return;
-                }
-                const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-                try {
-                    const userDoc = await userDocRef.get();
-                    const reward = parseInt(event.target.previousElementSibling.textContent.replace('+', ''));
-                    const newGems = (userDoc.data().gems || 0) + reward;
+                if (!telegramUser || !firebaseInitialized || !db) return;
 
-                    await userDocRef.update({ gems: newGems });
+                const reward = parseInt(event.target.dataset.reward);
+                const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+
+                try {
+                    await userDocRef.update({ gems: firebase.firestore.FieldValue.increment(reward) });
+                    currentUserData.gems += reward;
                     await updateUserStatsUI();
-                    alert(`Task completed! +${reward} Gems`);
+                    showMessage(`Task completed! +${reward} Gems`);
                     analytics.logEvent('task_completed', { userId: telegramUser.id });
                 } catch (error) {
                     console.error("Error completing task:", error.message);
-                    alert("Failed to complete task: " + error.message);
+                    showMessage("Failed to complete task: " + error.message, true);
                 }
             }
         });
 
-        // Wallet Section Interactions
         document.querySelectorAll('.withdraw-button').forEach(button => {
             button.addEventListener('click', () => {
-                alert('Withdrawal not implemented yet. Connect your wallet first!');
+                showMessage('Withdrawal not implemented yet. Connect your wallet first!');
             });
         });
 
         document.querySelectorAll('.warning-button').forEach(button => {
             button.addEventListener('click', () => {
-                alert('Warning: Ensure your wallet is connected to withdraw funds.');
+                showMessage('Warning: Ensure your wallet is connected to withdraw funds.');
             });
         });
 
         document.querySelector('.connect-button').addEventListener('click', () => {
-            alert('Connecting to TON Wallet... (placeholder)');
+            showMessage('Connecting to TON Wallet... (placeholder)');
         });
 
-        // Invite Section Interactions
         document.querySelector('.invite-friend').addEventListener('click', function() {
             const referralLink = this.getAttribute('data-link');
-            try {
-                Telegram.WebApp.openTelegramLink(referralLink);
-                analytics.logEvent('invite_friend_clicked', { userId: telegramUser.id });
-            } catch (error) {
-                console.error("Error opening Telegram link:", error);
-                alert("Failed to open invite link. Please try again.");
+            if (referralLink) {
+                try {
+                    Telegram.WebApp.openTelegramLink(referralLink);
+                    analytics.logEvent('invite_friend_clicked', { userId: telegramUser.id });
+                } catch (error) {
+                    console.error("Error opening Telegram link:", error);
+                    showMessage("Failed to open invite link. Please try again.", true);
+                }
+            } else {
+                showMessage("Referral link not generated yet.", true);
             }
         });
 
         document.querySelector('.copy-link').addEventListener('click', function() {
             const referralLink = this.getAttribute('data-link');
-            navigator.clipboard.writeText(referralLink).then(() => {
-                alert('Invite link copied to clipboard: ' + referralLink);
-                analytics.logEvent('copy_link', { userId: telegramUser.id });
-            }).catch(err => {
-                console.error("Error copying link:", err);
-                alert('Failed to copy link: ' + err);
+            if (referralLink) {
+                navigator.clipboard.writeText(referralLink).then(() => {
+                    showMessage('Invite link copied to clipboard: ' + referralLink);
+                    analytics.logEvent('copy_link', { userId: telegramUser.id });
+                }).catch(err => {
+                    console.error("Error copying link:", err);
+                    showMessage('Failed to copy link: ' + err, true);
+                });
+            } else {
+                showMessage("Referral link not generated yet.", true);
+            }
+        });
+
+        const navButtons = document.querySelectorAll('.nav-button');
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const sectionId = button.getAttribute('data-section');
+                document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+                document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+                document.getElementById(sectionId).classList.add('active');
+                button.classList.add('active');
+                clearMessage(); // Clear any messages when navigating
+                if (sectionId === 'earn') ensureFirebaseReady(updateEarnSectionUI);
+                if (sectionId === 'invite') ensureFirebaseReady(updateInviteSectionUI);
+                if (sectionId === 'top') ensureFirebaseReady(updateTopSectionUI);
             });
         });
 
-        // Initialize the app
-        (async () => {
+        // --- Initialization ---
+        async function initializeApp() {
             try {
                 console.log("Starting app initialization...");
-                const success = await initializeFirebase();
-                if (!success || !db) {
+                const firebaseSuccess = await initializeFirebase();
+                if (!firebaseSuccess || !db) {
                     throw new Error("Firebase initialization failed or Firestore is not available");
                 }
                 console.log("Firebase and Firestore ready, proceeding with app setup...");
@@ -1463,9 +1504,31 @@
                 console.log("App initialized successfully");
             } catch (error) {
                 console.error("App initialization failed:", error.message);
-                alert(`Failed to initialize app: ${error.message}. Check console for details.`);
+                showMessage(`Failed to initialize app: ${error.message}. Check console for details.`, true);
             }
-        })();
+        }
+
+        // Helper to ensure Firebase is ready before running a callback
+        async function ensureFirebaseReady(callback) {
+            if (!firebaseInitialized || !db) {
+                console.log("Firebase not ready, attempting initialization...");
+                const success = await initializeFirebase();
+                if (!success) {
+                    console.error("Firebase initialization failed after retries. Cannot proceed.");
+                    showMessage("Failed to connect to database. Please try again later.", true);
+                    return;
+                }
+            }
+            console.log("Firebase ready, executing callback...");
+            await callback();
+        }
+
+        // Set default section to Earn after Firebase is ready
+        ensureFirebaseReady(() => {
+            document.getElementById('earn').classList.add('active');
+        });
+
+        initializeApp();
     </script>
 </body>
 </html>
