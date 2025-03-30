@@ -438,55 +438,9 @@
             height: 24px;
             margin-bottom: 5px;
         }
-        /* Added: Loading overlay */
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            display: none;
-        }
-        .loading-spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #ff00ff;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        /* Added: Toast notification */
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #333;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 5px;
-            z-index: 1001;
-            display: none;
-        }
     </style>
 </head>
 <body>
-    <!-- Added: Loading overlay -->
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-spinner"></div>
-    </div>
-    <!-- Added: Toast notification -->
-    <div class="toast" id="toast"></div>
-
     <header>
         <div class="back-arrow">X</div>
         <h1>4Metas</h1>
@@ -741,9 +695,7 @@
     </nav>
 
     <script>
-        // Security Note: Firebase config is exposed in client-side code. Consider securing it with environment variables or a backend proxy in production.
-
-        // Function to dynamically load a script with retries
+        // Function to dynamically load a script and return a Promise
         function loadScript(src, retries = 3, delay = 1000) {
             return new Promise((resolve, reject) => {
                 let attempts = 0;
@@ -751,12 +703,17 @@
                     const script = document.createElement('script');
                     script.src = src;
                     script.async = true;
-                    script.onload = () => resolve();
+                    script.onload = () => {
+                        console.log(`Script loaded successfully: ${src}`);
+                        resolve();
+                    };
                     script.onerror = () => {
                         attempts++;
                         if (attempts < retries) {
+                            console.warn(`Failed to load script: ${src}. Retrying (${attempts}/${retries})...`);
                             setTimeout(tryLoad, delay);
                         } else {
+                            console.error(`Failed to load script after ${retries} attempts: ${src}`);
                             reject(new Error(`Failed to load script after ${retries} attempts: ${src}`));
                         }
                     };
@@ -779,18 +736,27 @@
 
         // Validate Firebase Configuration
         function validateFirebaseConfig(config) {
-            const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
+            const requiredFields = [
+                'apiKey',
+                'authDomain',
+                'projectId',
+                'storageBucket',
+                'messagingSenderId',
+                'appId'
+            ];
             for (const field of requiredFields) {
-                if (!config[field]) throw new Error(`Firebase config missing: ${field}`);
+                if (!config[field]) {
+                    throw new Error(`Firebase config is missing required field: ${field}`);
+                }
             }
+            console.log("Firebase config validated successfully");
         }
 
-        // Initialize Firebase with improved error handling and loading state
+        // Initialize Firebase with dynamic loading using compat scripts
         let app, db, auth, storage, analytics;
         let firebaseInitialized = false;
         async function initializeFirebase(maxRetries = 3) {
             if (firebaseInitialized) return true;
-            showLoading(true);
             let attempts = 0;
 
             while (attempts < maxRetries && !firebaseInitialized) {
@@ -816,68 +782,104 @@
 
                     let scriptsLoaded = false;
                     try {
+                        console.log("Loading scripts from primary CDN...");
                         await Promise.all(scriptUrls.map(url => loadScript(url)));
                         scriptsLoaded = true;
+                        console.log("Primary CDN scripts loaded successfully");
                     } catch (error) {
-                        console.warn("Primary CDN failed, trying fallback...");
+                        console.error("Primary CDN failed:", error.message);
+                        console.log("Attempting fallback CDN...");
                         await Promise.all(fallbackUrls.map(url => loadScript(url)));
                         scriptsLoaded = true;
+                        console.log("Fallback CDN scripts loaded successfully");
                     }
 
-                    if (!scriptsLoaded) throw new Error("Failed to load Firebase scripts");
+                    if (!scriptsLoaded) {
+                        throw new Error("Failed to load Firebase scripts from both CDNs");
+                    }
 
-                    if (typeof firebase === 'undefined') throw new Error("Firebase SDK not loaded");
+                    if (typeof firebase === 'undefined') {
+                        throw new Error("Firebase SDK not loaded into global scope");
+                    }
 
+                    console.log("Initializing Firebase app...");
                     app = firebase.initializeApp(firebaseConfig);
+                    console.log("Firebase app initialized:", app.name);
+
+                    console.log("Initializing Firestore...");
                     db = firebase.firestore();
+                    if (!db) {
+                        throw new Error("Firestore initialization failed: db is undefined");
+                    }
+                    console.log("Firestore initialized:", db);
+
                     auth = firebase.auth();
                     storage = firebase.storage();
                     analytics = firebase.analytics();
 
+                    console.log("Verifying Firestore connectivity...");
                     await db.collection('test').doc('init').set({
                         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                         test: "Initialization check"
                     }, { merge: true });
+                    console.log("Firestore connectivity verified");
 
                     firebaseInitialized = true;
-                    showToast("Connected to server successfully");
+                    console.log("Firebase fully initialized");
                     return true;
                 } catch (error) {
                     attempts++;
-                    console.error(`Attempt ${attempts} failed:`, error.message);
+                    console.error(`Firebase initialization attempt ${attempts} failed:`, error.message);
                     if (attempts >= maxRetries) {
-                        showToast("Failed to connect to server. Please check your connection.");
+                        console.error("Max retries reached. Firebase initialization failed.");
+                        firebaseInitialized = false;
                         return false;
                     }
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
                 }
             }
             return false;
         }
 
-        // Telegram Web App Setup
+        // Telegram Web App Setup with error handling
         let telegramUser;
         try {
             window.Telegram.WebApp.ready();
             telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
             if (telegramUser) {
-                document.querySelector('.profile-pic img').src = telegramUser.photo_url || 'assets/icons/user-avatar.png';
+                const profilePic = document.querySelector('.profile-pic img');
+                profilePic.src = telegramUser.photo_url || 'assets/icons/user-avatar.png';
                 document.querySelector('h1').innerText = `4Metas`;
+                console.log("Telegram Web App initialized successfully");
             } else {
-                console.warn("No Telegram user data, using test mode");
-                telegramUser = { id: "test_user_123", username: "TestUser", first_name: "Test", photo_url: "https://via.placeholder.com/40/808080/000000?text=T" };
+                console.warn("No Telegram user data available. Running in test mode.");
+                telegramUser = {
+                    id: "test_user_123",
+                    username: "TestUser",
+                    first_name: "Test",
+                    photo_url: "https://via.placeholder.com/40/808080/000000?text=T"
+                };
             }
         } catch (error) {
-            console.error("Telegram Web App init failed:", error);
-            telegramUser = { id: "test_user_123", username: "TestUser", first_name: "Test", photo_url: "https://via.placeholder.com/40/808080/000000?text=T" };
+            console.error("Telegram Web App initialization failed:", error);
+            telegramUser = {
+                id: "test_user_123",
+                username: "TestUser",
+                first_name: "Test",
+                photo_url: "https://via.placeholder.com/40/808080/000000?text=T"
+            };
         }
 
-        // Storage abstraction with Firestore
+        // Storage abstraction using Firebase Firestore
         const Storage = {
             getItem: async (key) => {
-                if (!firebaseInitialized || !db) return null;
+                if (!firebaseInitialized || !db) {
+                    console.error("Firestore not initialized. Cannot fetch item:", key);
+                    return null;
+                }
                 try {
-                    const doc = await db.collection('userData').doc(telegramUser?.id.toString()).get();
+                    const doc = await db.collection('userData')
+                        .doc(telegramUser?.id.toString()).get();
                     return doc.exists ? doc.data()[key] : null;
                 } catch (error) {
                     console.error(`Error fetching ${key}:`, error.message);
@@ -885,9 +887,14 @@
                 }
             },
             setItem: async (key, value) => {
-                if (!firebaseInitialized || !db) return false;
+                if (!firebaseInitialized || !db) {
+                    console.error("Firestore not initialized. Cannot set item:", key);
+                    return false;
+                }
                 try {
-                    await db.collection('userData').doc(telegramUser?.id.toString()).set({ [key]: value }, { merge: true });
+                    await db.collection('userData')
+                        .doc(telegramUser?.id.toString())
+                        .set({ [key]: value }, { merge: true });
                     return true;
                 } catch (error) {
                     console.error(`Error setting ${key}:`, error.message);
@@ -896,19 +903,20 @@
             }
         };
 
-        // Navigation Logic with Debouncing
+        // Navigation Logic
         const sections = document.querySelectorAll('.section');
         const navButtons = document.querySelectorAll('.nav-button');
-        let lastSwitchTime = 0;
-        const debounceDelay = 300; // Prevent rapid clicks
 
         async function switchSection(sectionId) {
-            const now = Date.now();
-            if (now - lastSwitchTime < debounceDelay) return; // Debounce
-            lastSwitchTime = now;
-
-            sections.forEach(section => section.classList.remove('active'));
-            navButtons.forEach(btn => btn.classList.remove('active'));
+            console.log(`Attempting to switch to section: ${sectionId}`);
+            sections.forEach(section => {
+                section.classList.remove('active');
+                console.log(`Hiding section: ${section.id}`);
+            });
+            navButtons.forEach(btn => {
+                btn.classList.remove('active');
+                console.log(`Removing active from button: ${btn.getAttribute('data-section')}`);
+            });
 
             const targetSection = document.getElementById(sectionId);
             const targetButton = document.querySelector(`.nav-button[data-section="${sectionId}"]`);
@@ -916,51 +924,54 @@
             if (targetSection && targetButton) {
                 targetSection.classList.add('active');
                 targetButton.classList.add('active');
-                console.log(`Switched to section: ${sectionId}`);
-
-                if (sectionId === 'earn') await ensureFirebaseReady(updateEarnSectionUI);
-                if (sectionId === 'invite') await ensureFirebaseReady(updateInviteSectionUI);
-                if (sectionId === 'top') await ensureFirebaseReady(updateTopSectionUI);
+                console.log(`Successfully showing section: ${sectionId}`);
             } else {
-                console.error(`Section or button not found for: ${sectionId}`);
+                console.error(`Failed to switch to section: ${sectionId}`);
+                if (!targetSection) console.error(`Section with id "${sectionId}" not found`);
+                if (!targetButton) console.error(`Button with data-section "${sectionId}" not found`);
             }
+
+            if (sectionId === 'earn') await ensureFirebaseReady(updateEarnSectionUI);
+            if (sectionId === 'invite') await ensureFirebaseReady(updateInviteSectionUI);
+            if (sectionId === 'top') await ensureFirebaseReady(updateTopSectionUI);
         }
 
         navButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const sectionId = button.getAttribute('data-section');
+                console.log(`Navigation button clicked for section: ${sectionId}`);
                 switchSection(sectionId);
             });
         });
 
-        switchSection('earn'); // Default section
+        console.log('Setting default section to Earn');
+        switchSection('earn');
 
-        // Helper Functions
+        // Helper to ensure Firebase is ready before running a callback
         async function ensureFirebaseReady(callback) {
-            if (!firebaseInitialized) {
+            if (!firebaseInitialized || !db) {
+                console.log("Firebase not ready, attempting initialization...");
                 const success = await initializeFirebase();
                 if (!success) {
-                    showToast("Failed to initialize database");
+                    console.error("Firebase initialization failed after retries. Cannot proceed.");
+                    alert("Failed to connect to database. Please try again later.");
                     return;
                 }
             }
+            console.log("Firebase ready, executing callback...");
             await callback();
-        }
-
-        function showLoading(show) {
-            document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
-        }
-
-        function showToast(message, duration = 3000) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.style.display = 'block';
-            setTimeout(() => toast.style.display = 'none', duration);
         }
 
         // User Data Management
         async function initializeUserData() {
-            if (!telegramUser || !firebaseInitialized || !db) return;
+            if (!telegramUser) {
+                console.warn("Cannot initialize user data: No Telegram user available");
+                return;
+            }
+            if (!firebaseInitialized || !db) {
+                console.error("Firestore not initialized. Cannot initialize user data.");
+                return;
+            }
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
             const rankingDocRef = db.collection('users').doc(telegramUser.id.toString());
             try {
@@ -985,33 +996,43 @@
                     });
 
                     analytics.logEvent('user_signup', { userId: telegramUser.id });
+                    console.log("New user data initialized");
                 }
                 await updateUserStatsUI();
             } catch (error) {
                 console.error("Error initializing user data:", error.message);
-                showToast("Failed to initialize user data");
             }
         }
 
         async function updateUserStatsUI() {
-            if (!telegramUser || !firebaseInitialized || !db) return;
+            if (!telegramUser) return;
+            if (!firebaseInitialized || !db) {
+                console.error("Firestore not initialized. Cannot update user stats UI.");
+                return;
+            }
             try {
-                const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
+                const userDoc = await db.collection('userData')
+                    .doc(telegramUser.id.toString()).get();
                 const data = userDoc.data();
                 document.getElementById('gems').textContent = data.gems || 0;
                 document.getElementById('usdt').textContent = (data.usdt || 0).toFixed(4);
                 document.getElementById('ton').textContent = (data.ton || 0).toFixed(4);
                 document.getElementById('wallet-usdt').textContent = (data.usdt || 0).toFixed(4);
                 document.getElementById('wallet-ton').textContent = (data.ton || 0).toFixed(4);
+                console.log("User stats updated successfully");
             } catch (error) {
-                console.error("Error updating user stats:", error.message);
+                console.error("Error updating user stats UI:", error.message);
             }
         }
 
-        // Earn Section
+        // Fetch and Update Earn Section (Quests)
         async function updateEarnSectionUI() {
-            if (!firebaseInitialized || !db) return;
+            if (!firebaseInitialized || !db) {
+                console.error("Firestore not initialized. Cannot update earn section UI.");
+                return;
+            }
             try {
+                console.log("Fetching daily quests...");
                 const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get();
                 const dailyQuests = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data().tasks : [];
                 const dailyQuestList = document.getElementById('daily-quest-list');
@@ -1019,7 +1040,9 @@
 
                 dailyQuestCount.textContent = dailyQuests.length;
                 dailyQuestList.innerHTML = dailyQuests.length === 0 ? `
-                    <li class="no-quests"><p>No daily quests available</p></li>
+                    <li class="no-quests">
+                        <p>No daily quests available</p>
+                    </li>
                 ` : dailyQuests.map(quest => `
                     <li class="quest-item">
                         <img src="${quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q'}" alt="${quest.title}">
@@ -1032,6 +1055,7 @@
                     </li>
                 `).join('');
 
+                console.log("Fetching basic quests...");
                 const basicQuestsSnapshot = await db.collection('quests').doc('basic').get();
                 const basicQuests = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data().tasks : [];
                 const basicQuestList = document.getElementById('basic-quest-list');
@@ -1039,7 +1063,9 @@
 
                 basicQuestCount.textContent = basicQuests.length;
                 basicQuestList.innerHTML = basicQuests.length === 0 ? `
-                    <li class="no-quests"><p>No basic quests available</p></li>
+                    <li class="no-quests">
+                        <p>No basic quests available</p>
+                    </li>
                 ` : basicQuests.map(quest => `
                     <li class="quest-item">
                         <img src="${quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q'}" alt="${quest.title}">
@@ -1051,9 +1077,10 @@
                         </div>
                     </li>
                 `).join('');
+
+                console.log("Earn section UI updated successfully");
             } catch (error) {
-                console.error("Error updating earn section:", error.message);
-                showToast("Failed to load quests");
+                console.error("Error updating earn section UI:", error.message);
             }
         }
 
@@ -1064,14 +1091,19 @@
             const referralLink = `https://t.me/${botUsername}?start=ref_${telegramUser.id}`;
             document.querySelector('.invite-friend').setAttribute('data-link', referralLink);
             document.querySelector('.copy-link').setAttribute('data-link', referralLink);
+            console.log("Referral link generated:", referralLink);
         }
 
         async function handleReferral() {
-            if (!telegramUser || !firebaseInitialized || !db) return;
+            if (!telegramUser) return;
+            if (!firebaseInitialized || !db) {
+                console.error("Firestore not initialized. Cannot handle referral.");
+                return;
+            }
             const initData = Telegram.WebApp.initDataUnsafe;
             const startParam = initData.start_param;
 
-            if (startParam && startParam.startsWith 'ref_') {
+            if (startParam && startParam.startsWith('ref_')) {
                 const referrerId = startParam.split('_')[1];
                 if (referrerId === telegramUser.id.toString()) return;
 
@@ -1100,16 +1132,19 @@
                     });
 
                     analytics.logEvent('referral_success', { referrerId, newUserId: telegramUser.id });
-                    showToast("Referral bonus applied!");
+                    console.log("Referral handled successfully");
                 } catch (error) {
                     console.error("Error handling referral:", error.message);
-                    showToast("Failed to process referral");
                 }
             }
         }
 
         async function updateInviteSectionUI() {
-            if (!telegramUser || !firebaseInitialized || !db) return;
+            if (!telegramUser) return;
+            if (!firebaseInitialized || !db) {
+                console.error("Firestore not initialized. Cannot update invite section UI.");
+                return;
+            }
             try {
                 const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
                 const data = userDoc.data();
@@ -1136,16 +1171,22 @@
                         <span class="credit">${record.credit}</span>
                     </div>
                 `).join('');
+                console.log("Invite section UI updated successfully");
             } catch (error) {
-                console.error("Error updating invite section:", error.message);
-                showToast("Failed to load invite data");
+                console.error("Error updating invite section UI:", error.message);
             }
         }
 
         async function updateTopSectionUI() {
-            if (!firebaseInitialized || !db) return;
+            if (!firebaseInitialized || !db) {
+                console.error("Firestore not initialized. Cannot update top section UI.");
+                return;
+            }
             try {
-                const rankingsSnapshot = await db.collection('users').orderBy('foxMedals', 'desc').limit(20).get();
+                const rankingsSnapshot = await db.collection('users')
+                    .orderBy('foxMedals', 'desc')
+                    .limit(20)
+                    .get();
                 const rankings = [];
                 rankingsSnapshot.forEach(doc => {
                     const data = doc.data();
@@ -1158,7 +1199,9 @@
 
                 const rankingList = document.getElementById('ranking-list');
                 rankingList.innerHTML = rankings.length === 0 ? `
-                    <li class="no-rankings"><p>No rankings available</p></li>
+                    <li class="no-rankings">
+                        <p>No rankings available</p>
+                    </li>
                 ` : rankings.map(user => `
                     <li class="ranking-item">
                         <img src="${user.photoUrl}" alt="${user.username}">
@@ -1169,19 +1212,24 @@
                         </div>
                     </li>
                 `).join('');
+
+                console.log("Top section UI updated successfully");
             } catch (error) {
-                console.error("Error updating top section:", error.message);
-                showToast("Failed to load rankings");
+                console.error("Error updating top section UI:", error.message);
             }
         }
 
         // Claim Credits Logic
         document.querySelector('.invite-section .claim-button').addEventListener('click', async () => {
-            if (!telegramUser || !firebaseInitialized || !db) {
-                showToast("Please wait for initialization");
+            if (!telegramUser) {
+                alert("User not authenticated. Please try again.");
                 return;
             }
-            showLoading(true);
+            if (!firebaseInitialized || !db) {
+                console.error("Firestore not initialized. Cannot claim credits.");
+                alert("Database not initialized. Please try again later.");
+                return;
+            }
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
             try {
                 const userDoc = await userDocRef.get();
@@ -1189,7 +1237,7 @@
                 const totalCredit = (data.referrals || 0) * 10;
 
                 if (totalCredit < 10000) {
-                    showToast(`Need 10,000 credits for 1 USDT. You have ${totalCredit}`);
+                    alert(`You need 10,000 credits to claim 1 USDT. You have ${totalCredit}.`);
                     return;
                 }
 
@@ -1204,13 +1252,11 @@
 
                 await updateUserStatsUI();
                 await updateInviteSectionUI();
-                showToast(`Claimed ${usdtToClaim} USDT!`);
+                alert(`Successfully claimed ${usdtToClaim} USDT!`);
                 analytics.logEvent('credit_claim', { userId: telegramUser.id, usdt: usdtToClaim });
             } catch (error) {
                 console.error("Error claiming credits:", error.message);
-                showToast("Failed to claim credits");
-            } finally {
-                showLoading(false);
+                alert("Failed to claim credits: " + error.message);
             }
         });
 
@@ -1282,11 +1328,15 @@
         };
 
         window.openChest = async function() {
-            if (!telegramUser || !firebaseInitialized || !db) {
-                showToast("Please wait for initialization");
+            if (!telegramUser) {
+                alert("User not authenticated. Please try again.");
                 return;
             }
-            showLoading(true);
+            if (!firebaseInitialized || !db) {
+                console.error("Firestore not initialized. Cannot open chest.");
+                alert("Database not initialized. Please try again later.");
+                return;
+            }
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
             try {
                 const userDoc = await userDocRef.get();
@@ -1294,7 +1344,7 @@
                 const chest = chests[currentChestIndex];
 
                 if (userData.gems < chest.gemCost) {
-                    showToast(`Need ${chest.gemCost} gems for ${chest.name}`);
+                    alert(`You need ${chest.gemCost} gems to open the ${chest.name}! Current: ${userData.gems}`);
                     return;
                 }
 
@@ -1316,13 +1366,11 @@
                 });
 
                 await updateUserStatsUI();
-                show wToast(`Opened ${chest.name}! Got ${rewards.usdt} USDT, ${rewards.landPiece} Land Piece, ${rewards.foxMedal} Fox Medal`);
+                alert(`Opened ${chest.name}! Rewards: ${rewards.usdt} USDT, ${rewards.landPiece} Land Piece, ${rewards.foxMedal} Fox Medal`);
                 analytics.logEvent('chest_opened', { chestName: chest.name, userId: telegramUser.id });
             } catch (error) {
                 console.error("Error opening chest:", error.message);
-                showToast("Failed to open chest");
-            } finally {
-                showLoading(false);
+                alert("Failed to open chest: " + error.message);
             }
         };
 
@@ -1331,11 +1379,15 @@
         // Earn Section Interactions
         document.addEventListener('click', async (event) => {
             if (event.target.classList.contains('go-button')) {
-                if (!telegramUser || !firebaseInitialized || !db) {
-                    showToast("Please wait for initialization");
+                if (!telegramUser) {
+                    alert("User not authenticated. Please try again.");
                     return;
                 }
-                showLoading(true);
+                if (!firebaseInitialized || !db) {
+                    console.error("Firestore not initialized. Cannot complete task.");
+                    alert("Database not initialized. Please try again later.");
+                    return;
+                }
                 const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
                 try {
                     const userDoc = await userDocRef.get();
@@ -1344,13 +1396,11 @@
 
                     await userDocRef.update({ gems: newGems });
                     await updateUserStatsUI();
-                    showToast(`Task completed! +${reward} Gems`);
+                    alert(`Task completed! +${reward} Gems`);
                     analytics.logEvent('task_completed', { userId: telegramUser.id });
                 } catch (error) {
                     console.error("Error completing task:", error.message);
-                    showToast("Failed to complete task");
-                } finally {
-                    showLoading(false);
+                    alert("Failed to complete task: " + error.message);
                 }
             }
         });
@@ -1358,18 +1408,18 @@
         // Wallet Section Interactions
         document.querySelectorAll('.withdraw-button').forEach(button => {
             button.addEventListener('click', () => {
-                showToast('Withdrawal not implemented yet');
+                alert('Withdrawal not implemented yet. Connect your wallet first!');
             });
         });
 
         document.querySelectorAll('.warning-button').forEach(button => {
             button.addEventListener('click', () => {
-                showToast('Connect your wallet to withdraw funds');
+                alert('Warning: Ensure your wallet is connected to withdraw funds.');
             });
         });
 
         document.querySelector('.connect-button').addEventListener('click', () => {
-            showToast('Connecting to TON Wallet... (placeholder)');
+            alert('Connecting to TON Wallet... (placeholder)');
         });
 
         // Invite Section Interactions
@@ -1380,37 +1430,40 @@
                 analytics.logEvent('invite_friend_clicked', { userId: telegramUser.id });
             } catch (error) {
                 console.error("Error opening Telegram link:", error);
-                showToast("Failed to open invite link");
+                alert("Failed to open invite link. Please try again.");
             }
         });
 
         document.querySelector('.copy-link').addEventListener('click', function() {
             const referralLink = this.getAttribute('data-link');
             navigator.clipboard.writeText(referralLink).then(() => {
-                showToast('Invite link copied!');
+                alert('Invite link copied to clipboard: ' + referralLink);
                 analytics.logEvent('copy_link', { userId: telegramUser.id });
             }).catch(err => {
                 console.error("Error copying link:", err);
-                showToast('Failed to copy link');
+                alert('Failed to copy link: ' + err);
             });
         });
 
         // Initialize the app
         (async () => {
             try {
+                console.log("Starting app initialization...");
                 const success = await initializeFirebase();
-                if (!success) throw new Error("Firebase initialization failed");
+                if (!success || !db) {
+                    throw new Error("Firebase initialization failed or Firestore is not available");
+                }
+                console.log("Firebase and Firestore ready, proceeding with app setup...");
                 await initializeUserData();
                 generateReferralLink();
                 await handleReferral();
                 await updateEarnSectionUI();
                 await updateInviteSectionUI();
                 await updateTopSectionUI();
-                showLoading(false);
+                console.log("App initialized successfully");
             } catch (error) {
                 console.error("App initialization failed:", error.message);
-                showToast("Failed to start app");
-                showLoading(false);
+                alert(`Failed to initialize app: ${error.message}. Check console for details.`);
             }
         })();
     </script>
