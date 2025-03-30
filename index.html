@@ -1025,62 +1025,149 @@
             }
         }
 
-        // Fetch and Update Earn Section (Quests)
+        // Fetch and Update Earn Section (Quests) with Enhanced Debugging
         async function updateEarnSectionUI() {
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot update earn section UI.");
-                return;
-            }
             try {
-                console.log("Fetching daily quests...");
-                const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get();
-                const dailyQuests = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data().tasks : [];
+                // 1. Verify Firebase initialization
+                if (!firebaseInitialized || !db) {
+                    console.log("[DEBUG] Firebase not initialized, attempting to initialize...");
+                    const success = await initializeFirebase();
+                    if (!success) {
+                        throw new Error("Failed to initialize Firebase after retries");
+                    }
+                    console.log("[DEBUG] Firebase initialized successfully");
+                }
+
+                // 2. Fetch and process daily quests
+                console.log("[DEBUG] Starting daily quests fetch...");
+                const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({
+                    source: 'server' // Force server fetch to avoid cache issues
+                });
+
+                // Detailed logging of snapshot
+                console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
+                console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
+
+                // Handle case where document exists but has no tasks
+                const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
+                const dailyQuests = dailyQuestsRaw.tasks || [];
+                console.log("[DEBUG] Parsed daily quests:", dailyQuests);
+
+                // Validate quest data structure
+                const validatedDailyQuests = dailyQuests.map(quest => ({
+                    title: quest.title || "Untitled Quest",
+                    icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
+                    reward: Number(quest.reward) || 0,
+                    action: quest.action || 'GO'
+                }));
+                console.log("[DEBUG] Validated daily quests:", validatedDailyQuests);
+
+                // 3. Update Daily Quests UI
                 const dailyQuestList = document.getElementById('daily-quest-list');
                 const dailyQuestCount = document.getElementById('daily-quest-count');
 
-                dailyQuestCount.textContent = dailyQuests.length;
-                dailyQuestList.innerHTML = dailyQuests.length === 0 ? `
+                if (!dailyQuestList || !dailyQuestCount) {
+                    throw new Error("Required DOM elements not found for daily quests");
+                }
+
+                dailyQuestCount.textContent = validatedDailyQuests.length;
+                
+                dailyQuestList.innerHTML = validatedDailyQuests.length === 0 ? `
                     <li class="no-quests">
                         <p>No daily quests available</p>
                     </li>
-                ` : dailyQuests.map(quest => `
-                    <li class="quest-item">
-                        <img src="${quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q'}" alt="${quest.title}">
-                        <span>${quest.title}</span>
-                        <div class="quest-reward">
-                            <img src="assets/icons/gem.png" alt="Gem">
-                            <span>+${quest.reward}</span>
-                            <button class="go-button">${quest.action || 'GO'}</button>
-                        </div>
-                    </li>
-                `).join('');
+                ` : validatedDailyQuests.map(quest => {
+                    console.log("[DEBUG] Rendering daily quest:", quest.title);
+                    return `
+                        <li class="quest-item">
+                            <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
+                            <span>${quest.title}</span>
+                            <div class="quest-reward">
+                                <img src="assets/icons/gem.png" alt="Gem">
+                                <span>+${quest.reward}</span>
+                                <button class="go-button">${quest.action}</button>
+                            </div>
+                        </li>
+                    `;
+                }).join('');
 
-                console.log("Fetching basic quests...");
-                const basicQuestsSnapshot = await db.collection('quests').doc('basic').get();
-                const basicQuests = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data().tasks : [];
+                // 4. Fetch and process basic quests
+                console.log("[DEBUG] Starting basic quests fetch...");
+                const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({
+                    source: `'server`
+                });
+
+                console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
+                console.log("[DEBUG] Basic snapshot data:", basicQuestsSnapshot.data());
+
+                const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
+                const basicQuests = basicQuestsRaw.tasks || [];
+                console.log("[DEBUG] Parsed basic quests:", basicQuests);
+
+                const validatedBasicQuests = basicQuests.map(quest => ({
+                    title: quest.title || "Untitled Quest",
+                    icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
+                    reward: Number(quest.reward) || 0,
+                    action: quest.action || 'GO'
+                }));
+                console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
+
+                // 5. Update Basic Quests UI
                 const basicQuestList = document.getElementById('basic-quest-list');
                 const basicQuestCount = document.getElementById('basic-quest-count');
 
-                basicQuestCount.textContent = basicQuests.length;
-                basicQuestList.innerHTML = basicQuests.length === 0 ? `
+                if (!basicQuestList || !basicQuestCount) {
+                    throw new Error("Required DOM elements not found for basic quests");
+                }
+
+                basicQuestCount.textContent = validatedBasicQuests.length;
+                
+                basicQuestList.innerHTML = validatedBasicQuests.length === 0 ? `
                     <li class="no-quests">
                         <p>No basic quests available</p>
                     </li>
-                ` : basicQuests.map(quest => `
-                    <li class="quest-item">
-                        <img src="${quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q'}" alt="${quest.title}">
-                        <span>${quest.title}</span>
-                        <div class="quest-reward">
-                            <img src="assets/icons/gem.png" alt="Gem">
-                            <span>+${quest.reward}</span>
-                            <button class="go-button">${quest.action || 'GO'}</button>
-                        </div>
-                    </li>
-                `).join('');
+                ` : validatedBasicQuests.map(quest => {
+                    console.log("[DEBUG] Rendering basic quest:", quest.title);
+                    return `
+                        <li class="quest-item">
+                            <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
+                            <span>${quest.title}</span>
+                            <div class="quest-reward">
+                                <img src="assets/icons/gem.png" alt="Gem">
+                                <span>+${quest.reward}</span>
+                                <button class="go-button">${quest.action}</button>
+                            </div>
+                        </li>
+                    `;
+                }).join('');
 
-                console.log("Earn section UI updated successfully");
+                console.log("[DEBUG] Earn section UI update completed successfully");
+
             } catch (error) {
-                console.error("Error updating earn section UI:", error.message);
+                console.error("[ERROR] Failed to update earn section UI:", {
+                    message: error.message,
+                    stack: error.stack
+                });
+
+                // Fallback UI for both sections
+                const dailyQuestList = document.getElementById('daily-quest-list');
+                const basicQuestList = document.getElementById('basic-quest-list');
+                
+                if (dailyQuestList) {
+                    dailyQuestList.innerHTML = `
+                        <li class="error">
+                            <p>Failed to load daily quests: ${error.message}</p>
+                        </li>
+                    `;
+                }
+                
+                if (basicQuestList) {
+                    basicQuestList.innerHTML = `
+                        <li class="error">
+                            <p>Failed to load basic quests: ${error.message}</p>
+                        </li>
+                    `;
+                }
             }
         }
 
