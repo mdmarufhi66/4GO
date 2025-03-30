@@ -467,7 +467,6 @@
         </div>
     </section>
 
-    <!-- Earn Section -->
     <section id="earn" class="section earn-section active">
         <div class="banner-placeholder">
             <img src="assets/icons/banner.png" alt="Banner">
@@ -490,7 +489,6 @@
         </div>
     </section>
 
-    <!-- Wallet Section -->
     <section id="wallet" class="section wallet-section">
         <h2>Wallet</h2>
         <div class="balance-card usdt-card">
@@ -515,7 +513,6 @@
         <button class="connect-button">CONNECT TON WALLET</button>
     </section>
 
-    <!-- Game Section -->
     <section id="game" class="section game-section">
         <div class="banner-placeholder">
             <img src="assets/icons/game-banner.png" alt="Game Banner">
@@ -581,7 +578,6 @@
         </div>
     </section>
 
-    <!-- Invite Section -->
     <section id="invite" class="section invite-section">
         <div class="invite-stats">
             <span id="my-invite">My Invite: 0</span>
@@ -624,13 +620,11 @@
         </div>
     </section>
 
-    <!-- Chest Section -->
     <section id="chest" class="section chest-section">
         <div class="chest-slider">
             <button class="nav-arrow left" onclick="prevChest()"><</button>
             <div class="chest-container" id="chestContainer">
-                <!-- Chest items will be dynamically added here -->
-            </div>
+                </div>
             <button class="nav-arrow right" onclick="nextChest()">></button>
         </div>
         <div class="rewards">
@@ -657,7 +651,6 @@
         <button class="open-chest-button" onclick="openChest()">Open Chest</button>
     </section>
 
-    <!-- Top Section -->
     <section id="top" class="section top-section">
         <h2>Medal Ranking <span class="warning">!</span></h2>
         <ul class="ranking-list" id="ranking-list">
@@ -1058,7 +1051,8 @@
                     title: quest.title || "Untitled Quest",
                     icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
                     reward: Number(quest.reward) || 0,
-                    action: quest.action || 'GO'
+                    action: quest.action || 'GO',
+                    link: quest.link || '' // Assuming you might add a 'link' field to your quest data
                 }));
                 console.log("[DEBUG] Validated daily quests:", validatedDailyQuests);
 
@@ -1071,7 +1065,7 @@
                 }
 
                 dailyQuestCount.textContent = validatedDailyQuests.length;
-                
+
                 dailyQuestList.innerHTML = validatedDailyQuests.length === 0 ? `
                     <li class="no-quests">
                         <p>No daily quests available</p>
@@ -1085,7 +1079,7 @@
                             <div class="quest-reward">
                                 <img src="assets/icons/gem.png" alt="Gem">
                                 <span>+${quest.reward}</span>
-                                <button class="go-button">${quest.action}</button>
+                                <button class="go-button" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}">${quest.action}</button>
                             </div>
                         </li>
                     `;
@@ -1108,7 +1102,8 @@
                     title: quest.title || "Untitled Quest",
                     icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
                     reward: Number(quest.reward) || 0,
-                    action: quest.action || 'GO'
+                    action: quest.action || 'GO',
+                    link: quest.link || '' // Assuming you might add a 'link' field to your quest data
                 }));
                 console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
 
@@ -1121,7 +1116,7 @@
                 }
 
                 basicQuestCount.textContent = validatedBasicQuests.length;
-                
+
                 basicQuestList.innerHTML = validatedBasicQuests.length === 0 ? `
                     <li class="no-quests">
                         <p>No basic quests available</p>
@@ -1135,7 +1130,7 @@
                             <div class="quest-reward">
                                 <img src="assets/icons/gem.png" alt="Gem">
                                 <span>+${quest.reward}</span>
-                                <button class="go-button">${quest.action}</button>
+                                <button class="go-button" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}">${quest.action}</button>
                             </div>
                         </li>
                     `;
@@ -1152,7 +1147,7 @@
                 // Fallback UI for both sections
                 const dailyQuestList = document.getElementById('daily-quest-list');
                 const basicQuestList = document.getElementById('basic-quest-list');
-                
+
                 if (dailyQuestList) {
                     dailyQuestList.innerHTML = `
                         <li class="error">
@@ -1160,7 +1155,7 @@
                         </li>
                     `;
                 }
-                
+
                 if (basicQuestList) {
                     basicQuestList.innerHTML = `
                         <li class="error">
@@ -1463,31 +1458,79 @@
 
         updateChest();
 
-        // Earn Section Interactions
+        // Earn Section Interactions (Modified)
         document.addEventListener('click', async (event) => {
             if (event.target.classList.contains('go-button')) {
+                const taskItem = event.target.closest('.quest-item');
+                if (!taskItem) return;
+
+                const taskTitle = taskItem.querySelector('span').textContent;
+                const reward = parseInt(event.target.previousElementSibling.textContent.replace('+', ''));
+                const action = event.target.textContent; // Assuming the "Go" button text might indicate the action
+                const taskLink = event.target.dataset.questLink;
+
+                if (!taskLink) {
+                    alert(`Link for "${taskTitle}" not provided.`);
+                    return;
+                }
+
+                // Open the task link in a new window/tab
+                window.open(taskLink, '_blank');
+
+                // Change the "Go" button to a "Claim" button and update its appearance
+                event.target.textContent = 'Claim';
+                event.target.classList.remove('go-button');
+                event.target.classList.add('claim-button');
+                event.target.style.background = 'linear-gradient(to right, #00ff00, #66ff66)'; // Green color
+
+                // Optionally, you could store the task details in the button's dataset
+                event.target.dataset.reward = reward;
+                event.target.dataset.taskTitle = taskTitle;
+
+            } else if (event.target.classList.contains('claim-button')) {
                 if (!telegramUser) {
                     alert("User not authenticated. Please try again.");
                     return;
                 }
                 if (!firebaseInitialized || !db) {
-                    console.error("Firestore not initialized. Cannot complete task.");
+                    console.error("Firestore not initialized. Cannot claim reward.");
                     alert("Database not initialized. Please try again later.");
                     return;
                 }
-                const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-                try {
-                    const userDoc = await userDocRef.get();
-                    const reward = parseInt(event.target.previousElementSibling.textContent.replace('+', ''));
-                    const newGems = (userDoc.data().gems || 0) + reward;
 
-                    await userDocRef.update({ gems: newGems });
+                const claimButton = event.target;
+                const reward = parseInt(claimButton.dataset.reward);
+                const taskTitle = claimButton.dataset.taskTitle;
+                const taskItem = claimButton.closest('.quest-item');
+
+                const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+
+                try {
+                    await db.runTransaction(async (transaction) => {
+                        const userDoc = await transaction.get(userDocRef);
+                        if (!userDoc.exists) {
+                            throw "User document does not exist!";
+                        }
+                        const currentGems = userDoc.data().gems || 0;
+                        transaction.update(userDocRef, { gems: currentGems + reward });
+                    });
+
                     await updateUserStatsUI();
-                    alert(`Task completed! +${reward} Gems`);
-                    analytics.logEvent('task_completed', { userId: telegramUser.id });
+                    alert(`Reward claimed! +${reward} Gems for "${taskTitle}"`);
+
+                    // Optionally, disable the claim button or visually mark the task as completed
+                    claimButton.disabled = true;
+                    claimButton.style.background = '#ccc'; // Greyed out
+                    if (taskItem) {
+                        taskItem.classList.add('completed'); // You might need to add CSS for this class
+                    }
+                    claimButton.removeEventListener('click', arguments.callee); // Remove the claim listener to prevent multiple claims (optional)
+
+                    analytics.logEvent('task_claimed', { userId: telegramUser.id, reward: reward, task: taskTitle });
+
                 } catch (error) {
-                    console.error("Error completing task:", error.message);
-                    alert("Failed to complete task: " + error.message);
+                    console.error("Error claiming reward:", error);
+                    alert("Failed to claim reward: " + error);
                 }
             }
         });
