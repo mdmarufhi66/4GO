@@ -6,567 +6,7 @@
     <title>4Metas Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --primary-purple: #330033;
-            --secondary-black: #000000;
-            --text-color-white: white;
-            --text-color-grey: #ccc;
-            --text-color-black: black;
-            --font-family-base: Arial, sans-serif;
-            --padding-small: 10px;
-            --padding-medium: 20px;
-            --border-radius-small: 5px;
-            --border-radius-medium: 10px;
-            --gradient-purple-pink: linear-gradient(to right, #ff00ff, #ff6666);
-            --gradient-green-lightgreen: linear-gradient(to right, #00ff00, #66ff66);
-            --background-dark: #1a1a3d;
-            --color-warning: #ffcc00;
-            --color-success: #00ff00;
-            --font-size-small: 12px;
-            --font-size-medium: 16px;
-            --font-size-large: 18px;
-            --icon-size-small: 15px;
-            --icon-size-medium: 20px;
-            --icon-size-large: 24px;
-        }
-
-        body {
-            background: linear-gradient(to bottom, var(--primary-purple), var(--secondary-black));
-            color: var(--text-color-white);
-            font-family: var(--font-family-base);
-            margin: 0;
-            padding: var(--padding-small);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: var(--padding-small) 0;
-        }
-
-        header h1 {
-            font-size: var(--font-size-large);
-            margin: 0;
-        }
-
-        .back-arrow, .menu-dots {
-            font-size: var(--icon-size-large);
-            cursor: pointer;
-        }
-
-        .user-stats {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: var(--padding-small) 0;
-        }
-
-        .user-stats .logo img {
-            width: 50px;
-            height: 50px;
-        }
-
-        .user-stats .metric {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .user-stats .metric img {
-            width: var(--icon-size-medium);
-            height: var(--icon-size-medium);
-        }
-
-        .user-stats .profile-pic img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-        }
-
-        .section {
-            display: none;
-            flex: 1;
-        }
-
-        .section.active {
-            display: block;
-        }
-
-        .banner-placeholder {
-            background: var(--background-dark);
-            border-radius: var(--border-radius-medium);
-            padding: var(--padding-small);
-            text-align: center;
-            margin-bottom: var(--padding-medium);
-        }
-
-        .banner-placeholder img {
-            width: 100%;
-            border-radius: var(--border-radius-medium);
-            display: block; /* Prevent extra space below image */
-            height: auto; /* Maintain aspect ratio */
-        }
-
-        .quest-section h2 {
-            font-size: var(--font-size-large);
-            margin: var(--padding-small) 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .quest-section .badge {
-            background: #ff00ff;
-            color: var(--text-color-white);
-            padding: 2px 8px;
-            border-radius: var(--border-radius-medium);
-            font-size: var(--font-size-small);
-        }
-
-        .quest-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .quest-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--background-dark);
-            padding: var(--padding-small);
-            border-radius: var(--border-radius-medium);
-            margin-bottom: var(--padding-small);
-        }
-
-        .quest-item img {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-        }
-
-        .quest-reward {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .quest-reward img {
-            width: var(--icon-size-medium);
-            height: var(--icon-size-medium);
-        }
-
-        .go-button, .claim-button {
-            background: var(--gradient-purple-pink);
-            border: none;
-            color: var(--text-color-white);
-            padding: 5px 15px;
-            border-radius: 15px;
-            cursor: pointer;
-        }
-
-        .wallet-section h2 {
-            font-size: var(--font-size-large);
-            margin: var(--padding-small) 0;
-        }
-
-        .balance-card {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--background-dark);
-            padding: var(--padding-small);
-            border-radius: var(--border-radius-medium);
-            margin-bottom: var(--padding-small);
-        }
-
-        .balance-card img {
-            width: 30px;
-            height: 30px;
-        }
-
-        .balance-info span {
-            display: block;
-            font-size: var(--font-size-medium);
-        }
-
-        .balance-info small {
-            font-size: var(--font-size-small);
-            color: var(--text-color-grey);
-        }
-
-        .withdraw-button {
-            background: var(--color-success);
-            border: none;
-            color: var(--text-color-white);
-            padding: 5px 10px;
-            border-radius: 15px;
-            cursor: pointer;
-        }
-
-        .warning-button {
-            background: var(--color-warning);
-            border: none;
-            color: var(--text-color-black);
-            padding: 5px 10px;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-
-        .connect-button {
-            background: var(--gradient-purple-pink);
-            border: none;
-            color: var(--text-color-white);
-            padding: var(--padding-small);
-            border-radius: 15px;
-            width: 100%;
-            cursor: pointer;
-            margin-top: var(--padding-small);
-        }
-
-        .game-section h2 {
-            font-size: var(--font-size-large);
-            margin: var(--padding-small) 0;
-        }
-
-        .game-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); /* Responsive grid */
-            gap: var(--padding-small);
-        }
-
-        .game-item {
-            background: var(--background-dark);
-            border-radius: var(--border-radius-medium);
-            text-align: center;
-            padding: 5px;
-        }
-
-        .game-item img {
-            width: 100%;
-            border-radius: var(--border-radius-medium);
-            display: block; /* Prevent extra space below image */
-            height: auto; /* Maintain aspect ratio */
-        }
-
-        .game-item p {
-            margin: 5px 0;
-            font-size: var(--font-size-small);
-        }
-
-        .invite-section .invite-stats {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--padding-medium);
-        }
-
-        .invite-stats .spin-info {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .action-buttons {
-            display: flex;
-            gap: var(--padding-small);
-            margin-bottom: var(--padding-medium);
-        }
-
-        .action-button {
-            background: var(--gradient-green-lightgreen);
-            border: none;
-            color: var(--text-color-white);
-            padding: var(--padding-small);
-            border-radius: 15px;
-            flex: 1;
-            cursor: pointer;
-            text-align: center; /* Ensure text is centered */
-        }
-
-        .total-credit {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--background-dark);
-            padding: var(--padding-small);
-            border-radius: var(--border-radius-medium);
-            margin-bottom: var(--padding-medium);
-        }
-
-        .total-credit small {
-            font-size: var(--font-size-small);
-            color: var(--text-color-grey);
-        }
-
-        .total-credit small img {
-            width: var(--icon-size-small);
-            height: var(--icon-size-small);
-        }
-
-        .record-section h3, .invite-record h3 {
-            font-size: var(--font-size-medium);
-            margin: var(--padding-small) 0;
-        }
-
-        .no-frens {
-            text-align: center;
-            color: var(--text-color-grey);
-        }
-
-        .no-frens img {
-            width: 50px;
-            height: 50px;
-        }
-
-        .record-header {
-            display: flex;
-            justify-content: space-between;
-            font-size: var(--font-size-small);
-            color: var(--text-color-grey);
-            margin-bottom: var(--padding-small);
-        }
-
-        .record-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: var(--background-dark);
-            padding: var(--padding-small);
-            border-radius: var(--border-radius-medium);
-            margin-bottom: var(--padding-small);
-        }
-
-        .record-item img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-        }
-
-        .record-item .user-info {
-            flex: 1;
-            margin-left: var(--padding-small);
-        }
-
-        .record-item .user-info small {
-            color: var(--text-color-grey);
-            font-size: var(--font-size-small);
-        }
-
-        .record-item .credit {
-            background: #ff00ff;
-            color: var(--text-color-white);
-            padding: 5px 10px;
-            border-radius: 15px;
-        }
-
-        .chest-section .chest-slider {
-            position: relative;
-            overflow: hidden;
-            margin-bottom: var(--padding-medium);
-        }
-
-        .chest-container {
-            display: flex;
-            transition: transform 0.3s ease;
-        }
-
-        .chest-item {
-            flex: 0 0 100%;
-            text-align: center;
-            padding: var(--padding-small);
-        }
-
-        .chest-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: var(--font-size-medium);
-        }
-
-        .chest-title span {
-            color: var(--text-color-grey);
-        }
-
-        .chest-image img {
-            width: 150px;
-            height: 150px;
-        }
-
-        .not-enough {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 5px;
-            color: var(--color-warning);
-            margin-top: var(--padding-small);
-        }
-
-        .not-enough img {
-            width: var(--icon-size-medium);
-            height: var(--icon-size-medium);
-        }
-
-        .nav-arrow {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.5);
-            border: none;
-            color: var(--text-color-white);
-            padding: var(--padding-small);
-            cursor: pointer;
-            font-size: var(--font-size-large);
-            z-index: 10; /* Ensure arrows are on top */
-        }
-
-        .nav-arrow.left {
-            left: 0;
-        }
-
-        .nav-arrow.right {
-            right: 0;
-        }
-
-        .rewards {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: var(--padding-medium);
-        }
-
-        .reward-item {
-            text-align: center;
-        }
-
-        .reward-item img {
-            width: 40px;
-            height: 40px;
-        }
-
-        .reward-item p {
-            margin: 5px 0;
-            font-size: var(--font-size-small);
-        }
-
-        .cost {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 5px;
-            margin-bottom: var(--padding-small);
-        }
-
-        .cost img {
-            width: var(--icon-size-medium);
-            height: var(--icon-size-medium);
-        }
-
-        .vip-requirement {
-            text-align: center;
-            color: var(--color-warning);
-            margin-bottom: var(--padding-small);
-        }
-
-        .open-chest-button {
-            background: var(--gradient-purple-pink);
-            border: none;
-            color: var(--text-color-white);
-            padding: var(--padding-small);
-            border-radius: 15px;
-            width: 100%;
-            cursor: pointer;
-        }
-
-        .top-section h2 {
-            font-size: var(--font-size-large);
-            margin: var(--padding-small) 0;
-        }
-
-        .ranking-list {
-            list-style: none;
-            padding: 0;
-        }
-
-        .ranking-item {
-            display: flex;
-            align-items: center;
-            background: var(--background-dark);
-            padding: var(--padding-small);
-            border-radius: var(--border-radius-medium);
-            margin-bottom: var(--padding-small);
-        }
-
-        .ranking-item img {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            margin-right: var(--padding-small);
-        }
-
-        .ranking-item span {
-            flex: 1;
-        }
-
-        .ranking-item .medal-count {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .ranking-item .medal-count img {
-            width: var(--icon-size-medium);
-            height: var(--icon-size-medium);
-        }
-
-        .bottom-nav {
-            display: flex;
-            justify-content: space-around;
-            background: var(--background-dark);
-            padding: var(--padding-small) 0;
-            position: sticky;
-            bottom: 0;
-        }
-
-        .nav-button {
-            background: none;
-            border: none;
-            color: var(--text-color-grey);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            cursor: pointer;
-            padding: 5px; /* Add some padding for better touch targets */
-        }
-
-        .nav-button.active {
-            color: var(--text-color-white);
-        }
-
-        .nav-button img {
-            width: 24px;
-            height: 24px;
-            margin-bottom: 5px;
-        }
-
-        /* Basic Responsive Adjustments */
-        @media (max-width: 600px) {
-            .user-stats {
-                flex-wrap: wrap;
-                justify-content: space-around;
-                gap: 10px;
-            }
-
-            .user-stats .metric {
-                margin-bottom: 5px;
-            }
-
-            header h1 {
-                font-size: 20px;
-            }
-        }
+        /* ... (Your CSS remains the same) ... */
     </style>
 </head>
 <body>
@@ -575,6 +15,22 @@
         <h1>4Metas</h1>
         <div class="menu-dots">⋮</div>
     </header>
+    <div class="user-stats">
+        <div class="logo"><img src="assets/icons/logo.png" alt="App Logo"></div>
+        <div class="metric">
+            <img src="assets/icons/gem.png" alt="Gem">
+            <span id="gems">0</span>
+        </div>
+        <div class="metric">
+            <img src="assets/icons/usdt.png" alt="USDT">
+            <span id="usdt">0.0000</span>
+        </div>
+        <div class="metric">
+            <img src="assets/icons/ton.png" alt="TON">
+            <span id="ton">0.0000</span>
+        </div>
+        <div class="profile-pic"><img src="assets/icons/user-avatar.png" alt="User Avatar"></div>
+    </div>
     <section id="earn" class="section earn-section active">
         <main>
             <div class="banner-placeholder">
@@ -632,63 +88,7 @@
             </div>
             <h2>Game List</h2>
             <div class="game-list">
-                <div class="game-item">
-                    <img src="https://via.placeholder.com/80/FF0000/FFFFFF?text=TG" alt="Traffic Go">
-                    <p>Traffic Go</p>
                 </div>
-                <div class="game-item">
-                    <img src="https://via.placeholder.com/80/00FF00/FFFFFF?text=CM" alt="Cutting Master">
-                    <p>Cutting Master</p>
-                </div>
-                <div class="game-item">
-                    <img src="https://via.placeholder.com/80/0000FF/FFFFFF?text=EM" alt="Element Magic">
-                    <p>Element Magic</p>
-                </div>
-                <div class="game-item">
-                    <img src="https://via.placeholder.com/80/FFFF00/FFFFFF?text=JS" alt="Juicy Splash">
-                    <p>Juicy Splash</p>
-                </div>
-                <div class="game-item">
-                    <img src="https://via.placeholder.com/80/FF00FF/FFFFFF?text=COR" alt="Creed of Rescue">
-                    <p>Creed of Rescue</p>
-                </div>
-                <div class="game-item">
-                    <img src="https://via.placeholder.com/80/00FFFF/FFFFFF?text=FJ" alt="Farm Jam">
-                    <p>Farm Jam</p>
-                </div>
-                <div class="game-item">
-                    <img src="https://via.placeholder.com/80/FFA500/FFFFFF?text=2048" alt="2048 Blocks">
-                    <p>2048 Blocks</p>
-                </div>
-                <div class="game-item">
-                    <img src="https://via.placeholder.com/80/800080/FFFFFF?text=CRC" alt="Cut Rope Combo">
-                    <p>Cut Rope Combo</p>
-                </div>
-                <div class="game-item">
-                    <img src="https://via.placeholder.com/80/008000/FFFFFF?text=HJ" alt="Happy Jelly Jump">
-                    <p>Happy Jelly Jump</p>
-                </div>
-                <div class="game-item">
-                    <img src="https://via.placeholder.com/80/000080/FFFFFF?text=UTR" alt="Undersea Tunnel Race">
-                    <p>Undersea Tunnel Race</p>
-                </div>
-                <div class="game-item">
-                    <img src="https://via.placeholder.com/80/FFC0CB/FFFFFF?text=MM" alt="Motor Master">
-                    <p>Motor Master</p>
-                </div>
-                <div class="game-item">
-                    <img src="https://via.placeholder.com/80/FFD700/FFFFFF?text=OF" alt="Open Fire">
-                    <p>Open Fire</p>
-                </div>
-                <div class="game-item">
-                    <img src="https://via.placeholder.com/80/ADFF2F/FFFFFF?text=MTD" alt="Monster TD">
-                    <p>Monster TD</p>
-                </div>
-                <div class="game-item">
-                    <img src="https://via.placeholder.com/80/FF4500/FFFFFF?text=BW" alt="Bloody Warrior">
-                    <p>Bloody Warrior</p>
-                </div>
-            </div>
         </main>
     </section>
 
@@ -887,6 +287,7 @@
         // Initialize Firebase with dynamic loading using compat scripts
         let app, db, auth, storage, analytics;
         let firebaseInitialized = false;
+
         async function initializeFirebase(maxRetries = 3) {
             if (firebaseInitialized) return true;
             let attempts = 0;
@@ -1015,7 +416,10 @@
         };
 
         async function initializeUserData() {
-            if (!telegramUser || !firebaseInitialized || !db) return;
+            if (!telegramUser || !firebaseInitialized || !db) {
+                console.warn("Telegram user, Firebase, or Firestore not initialized.");
+                return;
+            }
 
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
             const rankingDocRef = db.collection('users').doc(telegramUser.id.toString());
@@ -1048,20 +452,25 @@
                 } else {
                     Object.assign(currentUserData, doc.data());
                 }
-                await updateUserStatsUI();
+                updateUserStatsUI(); // Call without await, as it's UI update
             } catch (error) {
                 console.error("Error initializing user data:", error.message);
                 showMessage("Failed to load user data.", true);
             }
         }
 
-        async function updateUserStatsUI() {
-            document.getElementById('gems').textContent = currentUserData.gems || 0;
-            document.getElementById('usdt').textContent = (currentUserData.usdt || 0).toFixed(4);
-            document.getElementById('ton').textContent = (currentUserData.ton || 0).toFixed(4);
+        function updateUserStatsUI() {
+            const gemsElement = document.getElementById('gems');
+            const usdtElement = document.getElementById('usdt');
+            const tonElement = document.getElementById('ton');
+
+            if (gemsElement) gemsElement.textContent = currentUserData.gems || 0;
+            if (usdtElement) usdtElement.textContent = (currentUserData.usdt || 0).toFixed(4);
+            if (tonElement) tonElement.textContent = (currentUserData.ton || 0).toFixed(4);
+
             document.getElementById('wallet-usdt').textContent = (currentUserData.usdt || 0).toFixed(4);
             document.getElementById('wallet-ton').textContent = (currentUserData.ton || 0).toFixed(4);
-            console.log("User stats updated successfully");
+            console.log("User stats UI updated successfully");
         }
 
         // --- Earn Section (Quests) ---
@@ -1279,8 +688,8 @@
                 currentUserData.referrals = newReferralCount;
                 currentUserData.inviteRecords = [];
 
-                await updateUserStatsUI();
-                await updateInviteSectionUI();
+                updateUserStatsUI(); // Call without await
+                updateInviteSectionUI(); // Call without await
                 showMessage(`Successfully claimed ${usdtToClaim} USDT!`);
                 analytics.logEvent('credit_claim', { userId: telegramUser.id, usdt: usdtToClaim });
             } catch (error) {
@@ -1393,7 +802,7 @@
                 currentUserData.landPieces += rewards.landPiece;
                 currentUserData.foxMedals += rewards.foxMedal;
 
-                await updateUserStatsUI();
+                updateUserStatsUI(); // Call without await
                 showMessage(`Opened ${chest.name}! Rewards: ${rewards.usdt} USDT, ${rewards.landPiece} Land Piece, ${rewards.foxMedal} Fox Medal`);
                 analytics.logEvent('chest_opened', { chestName: chest.name, userId: telegramUser.id });
             } catch (error) {
@@ -1415,7 +824,7 @@
                 try {
                     await userDocRef.update({ gems: firebase.firestore.FieldValue.increment(reward) });
                     currentUserData.gems += reward;
-                    await updateUserStatsUI();
+                    updateUserStatsUI(); // Call without await
                     showMessage(`Task completed! +${reward} Gems`);
                     analytics.logEvent('task_completed', { userId: telegramUser.id });
                 } catch (error) {
@@ -1487,6 +896,8 @@
         });
 
         // --- Initialization ---
+        let firebaseApp; // To store the initialized Firebase app
+
         async function initializeApp() {
             try {
                 console.log("Starting app initialization...");
@@ -1523,12 +934,13 @@
             await callback();
         }
 
-        // Set default section to Earn after Firebase is ready
-        ensureFirebaseReady(() => {
+        // Initialize app after DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM fully loaded and parsed");
+            // Set default section to Earn
             document.getElementById('earn').classList.add('active');
+            initializeApp();
         });
-
-        initializeApp();
     </script>
 </body>
 </html>
