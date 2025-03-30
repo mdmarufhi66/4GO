@@ -113,13 +113,23 @@
             width: 20px;
             height: 20px;
         }
-        .go-button, .claim-button {
-            background: linear-gradient(to right, #ff00ff, #ff6666);
+        .go-button, .claim-button, .claimed-button {
             border: none;
             color: white;
             padding: 5px 15px;
             border-radius: 15px;
             cursor: pointer;
+            font-size: 14px;
+        }
+        .go-button {
+            background: linear-gradient(to right, #ff00ff, #ff6666);
+        }
+        .claim-button {
+            background: linear-gradient(to right, #00ff00, #66ff66);
+        }
+        .claimed-button {
+            background: #ccc;
+            cursor: default;
         }
         .wallet-section h2 {
             font-size: 18px;
@@ -979,7 +989,8 @@
                         landPieces: 0,
                         foxMedals: 0,
                         isReferred: false,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        claimedQuests: [] // Initialize claimedQuests array
                     });
 
                     await rankingDocRef.set({
@@ -1031,6 +1042,12 @@
                     console.log("[DEBUG] Firebase initialized successfully");
                 }
 
+                let userData;
+                if (telegramUser && firebaseInitialized && db) {
+                    const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
+                    userData = userDoc.data();
+                }
+
                 // 2. Fetch and process daily quests
                 console.log("[DEBUG] Starting daily quests fetch...");
                 const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({
@@ -1048,6 +1065,7 @@
 
                 // Validate quest data structure
                 const validatedDailyQuests = dailyQuests.map(quest => ({
+                    id: quest.id || Math.random().toString(36).substring(7), // Ensure each quest has an ID
                     title: quest.title || "Untitled Quest",
                     icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
                     reward: Number(quest.reward) || 0,
@@ -1071,15 +1089,18 @@
                         <p>No daily quests available</p>
                     </li>
                 ` : validatedDailyQuests.map(quest => {
-                    console.log("[DEBUG] Rendering daily quest:", quest.title);
+                    const isClaimed = userData?.claimedQuests?.includes(quest.id);
+                    const buttonText = isClaimed ? 'Claimed' : quest.action;
+                    const buttonClass = isClaimed ? 'claimed-button' : 'go-button';
+                    const buttonStyle = isClaimed ? 'background: #ccc; cursor: default;' : 'background: linear-gradient(to right, #ff00ff, #ff6666);';
                     return `
-                        <li class="quest-item">
+                        <li class="quest-item" data-quest-id="${quest.id}">
                             <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
                             <span>${quest.title}</span>
                             <div class="quest-reward">
                                 <img src="assets/icons/gem.png" alt="Gem">
                                 <span>+${quest.reward}</span>
-                                <button class="go-button" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}">${quest.action}</button>
+                                <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
                             </div>
                         </li>
                     `;
@@ -1099,6 +1120,7 @@
                 console.log("[DEBUG] Parsed basic quests:", basicQuests);
 
                 const validatedBasicQuests = basicQuests.map(quest => ({
+                    id: quest.id || Math.random().toString(36).substring(7), // Ensure each quest has an ID
                     title: quest.title || "Untitled Quest",
                     icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
                     reward: Number(quest.reward) || 0,
@@ -1122,15 +1144,18 @@
                         <p>No basic quests available</p>
                     </li>
                 ` : validatedBasicQuests.map(quest => {
-                    console.log("[DEBUG] Rendering basic quest:", quest.title);
+                    const isClaimed = userData?.claimedQuests?.includes(quest.id);
+                    const buttonText = isClaimed ? 'Claimed' : quest.action;
+                    const buttonClass = isClaimed ? 'claimed-button' : 'go-button';
+                    const buttonStyle = isClaimed ? 'background: #ccc; cursor: default;' : 'background: linear-gradient(to right, #ff00ff, #ff6666);';
                     return `
-                        <li class="quest-item">
+                        <li class="quest-item" data-quest-id="${quest.id}">
                             <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
                             <span>${quest.title}</span>
                             <div class="quest-reward">
                                 <img src="assets/icons/gem.png" alt="Gem">
                                 <span>+${quest.reward}</span>
-                                <button class="go-button" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}">${quest.action}</button>
+                                <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
                             </div>
                         </li>
                     `;
@@ -1468,6 +1493,7 @@
                 const reward = parseInt(event.target.previousElementSibling.textContent.replace('+', ''));
                 const action = event.target.textContent; // Assuming the "Go" button text might indicate the action
                 const taskLink = event.target.dataset.questLink;
+                const taskId = taskItem.dataset.questId;
 
                 if (!taskLink) {
                     alert(`Link for "${taskTitle}" not provided.`);
@@ -1486,6 +1512,7 @@
                 // Optionally, you could store the task details in the button's dataset
                 event.target.dataset.reward = reward;
                 event.target.dataset.taskTitle = taskTitle;
+                event.target.dataset.taskId = taskId;
 
             } else if (event.target.classList.contains('claim-button')) {
                 if (!telegramUser) {
@@ -1501,6 +1528,7 @@
                 const claimButton = event.target;
                 const reward = parseInt(claimButton.dataset.reward);
                 const taskTitle = claimButton.dataset.taskTitle;
+                const taskId = claimButton.dataset.taskId;
                 const taskItem = claimButton.closest('.quest-item');
 
                 const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
@@ -1511,20 +1539,34 @@
                         if (!userDoc.exists) {
                             throw "User document does not exist!";
                         }
-                        const currentGems = userDoc.data().gems || 0;
-                        transaction.update(userDocRef, { gems: currentGems + reward });
+                        const userData = userDoc.data();
+                        const currentGems = userData.gems || 0;
+                        const claimedQuests = userData.claimedQuests || [];
+
+                        if (claimedQuests.includes(taskId)) {
+                            alert("You have already claimed the reward for this task.");
+                            return;
+                        }
+
+                        transaction.update(userDocRef, {
+                            gems: currentGems + reward,
+                            claimedQuests: firebase.firestore.FieldValue.arrayUnion(taskId)
+                        });
                     });
 
                     await updateUserStatsUI();
                     alert(`Reward claimed! +${reward} Gems for "${taskTitle}"`);
 
-                    // Optionally, disable the claim button or visually mark the task as completed
+                    // Update the UI immediately
+                    claimButton.textContent = 'Claimed';
+                    claimButton.classList.remove('claim-button');
+                    claimButton.classList.add('claimed-button');
                     claimButton.disabled = true;
-                    claimButton.style.background = '#ccc'; // Greyed out
+                    claimButton.style.background = '#ccc';
                     if (taskItem) {
-                        taskItem.classList.add('completed'); // You might need to add CSS for this class
+                        taskItem.classList.add('completed');
                     }
-                    claimButton.removeEventListener('click', arguments.callee); // Remove the claim listener to prevent multiple claims (optional)
+                    // Removed the line causing the error: claimButton.removeEventListener('click', arguments.callee);
 
                     analytics.logEvent('task_claimed', { userId: telegramUser.id, reward: reward, task: taskTitle });
 
