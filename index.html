@@ -182,6 +182,51 @@
             cursor: pointer;
             margin-top: 10px;
         }
+        .wallet-status {
+            text-align: center;
+            margin: 10px 0;
+        }
+        .wallet-status.connected {
+            color: #00ff00;
+        }
+        .wallet-status.disconnected {
+            color: #ffcc00;
+        }
+        .transaction-history {
+            margin-top: 20px;
+        }
+        .transaction-history ul {
+            list-style: none;
+            padding: 0;
+        }
+        .transaction-history li {
+            background: #1a1a3d;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #1a1a3d;
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+        }
+        .modal-content input {
+            width: 100%;
+            padding: 5px;
+            margin: 10px 0;
+        }
         .game-section h2 {
             font-size: 18px;
             margin: 10px 0;
@@ -501,13 +546,16 @@
 
     <section id="wallet" class="section wallet-section">
         <h2>Wallet</h2>
+        <div class="wallet-status disconnected">
+            <span id="connection-status">Disconnected</span>
+        </div>
         <div class="balance-card usdt-card">
             <img src="assets/icons/usdt.png" alt="USDT Icon">
             <div class="balance-info">
                 <span id="wallet-usdt">0.0000</span>
                 <small>USDT</small>
             </div>
-            <button class="withdraw-button">WITHDRAW</button>
+            <button class="withdraw-button" disabled>WITHDRAW</button>
             <button class="warning-button">!</button>
         </div>
         <div class="balance-card ton-card">
@@ -516,11 +564,27 @@
                 <span id="wallet-ton">0.0000</span>
                 <small>TON</small>
             </div>
-            <button class="withdraw-button">WITHDRAW</button>
+            <button class="withdraw-button" disabled>WITHDRAW</button>
             <button class="warning-button">!</button>
         </div>
         <p class="instruction">Connect wallet to withdraw your balance.</p>
         <button class="connect-button">CONNECT TON WALLET</button>
+        <div class="transaction-history">
+            <h3>Transaction History</h3>
+            <ul id="transaction-list">
+                <li>No transactions yet</li>
+            </ul>
+        </div>
+        <div id="withdraw-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h3>Withdraw Funds</h3>
+                <label>Amount: <input type="number" id="withdraw-amount" min="0" step="0.0001"></label>
+                <p>Available: <span id="available-balance">0</span> <span id="currency"></span></p>
+                <p>Fee: <span id="withdraw-fee">0</span> <span id="fee-currency"></span></p>
+                <button id="confirm-withdraw">Confirm</button>
+                <button id="cancel-withdraw">Cancel</button>
+            </div>
+        </div>
     </section>
 
     <section id="game" class="section game-section">
@@ -937,6 +1001,7 @@
             if (sectionId === 'earn') await ensureFirebaseReady(updateEarnSectionUI);
             if (sectionId === 'invite') await ensureFirebaseReady(updateInviteSectionUI);
             if (sectionId === 'top') await ensureFirebaseReady(updateTopSectionUI);
+            if (sectionId === 'wallet') await ensureFirebaseReady(updateWalletSectionUI);
         }
 
         navButtons.forEach(button => {
@@ -990,7 +1055,8 @@
                         foxMedals: 0,
                         isReferred: false,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        claimedQuests: [] // Initialize claimedQuests array
+                        claimedQuests: [],
+                        walletAddress: null // Added for wallet integration
                     });
 
                     await rankingDocRef.set({
@@ -1155,7 +1221,7 @@
                             <div class="quest-reward">
                                 <img src="assets/icons/gem.png" alt="Gem">
                                 <span>+${quest.reward}</span>
-                                <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
+                                <button class="${buttonClass}" data-quest-link="${quest.link}" data-quests-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
                             </div>
                         </li>
                     `;
@@ -1323,6 +1389,21 @@
                 console.log("Top section UI updated successfully");
             } catch (error) {
                 console.error("Error updating top section UI:", error.message);
+            }
+        }
+
+        // New Wallet Section UI Update Function
+        async function updateWalletSectionUI() {
+            if (!firebaseInitialized || !db) {
+                console.error("Firestore not initialized. Cannot update wallet section UI.");
+                return;
+            }
+            try {
+                await updateUserStatsUI();
+                await updateTransactionHistory();
+                console.log("Wallet section UI updated successfully");
+            } catch (error) {
+                console.error("Error updating wallet section UI:", error.message);
             }
         }
 
@@ -1578,20 +1659,144 @@
         });
 
         // Wallet Section Interactions
+        let isWalletConnected = false;
+        const connectButton = document.querySelector('.connect-button');
+        const statusElement = document.getElementById('connection-status');
+
+        // Simulated TON wallet connection (replace with actual TON SDK integration)
+        async function connectTonWallet() {
+            // Placeholder for TON wallet connection logic
+            // Example: const wallet = await tonConnect.connect();
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const address = "TON_TEST_ADDRESS_" + telegramUser.id;
+                    resolve(address);
+                }, 1000);
+            });
+        }
+
+        connectButton.addEventListener('click', async () => {
+            try {
+                if (!isWalletConnected) {
+                    const address = await connectTonWallet();
+                    await Storage.setItem('walletAddress', address);
+                    isWalletConnected = true;
+                    statusElement.textContent = 'Connected';
+                    statusElement.parentElement.classList.remove('disconnected');
+                    statusElement.parentElement.classList.add('connected');
+                    connectButton.textContent = 'Disconnect Wallet';
+                    toggleWithdrawButtons(true);
+                } else {
+                    await Storage.setItem('walletAddress', null);
+                    isWalletConnected = false;
+                    statusElement.textContent = 'Disconnected';
+                    statusElement.parentElement.classList.remove('connected');
+                    statusElement.parentElement.classList.add('disconnected');
+                    connectButton.textContent = 'Connect TON Wallet';
+                    toggleWithdrawButtons(false);
+                }
+            } catch (error) {
+                alert('Failed to connect/disconnect wallet: ' + error.message);
+            }
+        });
+
+        function toggleWithdrawButtons(enable) {
+            document.querySelectorAll('.withdraw-button').forEach(btn => {
+                btn.disabled = !enable;
+            });
+        }
+
         document.querySelectorAll('.withdraw-button').forEach(button => {
             button.addEventListener('click', () => {
-                alert('Withdrawal not implemented yet. Connect your wallet first!');
+                if (!isWalletConnected) {
+                    alert('Please connect your wallet first!');
+                    return;
+                }
+                const currency = button.closest('.balance-card').classList.contains('usdt-card') ? 'USDT' : 'TON';
+                const available = parseFloat(document.getElementById(`wallet-${currency.toLowerCase()}`).textContent);
+                const modal = document.getElementById('withdraw-modal');
+                document.getElementById('available-balance').textContent = available;
+                document.getElementById('currency').textContent = currency;
+                const FEES = { USDT: 0.01, TON: 0.005 };
+                document.getElementById('withdraw-fee').textContent = FEES[currency];
+                document.getElementById('fee-currency').textContent = currency;
+                modal.style.display = 'flex';
             });
         });
+
+        document.getElementById('confirm-withdraw').addEventListener('click', async () => {
+            if (!firebaseInitialized || !db) {
+                alert('Database not initialized. Please try again later.');
+                return;
+            }
+            const amount = parseFloat(document.getElementById('withdraw-amount').value);
+            const currency = document.getElementById('currency').textContent;
+            const available = parseFloat(document.getElementById('available-balance').textContent);
+            const MIN_WITHDRAW = { USDT: 1, TON: 0.1 };
+
+            if (amount <= 0 || amount > available) {
+                alert('Invalid amount!');
+                return;
+            }
+            if (amount < MIN_WITHDRAW[currency]) {
+                alert(`Minimum withdrawal is ${MIN_WITHDRAW[currency]} ${currency}`);
+                return;
+            }
+
+            try {
+                await withdrawFunds(amount, currency);
+                alert(`Successfully withdrew ${amount} ${currency}!`);
+                document.getElementById('withdraw-modal').style.display = 'none';
+                await updateWalletSectionUI();
+            } catch (error) {
+                alert('Withdrawal failed: ' + error.message);
+            }
+        });
+
+        document.getElementById('cancel-withdraw').addEventListener('click', () => {
+            document.getElementById('withdraw-modal').style.display = 'none';
+        });
+
+        async function withdrawFunds(amount, currency) {
+            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+            await db.runTransaction(async (transaction) => {
+                const doc = await transaction.get(userDocRef);
+                const data = doc.data();
+                const field = currency.toLowerCase();
+                if (data[field] < amount) throw new Error('Insufficient balance');
+                transaction.update(userDocRef, { [field]: data[field] - amount });
+                // Log transaction
+                await db.collection('transactions').add({
+                    userId: telegramUser.id,
+                    type: 'Withdrawal',
+                    amount: amount,
+                    currency: currency,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            });
+            // Add actual blockchain withdrawal logic here (e.g., TON transaction)
+        }
+
+        async function updateTransactionHistory() {
+            if (!firebaseInitialized || !db) return;
+            const transactions = await db.collection('transactions')
+                .where('userId', '==', telegramUser.id)
+                .orderBy('timestamp', 'desc')
+                .limit(10)
+                .get();
+            
+            const transactionList = document.getElementById('transaction-list');
+            transactionList.innerHTML = transactions.empty ? '<li>No transactions yet</li>' : 
+                transactions.docs.map(doc => {
+                    const data = doc.data();
+                    return `<li>${data.type}: ${data.amount} ${data.currency} - ${data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : 'Pending'}</li>`;
+                }).join('');
+        }
 
         document.querySelectorAll('.warning-button').forEach(button => {
             button.addEventListener('click', () => {
                 alert('Warning: Ensure your wallet is connected to withdraw funds.');
             });
-        });
-
-        document.querySelector('.connect-button').addEventListener('click', () => {
-            alert('Connecting to TON Wallet... (placeholder)');
         });
 
         // Invite Section Interactions
@@ -1632,6 +1837,7 @@
                 await updateEarnSectionUI();
                 await updateInviteSectionUI();
                 await updateTopSectionUI();
+                await updateWalletSectionUI();
                 console.log("App initialized successfully");
             } catch (error) {
                 console.error("App initialization failed:", error.message);
