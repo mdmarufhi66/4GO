@@ -1950,32 +1950,33 @@
             
             // Handle wallet connection with TON Connect
             connectButton.addEventListener('click', async function() {
-                if (walletStatusDiv.classList.contains('connected')) {
-                    if (confirm('Do you want to disconnect your wallet?')) {
-                        await tonConnect.disconnect();
-                        await Storage.setItem('walletAddress', null);
-                        updateUIForDisconnectedState();
-                        fetchWalletData(tg.initDataUnsafe.user.id);
-                    }
-                    return;
-                }
-                
-                try {
-                    const wallet = await tonConnect.connect();
-                    if (wallet?.account?.address) {
-                        const address = wallet.account.address;
-                        await Storage.setItem('walletAddress', address);
-                        updateUIForConnectedState();
-                        fetchWalletData(tg.initDataUnsafe.user.id);
-                        analytics.logEvent('wallet_connected', { userId: tg.initDataUnsafe.user.id });
-                    } else {
-                        throw new Error('No address returned from wallet');
-                    }
-                } catch (error) {
-                    console.error('Error connecting wallet:', error);
-                    showError('Could not connect wallet. Please try again.');
-                }
-            });
+    if (walletStatusDiv.classList.contains('connected')) {
+        if (confirm('Disconnect wallet?')) {
+            await tonConnect.disconnect();
+            await Storage.setItem('walletAddress', null);
+            updateUIForDisconnectedState();
+        }
+        return;
+    }
+
+    try {
+        console.log('Initiating TON Connect...');
+        const wallet = await tonConnect.connect();
+        console.log('Wallet response:', wallet);
+        if (!wallet || !wallet.account?.address) {
+            throw new Error('No wallet connected or address returned');
+        }
+        const address = wallet.account.address;
+        console.log('Connected address:', address);
+        await Storage.setItem('walletAddress', address);
+        updateUIForConnectedState(address);
+        fetchWalletData(tg.initDataUnsafe.user.id);
+    } catch (error) {
+        console.error('TON Connect error:', error);
+        showError('Failed to connect wallet: ' + error.message);
+        updateUIForDisconnectedState();
+    }
+});
             
             // Handle withdraw functionality
             withdrawButtons.forEach(button => {
