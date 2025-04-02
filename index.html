@@ -492,46 +492,57 @@
             width: 20px;
             height: 20px;
         }
-        .bottom-nav {
-            display: flex;
-            justify-content: space-around;
-            background: #1a1a3d;
-            padding: 10px 0;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-        }
-        .nav-button {
-            background: none;
-            border: none;
-            color: #ccc;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .nav-button.active {
-            color: white;
-        }
-        .nav-button img {
-            width: 24px;
-            height: 24px;
-            margin-bottom: 5px;
-        }
-        /* Additional styles for wallet integration */
-        .error-message {
-            color: #ffcc00;
-            text-align: center;
-            margin: 10px 0;
-            display: none;
-        }
-        .tx-status.pending { color: #ffcc00; }
-        .tx-status.completed { color: #00ff00; }
-        .tx-status.failed { color: #ff0000; }
-    </style>
+
+    /* Consolidated bottom-nav styles */
+    .bottom-nav {
+        display: flex !important;
+        justify-content: space-around !important;
+        background: #1a1a3d !important;
+        padding: 10px 0 !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1000 !important;
+        height: 60px !important; /* Ensure it has a visible height */
+        border-top: 2px solid red !important; /* Debug: make it stand out */
+    }
+
+    .nav-button {
+        background: none !important;
+        border: none !important;
+        color: #ccc !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        cursor: pointer !important;
+        font-size: 12px !important;
+        width: 60px !important; /* Fixed width for consistency */
+        height: 100% !important;
+    }
+
+    .nav-button.active {
+        color: white !important;
+    }
+
+    .nav-button img {
+        width: 24px !important;
+        height: 24px !important;
+        margin-bottom: 5px !important;
+    }
+
+    /* Additional styles for wallet integration */
+    .error-message {
+        color: #ffcc00;
+        text-align: center;
+        margin: 10px 0;
+        display: none;
+    }
+
+    .tx-status.pending { color: #ffcc00; }
+    .tx-status.completed { color: #00ff00; }
+    .tx-status.failed { color: #ff0000; }
+</style>
 </head>
 <body>
     <header>
@@ -815,46 +826,57 @@
             width: 20px;
             height: 20px;
         }
-        .bottom-nav {
-            display: flex;
-            justify-content: space-around;
-            background: #1a1a3d;
-            padding: 10px 0;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-        }
-        .nav-button {
-            background: none;
-            border: none;
-            color: #ccc;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        .nav-button.active {
-            color: white;
-        }
-        .nav-button img {
-            width: 24px;
-            height: 24px;
-            margin-bottom: 5px;
-        }
-        /* Additional styles for wallet integration */
-        .error-message {
-            color: #ffcc00;
-            text-align: center;
-            margin: 10px 0;
-            display: none;
-        }
-        .tx-status.pending { color: #ffcc00; }
-        .tx-status.completed { color: #00ff00; }
-        .tx-status.failed { color: #ff0000; }
-    </style>
+
+    /* Consolidated bottom-nav styles */
+    .bottom-nav {
+        display: flex !important;
+        justify-content: space-around !important;
+        background: #1a1a3d !important;
+        padding: 10px 0 !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1000 !important;
+        height: 60px !important; /* Ensure it has a visible height */
+        border-top: 2px solid red !important; /* Debug: make it stand out */
+    }
+
+    .nav-button {
+        background: none !important;
+        border: none !important;
+        color: #ccc !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        cursor: pointer !important;
+        font-size: 12px !important;
+        width: 60px !important; /* Fixed width for consistency */
+        height: 100% !important;
+    }
+
+    .nav-button.active {
+        color: white !important;
+    }
+
+    .nav-button img {
+        width: 24px !important;
+        height: 24px !important;
+        margin-bottom: 5px !important;
+    }
+
+    /* Additional styles for wallet integration */
+    .error-message {
+        color: #ffcc00;
+        text-align: center;
+        margin: 10px 0;
+        display: none;
+    }
+
+    .tx-status.pending { color: #ffcc00; }
+    .tx-status.completed { color: #00ff00; }
+    .tx-status.failed { color: #ff0000; }
+</style>
 </head>
 <body>
     <header>
@@ -1338,81 +1360,89 @@
         }
     };
 
-    // Navigation Logic with Extra Debugging
-    try {
-        console.log('Setting up navigation');
-        const sections = document.querySelectorAll('.section');
-        const navButtons = document.querySelectorAll('.nav-button');
-        const bottomNav = document.querySelector('.bottom-nav');
+// Navigation Logic with Extra Debugging
+try {
+    console.log('Setting up navigation');
+    const sections = document.querySelectorAll('.section');
+    const navButtons = document.querySelectorAll('.nav-button');
+    const bottomNav = document.querySelector('.bottom-nav');
 
-        console.log('Found sections:', sections.length);
-        console.log('Found nav buttons:', navButtons.length);
-        console.log('Bottom nav exists:', !!bottomNav);
-        if (bottomNav) {
-            console.log('Bottom nav display style:', window.getComputedStyle(bottomNav).display);
-        }
-
-        navButtons.forEach((btn, index) => {
-            console.log(`Button ${index}:`, btn.getAttribute('data-section'));
-        });
-
-        async function switchSection(sectionId) {
-            console.log(`Switching to section: ${sectionId}`);
-            sections.forEach(section => {
-                section.classList.remove('active');
-                console.log(`Hiding section: ${section.id}`);
-            });
-            navButtons.forEach(btn => {
-                btn.classList.remove('active');
-                console.log(`Deactivating button: ${btn.getAttribute('data-section')}`);
-            });
-
-            const targetSection = document.getElementById(sectionId);
-            const targetButton = document.querySelector(`.nav-button[data-section="${sectionId}"]`);
-
-            if (targetSection && targetButton) {
-                targetSection.classList.add('active');
-                targetButton.classList.add('active');
-                console.log(`Activated section: ${sectionId}`);
-            } else {
-                console.error(`Section or button not found for: ${sectionId}`);
-                if (!targetSection) console.error(`Section with id "${sectionId}" not found`);
-                if (!targetButton) console.error(`Button with data-section "${sectionId}" not found`);
-            }
-
-            try {
-                if (sectionId === 'earn') await ensureFirebaseReady(updateEarnSectionUI);
-                if (sectionId === 'invite') await ensureFirebaseReady(updateInviteSectionUI);
-                if (sectionId === 'top') await ensureFirebaseReady(updateTopSectionUI);
-                if (sectionId === 'wallet') await ensureFirebaseReady(updateWalletSectionUI);
-            } catch (error) {
-                console.error(`Error updating section ${sectionId}:`, error.message);
-            }
-        }
-
-        navButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const sectionId = button.getAttribute('data-section');
-                console.log(`Clicked section: ${sectionId}`);
-                switchSection(sectionId);
-            });
-        });
-
-        // Set default section
-        console.log('Setting default section to Earn');
-        switchSection('earn');
-
-        // Ensure nav is visible
-        if (bottomNav) {
-            bottomNav.style.display = 'flex';
-            console.log('Forced bottom-nav display to flex');
-            console.log('Bottom nav display after force:', window.getComputedStyle(bottomNav).display);
-        } else {
-            console.error('Bottom nav element not found in DOM');
-        }
-    } catch (error) {
-        console.error('Navigation setup failed:', error.message);
+    console.log('Found sections:', sections.length);
+    console.log('Found nav buttons:', navButtons.length);
+    console.log('Bottom nav exists:', !!bottomNav);
+    if (bottomNav) {
+        const computedStyle = window.getComputedStyle(bottomNav);
+        console.log('Bottom nav display style:', computedStyle.display);
+        console.log('Bottom nav visibility:', computedStyle.visibility);
+        console.log('Bottom nav height:', computedStyle.height);
+        console.log('Bottom nav position:', computedStyle.position);
+        console.log('Bottom nav bottom:', computedStyle.bottom);
     }
+
+    navButtons.forEach((btn, index) => {
+        console.log(`Button ${index}:`, btn.getAttribute('data-section'));
+    });
+
+    async function switchSection(sectionId) {
+        console.log(`Switching to section: ${sectionId}`);
+        sections.forEach(section => {
+            section.classList.remove('active');
+            console.log(`Hiding section: ${section.id}`);
+        });
+        navButtons.forEach(btn => {
+            btn.classList.remove('active');
+            console.log(`Deactivating button: ${btn.getAttribute('data-section')}`);
+        });
+
+        const targetSection = document.getElementById(sectionId);
+        const targetButton = document.querySelector(`.nav-button[data-section="${sectionId}"]`);
+
+        if (targetSection && targetButton) {
+            targetSection.classList.add('active');
+            targetButton.classList.add('active');
+            console.log(`Activated section: ${sectionId}`);
+        } else {
+            console.error(`Section or button not found for: ${sectionId}`);
+            if (!targetSection) console.error(`Section with id "${sectionId}" not found`);
+            if (!targetButton) console.error(`Button with data-section "${sectionId}" not found`);
+        }
+
+        try {
+            if (sectionId === 'earn') await ensureFirebaseReady(updateEarnSectionUI);
+            if (sectionId === 'invite') await ensureFirebaseReady(updateInviteSectionUI);
+            if (sectionId === 'top') await ensureFirebaseReady(updateTopSectionUI);
+            if (sectionId === 'wallet') await ensureFirebaseReady(updateWalletSectionUI);
+        } catch (error) {
+            console.error(`Error updating section ${sectionId}:`, error.message);
+        }
+    }
+
+    navButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const sectionId = button.getAttribute('data-section');
+            console.log(`Clicked section: ${sectionId}`);
+            switchSection(sectionId);
+        });
+    });
+
+    // Set default section
+    console.log('Setting default section to Earn');
+    switchSection('earn');
+
+    // Ensure nav is visible
+    if (bottomNav) {
+        bottomNav.style.display = 'flex';
+        bottomNav.style.visibility = 'visible'; // Extra assurance
+        console.log('Forced bottom-nav display to flex and visibility to visible');
+        const updatedStyle = window.getComputedStyle(bottomNav);
+        console.log('Bottom nav display after force:', updatedStyle.display);
+        console.log('Bottom nav visibility after force:', updatedStyle.visibility);
+    } else {
+        console.error('Bottom nav element not found in DOM');
+    }
+} catch (error) {
+    console.error('Navigation setup failed:', error.message);
+}
 
     // Helper to ensure Firebase is ready before running a callback
     async function ensureFirebaseReady(callback) {
