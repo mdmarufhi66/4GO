@@ -273,6 +273,7 @@
             font-size: 12px;
         }
         .invite-section .invite-stats {
+            Ascendant {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -750,6 +751,329 @@
                     <p>Land Piece</p>
                 </div>
                 <div class="reward-item fox-medal">
+                    <img src="assets/icons/fox-medal.png" alt="Fox Ascendant {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+        .cost {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .cost img {
+            width: 20px;
+            height: 20px;
+        }
+        .vip-requirement {
+            text-align: center;
+            color: #ffcc00;
+            margin-bottom: 10px;
+        }
+        .open-chest-button {
+            background: linear-gradient(to right, #ff00ff, #ff6666);
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 15px;
+            width: 100%;
+            cursor: pointer;
+        }
+        .top-section h2 {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+        .ranking-list {
+            list-style: none;
+            padding: 0;
+        }
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            background: #1a1a3d;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .ranking-item img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .ranking-item span {
+            flex: 1;
+        }
+        .ranking-item .medal-count {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .ranking-item .medal-count img {
+            width: 20px;
+            height: 20px;
+        }
+        .bottom-nav {
+            display: flex;
+            justify-content: space-around;
+            background: #1a1a3d;
+            padding: 10px 0;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+        .nav-button {
+            background: none;
+            border: none;
+            color: #ccc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .nav-button.active {
+            color: white;
+        }
+        .nav-button img {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 5px;
+        }
+        /* Additional styles for wallet integration */
+        .error-message {
+            color: #ffcc00;
+            text-align: center;
+            margin: 10px 0;
+            display: none;
+        }
+        .tx-status.pending { color: #ffcc00; }
+        .tx-status.completed { color: #00ff00; }
+        .tx-status.failed { color: #ff0000; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="back-arrow">X</div>
+        <h1>4Metas</h1>
+        <div class="menu-dots">⋮</div>
+    </header>
+
+    <div class="main-content">
+        <section class="user-stats">
+            <div class="logo">
+                <img src="assets/icons/logo.png" alt="4Metas Logo">
+            </div>
+            <div class="metric">
+                <img src="assets/icons/gem.png" alt="Gem">
+                <span id="gems">0</span>
+            </div>
+            <div class="metric">
+                <img src="assets/icons/usdt.png" alt="USDT">
+                <span id="usdt">0.0000</span>
+            </div>
+            <div class="metric">
+                <img src="assets/icons/ton.png" alt="TON">
+                <span id="ton">0.0000</span>
+            </div>
+            <div class="profile-pic">
+                <img src="assets/icons/user-avatar.png" alt="User Profile">
+            </div>
+        </section>
+
+        <section id="earn" class="section earn-section active">
+            <div class="banner-placeholder">
+                <img src="assets/icons/banner.png" alt="Banner">
+            </div>
+            <div class="quest-section">
+                <h2>DAILY QUEST <span class="badge" id="daily-quest-count">0</span></h2>
+                <ul class="quest-list" id="daily-quest-list">
+                    <li class="no-quests">
+                        <p>No daily quests available</p>
+                    </li>
+                </ul>
+            </div>
+            <div class="quest-section">
+                <h2>BASIC QUEST <span class="badge" id="basic-quest-count">0</span></h2>
+                <ul class="quest-list" id="basic-quest-list">
+                    <li class="no-quests">
+  <p>No basic quests available</p>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="wallet" class="section wallet-section">
+            <h2>Wallet</h2>
+            <div class="wallet-status disconnected">
+                <span id="connection-status">Disconnected</span>
+            </div>
+            <div class="balance-card usdt-card">
+                <img src="assets/icons/usdt.png" alt="USDT Icon">
+                <div class="balance-info">
+                    <span id="wallet-usdt">0.0000</span>
+                    <small>USDT</small>
+                </div>
+                <button class="withdraw-button" disabled>WITHDRAW</button>
+                <button class="warning-button">!</button>
+            </div>
+            <div class="balance-card ton-card">
+                <img src="assets/icons/ton.png" alt="TON Icon">
+                <div class="balance-info">
+                    <span id="wallet-ton">0.0000</span>
+                    <small>TON</small>
+                </div>
+                <button class="withdraw-button" disabled>WITHDRAW</button>
+                <button class="warning-button">!</button>
+            </div>
+            <p class="instruction">Connect wallet to withdraw your balance.</p>
+            <button class="connect-button">CONNECT TON WALLET</button>
+            <div class="transaction-history">
+                <h3>Transaction History</h3>
+                <ul id="transaction-list">
+                    <li>No transactions yet</li>
+                </ul>
+            </div>
+            <div id="withdraw-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <h3>Withdraw Funds</h3>
+                    <label>Amount: <input type="number" id="withdraw-amount" min="0" step="0.0001"></label>
+                    <p>Available: <span id="available-balance">0</span> <span id="currency"></span></p>
+                    <p>Fee: <span id="withdraw-fee">0</span> <span id="fee-currency"></span></p>
+                    <button id="confirm-withdraw">Confirm</button>
+                    <button id="cancel-withdraw">Cancel</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="game" class="section game-section">
+            <div class="banner-placeholder">
+                <img src="assets/icons/game-banner.png" alt="Game Banner">
+            </div>
+            <h2>Game List</h2>
+            <div class="game-list">
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FF0000/FFFFFF?text=TG" alt="Traffic Go">
+                    <p>Traffic Go</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/00FF00/FFFFFF?text=CM" alt="Cutting Master">
+                    <p>Cutting Master</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/0000FF/FFFFFF?text=EM" alt="Element Magic">
+                    <p>Element Magic</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FFFF00/FFFFFF?text=JS" alt="Juicy Splash">
+                    <p>Juicy Splash</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FF00FF/FFFFFF?text=COR" alt="Creed of Rescue">
+                    <p>Creed of Rescue</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/00FFFF/FFFFFF?text=FJ" alt="Farm Jam">
+                    <p>Farm Jam</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FFA500/FFFFFF?text=2048" alt="2048 Blocks">
+                    <p>2048 Blocks</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/800080/FFFFFF?text=CRC" alt="Cut Rope Combo">
+                    <p>Cut Rope Combo</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/008000/FFFFFF?text=HJ" alt="Happy Jelly Jump">
+                    <p>Happy Jelly Jump</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/000080/FFFFFF?text=UTR" alt="Undersea Tunnel Race">
+                    <p>Undersea Tunnel Race</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FFC0CB/FFFFFF?text=MM" alt="Motor Master">
+                    <p>Motor Master</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FFD700/FFFFFF?text=OF" alt="Open Fire">
+                    <p>Open Fire</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/ADFF2F/FFFFFF?text=MTD" alt="Monster TD">
+                    <p>Monster TD</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FF4500/FFFFFF?text=BW" alt="Bloody Warrior">
+                    <p>Bloody Warrior</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="invite" class="section invite-section">
+            <div class="invite-stats">
+                <span id="my-invite">My Invite: 0</span>
+                <div class="spin-info">
+                    <span>Spin x0</span>
+                    <span class="warning">!</span>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button class="action-button invite-friend">Invite Friend</button>
+                <button class="action-button copy-link">Copy Link</button>
+            </div>
+            <div class="total-credit">
+                <div class="credit-info">
+                    <span id="total-credit">Total Credit <span class="warning">!</span> : 0</span>
+                    <small>10,000 = 1 <img src="assets/icons/usdt.png" alt="USDT"></small>
+                </div>
+                <button class="claim-button">Claim</button>
+            </div>
+            <div class="record-section">
+                <h3>Claim Record</h3>
+                <div class="no-frens">
+                    <img src="assets/icons/nofrens.png" alt="No Frens">
+                    <p>No Frens yet</p>
+                </div>
+            </div>
+            <div class="invite-record">
+                <h3 id="invite-record-title">Invite Record (0)</h3>
+                <div class="record-header">
+                    <span>User</span>
+                    <span>Join Time</span>
+                    <span>Credit</span>
+                </div>
+                <div class="record-list">
+                    <div class="no-frens">
+                        <img src="assets/icons/nofrens.png" alt="No Frens">
+                        <p>No invites yet</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="chest" class="section chest-section">
+            <div class="chest-slider">
+                <button class="nav-arrow left" onclick="prevChest()"><</button>
+                <div class="chest-container" id="chestContainer">
+                    </div>
+                <button class="nav-arrow right" onclick="nextChest()">></button>
+            </div>
+            <div class="rewards">
+                <div class="reward-item usdt">
+                    <img src="assets/icons/usdt.png" alt="USDT">
+                    <p>USDT</p>
+                </div>
+                <div class="reward-item land-piece">
+                    <img src="assets/icons/land-piece.png" alt="Land Piece">
+                    <p>Land Piece</p>
+                </div>
+                <div class="reward-item fox-medal">
                     <img src="assets/icons/fox-medal.png" alt="Fox Medal">
                     <p>Fox Medal</p>
                 </div>
@@ -802,174 +1126,167 @@
     </nav>
 
     <!-- Your existing JavaScript remains unchanged -->
-    <script>
-        // Function to dynamically load a script and return a Promise
-        function loadScript(src, retries = 3, delay = 1000) {
-            return new Promise((resolve, reject) => {
-                let attempts = 0;
-                const tryLoad = () => {
-                    const script = document.createElement('script');
-                    script.src = src;
-                    script.async = true;
-                    script.onload = () => {
-                        console.log(`Script loaded successfully: ${src}`);
-                        resolve();
-                    };
-                    script.onerror = () => {
-                        attempts++;
-                        if (attempts < retries) {
-                            console.warn(`Failed to load script: ${src}. Retrying (${attempts}/${retries})...`);
-                            setTimeout(tryLoad, delay);
-                        } else {
-                            console.error(`Failed to load script after ${retries} attempts: ${src}`);
-                            reject(new Error(`Failed to load script after ${retries} attempts: ${src}`));
-                        }
-                    };
-                    document.head.appendChild(script);
-                };
-                tryLoad();
-            });
-        }
+<script>
+    console.log('Script started');
 
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyCUkEmFmJK2vr8k7M6JqYaxlcgBDf7WdJI",
-            authDomain: "fourgo-cd98f.firebaseapp.com",
-            projectId: "fourgo-cd98f",
-            storageBucket: "fourgo-cd98f.firebasestorage.app",
-            messagingSenderId: "511215742272",
-            appId: "1:511215742272:web:04bd85a284919ae123dea5",
-            measurementId: "G-DC7E6ECF2L"
-        };
-
-        // Validate Firebase Configuration
-        function validateFirebaseConfig(config) {
-            const requiredFields = [
-                'apiKey',
-                'authDomain',
-                'projectId',
-                'storageBucket',
-                'messagingSenderId',
-                'appId'
-            ];
-            for (const field of requiredFields) {
-                if (!config[field]) {
-                    throw new Error(`Firebase config is missing required field: ${field}`);
-                }
-            }
-            console.log("Firebase config validated successfully");
-        }
-
-        // Initialize Firebase with dynamic loading using compat scripts
-        let app, db, auth, storage, analytics;
-        let firebaseInitialized = false;
-        async function initializeFirebase(maxRetries = 3) {
-            if (firebaseInitialized) return true;
+    // Function to dynamically load a script and return a Promise
+    function loadScript(src, retries = 3, delay = 1000) {
+        return new Promise((resolve, reject) => {
             let attempts = 0;
-
-            while (attempts < maxRetries && !firebaseInitialized) {
-                try {
-                    console.log(`Attempt ${attempts + 1}/${maxRetries} to initialize Firebase...`);
-                    validateFirebaseConfig(firebaseConfig);
-
-                    const scriptUrls = [
-                        'https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js',
-                        'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js',
-                        'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js',
-                        'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js',
-                        'https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics-compat.js'
-                    ];
-
-                    const fallbackUrls = [
-                        'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-app-compat.js',
-                        'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-auth-compat.js',
-                        'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-firestore-compat.js',
-                        'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-storage-compat.js',
-                        'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-analytics-compat.js'
-                    ];
-
-                    let scriptsLoaded = false;
-                    try {
-                        console.log("Loading scripts from primary CDN...");
-                        await Promise.all(scriptUrls.map(url => loadScript(url)));
-                        scriptsLoaded = true;
-                        console.log("Primary CDN scripts loaded successfully");
-                    } catch (error) {
-                        console.error("Primary CDN failed:", error.message);
-                        console.log("Attempting fallback CDN...");
-                        await Promise.all(fallbackUrls.map(url => loadScript(url)));
-                        scriptsLoaded = true;
-                        console.log("Fallback CDN scripts loaded successfully");
-                    }
-
-                    if (!scriptsLoaded) {
-                        throw new Error("Failed to load Firebase scripts from both CDNs");
-                    }
-
-                    if (typeof firebase === 'undefined') {
-                        throw new Error("Firebase SDK not loaded into global scope");
-                    }
-
-                    console.log("Initializing Firebase app...");
-                    app = firebase.initializeApp(firebaseConfig);
-                    console.log("Firebase app initialized:", app.name);
-
-                    console.log("Initializing Firestore...");
-                    db = firebase.firestore();
-                    if (!db) {
-                        throw new Error("Firestore initialization failed: db is undefined");
-                    }
-                    console.log("Firestore initialized:", db);
-
-                    auth = firebase.auth();
-                    storage = firebase.storage();
-                    analytics = firebase.analytics();
-
-                    console.log("Verifying Firestore connectivity...");
-                    await db.collection('test').doc('init').set({
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        test: "Initialization check"
-                    }, { merge: true });
-                    console.log("Firestore connectivity verified");
-
-                    firebaseInitialized = true;
-                    console.log("Firebase fully initialized");
-                    return true;
-                } catch (error) {
-                    attempts++;
-                    console.error(`Firebase initialization attempt ${attempts} failed:`, error.message);
-                    if (attempts >= maxRetries) {
-                        console.error("Max retries reached. Firebase initialization failed.");
-                        firebaseInitialized = false;
-                        return false;
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
-                }
-            }
-            return false;
-        }
-
-        // Telegram Web App Setup with error handling
-        let telegramUser;
-        try {
-            window.Telegram.WebApp.ready();
-            telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
-            if (telegramUser) {
-                const profilePic = document.querySelector('.profile-pic img');
-                profilePic.src = telegramUser.photo_url || 'assets/icons/user-avatar.png';
-                document.querySelector('h1').innerText = `4Metas`;
-                console.log("Telegram Web App initialized successfully");
-            } else {
-                console.warn("No Telegram user data available. Running in test mode.");
-                telegramUser = {
-                    id: "test_user_123",
-                    username: "TestUser",
-                    first_name: "Test",
-                    photo_url: "https://via.placeholder.com/40/808080/000000?text=T"
+            const tryLoad = () => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.async = true;
+                script.onload = () => {
+                    console.log(`Script loaded successfully: ${src}`);
+                    resolve();
                 };
+                script.onerror = () => {
+                    attempts++;
+                    if (attempts < retries) {
+                        console.warn(`Failed to load script: ${src}. Retrying (${attempts}/${retries})...`);
+                        setTimeout(tryLoad, delay);
+                    } else {
+                        console.error(`Failed to load script after ${retries} attempts: ${src}`);
+                        reject(new Error(`Failed to load script after ${retries} attempts: ${src}`));
+                    }
+                };
+                document.head.appendChild(script);
+            };
+            tryLoad();
+        });
+    }
+
+    // Firebase Configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyCUkEmFmJK2vr8k7M6JqYaxlcgBDf7WdJI",
+        authDomain: "fourgo-cd98f.firebaseapp.com",
+        projectId: "fourgo-cd98f",
+        storageBucket: "fourgo-cd98f.firebasestorage.app",
+        messagingSenderId: "511215742272",
+        appId: "1:511215742272:web:04bd85a284919ae123dea5",
+        measurementId: "G-DC7E6ECF2L"
+    };
+
+    // Validate Firebase Configuration
+    function validateFirebaseConfig(config) {
+        const requiredFields = [
+            'apiKey',
+            'authDomain',
+            'projectId',
+            'storageBucket',
+            'messagingSenderId',
+            'appId'
+        ];
+        for (const field of requiredFields) {
+            if (!config[field]) {
+                throw new Error(`Firebase config is missing required field: ${field}`);
             }
-        } catch (error) {
-            console.error("Telegram Web App initialization failed:", error);
+        }
+        console.log("Firebase config validated successfully");
+    }
+
+    // Initialize Firebase with dynamic loading using compat scripts
+    let app, db, auth, storage, analytics;
+    let firebaseInitialized = false;
+    async function initializeFirebase(maxRetries = 3) {
+        if (firebaseInitialized) return true;
+        let attempts = 0;
+
+        while (attempts < maxRetries && !firebaseInitialized) {
+            try {
+                console.log(`Attempt ${attempts + 1}/${maxRetries} to initialize Firebase...`);
+                validateFirebaseConfig(firebaseConfig);
+
+                const scriptUrls = [
+                    'https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js',
+                    'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js',
+                    'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js',
+                    'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js',
+                    'https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics-compat.js'
+                ];
+
+                const fallbackUrls = [
+                    'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-app-compat.js',
+                    'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-auth-compat.js',
+                    'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-firestore-compat.js',
+                    'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-storage-compat.js',
+                    'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-analytics-compat.js'
+                ];
+
+                let scriptsLoaded = false;
+                try {
+                    console.log("Loading scripts from primary CDN...");
+                    await Promise.all(scriptUrls.map(url => loadScript(url)));
+                    scriptsLoaded = true;
+                    console.log("Primary CDN scripts loaded successfully");
+                } catch (error) {
+                    console.error("Primary CDN failed:", error.message);
+                    console.log("Attempting fallback CDN...");
+                    await Promise.all(fallbackUrls.map(url => loadScript(url)));
+                    scriptsLoaded = true;
+                    console.log("Fallback CDN scripts loaded successfully");
+                }
+
+                if (!scriptsLoaded) {
+                    throw new Error("Failed to load Firebase scripts from both CDNs");
+                }
+
+                if (typeof firebase === 'undefined') {
+                    throw new Error("Firebase SDK not loaded into global scope");
+                }
+
+                console.log("Initializing Firebase app...");
+                app = firebase.initializeApp(firebaseConfig);
+                console.log("Firebase app initialized:", app.name);
+
+                console.log("Initializing Firestore...");
+                db = firebase.firestore();
+                if (!db) {
+                    throw new Error("Firestore initialization failed: db is undefined");
+                }
+                console.log("Firestore initialized:", db);
+
+                auth = firebase.auth();
+                storage = firebase.storage();
+                analytics = firebase.analytics();
+
+                console.log("Verifying Firestore connectivity...");
+                await db.collection('test').doc('init').set({
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    test: "Initialization check"
+                }, { merge: true });
+                console.log("Firestore connectivity verified");
+
+                firebaseInitialized = true;
+                console.log("Firebase fully initialized");
+                return true;
+            } catch (error) {
+                attempts++;
+                console.error(`Firebase initialization attempt ${attempts} failed:`, error.message);
+                if (attempts >= maxRetries) {
+                    console.error("Max retries reached. Firebase initialization failed.");
+                    firebaseInitialized = false;
+                    return false;
+                }
+                await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
+            }
+        }
+        return false;
+    }
+
+    // Telegram Web App Setup with error handling
+    let telegramUser;
+    try {
+        window.Telegram.WebApp.ready();
+        telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
+        if (telegramUser) {
+            const profilePic = document.querySelector('.profile-pic img');
+            profilePic.src = telegramUser.photo_url || 'assets/icons/user-avatar.png';
+            document.querySelector('h1').innerText = `4Metas`;
+            console.log("Telegram Web App initialized successfully");
+        } else {
+            console.warn("No Telegram user data available. Running in test mode.");
             telegramUser = {
                 id: "test_user_123",
                 username: "TestUser",
@@ -977,53 +1294,71 @@
                 photo_url: "https://via.placeholder.com/40/808080/000000?text=T"
             };
         }
-
-        // Storage abstraction using Firebase Firestore
-        const Storage = {
-            getItem: async (key) => {
-                if (!firebaseInitialized || !db) {
-                    console.error("Firestore not initialized. Cannot fetch item:", key);
-                    return null;
-                }
-                try {
-                    const doc = await db.collection('userData')
-                        .doc(telegramUser?.id.toString()).get();
-                    return doc.exists ? doc.data()[key] : null;
-                } catch (error) {
-                    console.error(`Error fetching ${key}:`, error.message);
-                    return null;
-                }
-            },
-            setItem: async (key, value) => {
-                if (!firebaseInitialized || !db) {
-                    console.error("Firestore not initialized. Cannot set item:", key);
-                    return false;
-                }
-                try {
-                    await db.collection('userData')
-                        .doc(telegramUser?.id.toString())
-                        .set({ [key]: value }, { merge: true });
-                    return true;
-                } catch (error) {
-                    console.error(`Error setting ${key}:`, error.message);
-                    return false;
-                }
-            }
+    } catch (error) {
+        console.error("Telegram Web App initialization failed:", error);
+        telegramUser = {
+            id: "test_user_123",
+            username: "TestUser",
+            first_name: "Test",
+            photo_url: "https://via.placeholder.com/40/808080/000000?text=T"
         };
+    }
 
-        // Navigation Logic
+    // Storage abstraction using Firebase Firestore
+    const Storage = {
+        getItem: async (key) => {
+            if (!firebaseInitialized || !db) {
+                console.error("Firestore not initialized. Cannot fetch item:", key);
+                return null;
+            }
+            try {
+                const doc = await db.collection('userData')
+                    .doc(telegramUser?.id.toString()).get();
+                return doc.exists ? doc.data()[key] : null;
+            } catch (error) {
+                console.error(`Error fetching ${key}:`, error.message);
+                return null;
+            }
+        },
+        setItem: async (key, value) => {
+            if (!firebaseInitialized || !db) {
+                console.error("Firestore not initialized. Cannot set item:", key);
+                return false;
+            }
+            try {
+                await db.collection('userData')
+                    .doc(telegramUser?.id.toString())
+                    .set({ [key]: value }, { merge: true });
+                return true;
+            } catch (error) {
+                console.error(`Error setting ${key}:`, error.message);
+                return false;
+            }
+        }
+    };
+
+    // Navigation Logic - Updated with DOMContentLoaded and Debugging
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('DOM fully loaded');
+
         const sections = document.querySelectorAll('.section');
         const navButtons = document.querySelectorAll('.nav-button');
 
+        console.log('Found sections:', sections.length);
+        console.log('Found nav buttons:', navButtons.length);
+        navButtons.forEach((btn, index) => {
+            console.log(`Button ${index}:`, btn.getAttribute('data-section'));
+        });
+
         async function switchSection(sectionId) {
-            console.log(`Attempting to switch to section: ${sectionId}`);
+            console.log(`Switching to section: ${sectionId}`);
             sections.forEach(section => {
                 section.classList.remove('active');
                 console.log(`Hiding section: ${section.id}`);
             });
             navButtons.forEach(btn => {
                 btn.classList.remove('active');
-                console.log(`Removing active from button: ${btn.getAttribute('data-section')}`);
+                console.log(`Deactivating button: ${btn.getAttribute('data-section')}`);
             });
 
             const targetSection = document.getElementById(sectionId);
@@ -1032,1100 +1367,876 @@
             if (targetSection && targetButton) {
                 targetSection.classList.add('active');
                 targetButton.classList.add('active');
-                console.log(`Successfully showing section: ${sectionId}`);
+                console.log(`Activated section: ${sectionId}`);
             } else {
-                console.error(`Failed to switch to section: ${sectionId}`);
+                console.error(`Section or button not found for: ${sectionId}`);
                 if (!targetSection) console.error(`Section with id "${sectionId}" not found`);
                 if (!targetButton) console.error(`Button with data-section "${sectionId}" not found`);
             }
 
-            if (sectionId === 'earn') await ensureFirebaseReady(updateEarnSectionUI);
-            if (sectionId === 'invite') await ensureFirebaseReady(updateInviteSectionUI);
-            if (sectionId === 'top') await ensureFirebaseReady(updateTopSectionUI);
-            if (sectionId === 'wallet') await ensureFirebaseReady(updateWalletSectionUI);
+            try {
+                if (sectionId === 'earn') await ensureFirebaseReady(updateEarnSectionUI);
+                if (sectionId === 'invite') await ensureFirebaseReady(updateInviteSectionUI);
+                if (sectionId === 'top') await ensureFirebaseReady(updateTopSectionUI);
+                if (sectionId === 'wallet') await ensureFirebaseReady(updateWalletSectionUI);
+            } catch (error) {
+                console.error(`Error updating section ${sectionId}:`, error.message);
+            }
         }
 
         navButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const sectionId = button.getAttribute('data-section');
-                console.log(`Navigation button clicked for section: ${sectionId}`);
+                console.log(`Clicked section: ${sectionId}`);
                 switchSection(sectionId);
             });
         });
 
+        // Set default section
         console.log('Setting default section to Earn');
         switchSection('earn');
+    });
 
-        // Helper to ensure Firebase is ready before running a callback
-        async function ensureFirebaseReady(callback) {
+    // Helper to ensure Firebase is ready before running a callback
+    async function ensureFirebaseReady(callback) {
+        if (!firebaseInitialized || !db) {
+            console.log("Firebase not ready, attempting initialization...");
+            const success = await initializeFirebase();
+            if (!success) {
+                console.error("Firebase initialization failed after retries. Cannot proceed.");
+                alert("Failed to connect to database. Please try again later.");
+                return;
+            }
+        }
+        console.log("Firebase ready, executing callback...");
+        await callback();
+    }
+
+    // User Data Management
+    async function initializeUserData() {
+        if (!telegramUser) {
+            console.warn("Cannot initialize user data: No Telegram user available");
+            return;
+        }
+        if (!firebaseInitialized || !db) {
+            console.error("Firestore not initialized. Cannot initialize user data.");
+            return;
+        }
+        const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+        const rankingDocRef = db.collection('users').doc(telegramUser.id.toString());
+        try {
+            const doc = await userDocRef.get();
+            if (!doc.exists) {
+                await userDocRef.set({
+                    gems: 0,
+                    usdt: 0,
+                    ton: 0,
+                    referrals: 0,
+                    inviteRecords: [],
+                    landPieces: 0,
+                    foxMedals: 0,
+                    isReferred: false,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    claimedQuests: [],
+                    walletAddress: null // Added for wallet integration
+                });
+
+                await rankingDocRef.set({
+                    username: telegramUser.username || telegramUser.first_name || 'Anonymous',
+                    foxMedals: 0,
+                    photoUrl: telegramUser.photo_url || 'https://via.placeholder.com/40/808080/000000?text=U'
+                });
+
+                analytics.logEvent('user_signup', { userId: telegramUser.id });
+                console.log("New user data initialized");
+            }
+            await updateUserStatsUI();
+        } catch (error) {
+            console.error("Error initializing user data:", error.message);
+        }
+    }
+
+    async function updateUserStatsUI() {
+        if (!telegramUser) return;
+        if (!firebaseInitialized || !db) {
+            console.error("Firestore not initialized. Cannot update user stats UI.");
+            return;
+        }
+        try {
+            const userDoc = await db.collection('userData')
+                .doc(telegramUser.id.toString()).get();
+            const data = userDoc.data();
+            document.getElementById('gems').textContent = data.gems || 0;
+            document.getElementById('usdt').textContent = (data.usdt || 0).toFixed(4);
+            document.getElementById('ton').textContent = (data.ton || 0).toFixed(4);
+            document.getElementById('wallet-usdt').textContent = (data.usdt || 0).toFixed(4);
+            document.getElementById('wallet-ton').textContent = (data.ton || 0).toFixed(4);
+            console.log("User stats updated successfully");
+        } catch (error) {
+            console.error("Error updating user stats UI:", error.message);
+        }
+    }
+
+    // Fetch and Update Earn Section (Quests) with Enhanced Debugging
+    async function updateEarnSectionUI() {
+        try {
+            // 1. Verify Firebase initialization
             if (!firebaseInitialized || !db) {
-                console.log("Firebase not ready, attempting initialization...");
+                console.log("[DEBUG] Firebase not initialized, attempting to initialize...");
                 const success = await initializeFirebase();
                 if (!success) {
-                    console.error("Firebase initialization failed after retries. Cannot proceed.");
-                    alert("Failed to connect to database. Please try again later.");
-                    return;
+                    throw new Error("Failed to initialize Firebase after retries");
                 }
+                console.log("[DEBUG] Firebase initialized successfully");
             }
-            console.log("Firebase ready, executing callback...");
-            await callback();
-        }
 
-        // User Data Management
-        async function initializeUserData() {
-            if (!telegramUser) {
-                console.warn("Cannot initialize user data: No Telegram user available");
-                return;
-            }
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot initialize user data.");
-                return;
-            }
-            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-            const rankingDocRef = db.collection('users').doc(telegramUser.id.toString());
-            try {
-                const doc = await userDocRef.get();
-                if (!doc.exists) {
-                    await userDocRef.set({
-                        gems: 0,
-                        usdt: 0,
-                        ton: 0,
-                        referrals: 0,
-                        inviteRecords: [],
-                        landPieces: 0,
-                        foxMedals: 0,
-                        isReferred: false,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        claimedQuests: [],
-                        walletAddress: null // Added for wallet integration
-                    });
-
-                    await rankingDocRef.set({
-                        username: telegramUser.username || telegramUser.first_name || 'Anonymous',
-                        foxMedals: 0,
-                        photoUrl: telegramUser.photo_url || 'https://via.placeholder.com/40/808080/000000?text=U'
-                    });
-
-                    analytics.logEvent('user_signup', { userId: telegramUser.id });
-                    console.log("New user data initialized");
-                }
-                await updateUserStatsUI();
-            } catch (error) {
-                console.error("Error initializing user data:", error.message);
-            }
-        }
-
-        async function updateUserStatsUI() {
-            if (!telegramUser) return;
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot update user stats UI.");
-                return;
-            }
-            try {
-                const userDoc = await db.collection('userData')
-                    .doc(telegramUser.id.toString()).get();
-                const data = userDoc.data();
-                document.getElementById('gems').textContent = data.gems || 0;
-                document.getElementById('usdt').textContent = (data.usdt || 0).toFixed(4);
-                document.getElementById('ton').textContent = (data.ton || 0).toFixed(4);
-                document.getElementById('wallet-usdt').textContent = (data.usdt || 0).toFixed(4);
-                document.getElementById('wallet-ton').textContent = (data.ton || 0).toFixed(4);
-                console.log("User stats updated successfully");
-            } catch (error) {
-                console.error("Error updating user stats UI:", error.message);
-            }
-        }
-
-        // Fetch and Update Earn Section (Quests) with Enhanced Debugging
-        async function updateEarnSectionUI() {
-            try {
-                // 1. Verify Firebase initialization
-                if (!firebaseInitialized || !db) {
-                    console.log("[DEBUG] Firebase not initialized, attempting to initialize...");
-                    const success = await initializeFirebase();
-                    if (!success) {
-                        throw new Error("Failed to initialize Firebase after retries");
-                    }
-                    console.log("[DEBUG] Firebase initialized successfully");
-                }
-
-                let userData;
-                if (telegramUser && firebaseInitialized && db) {
-                    const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
-                    userData = userDoc.data();
-                }
-
-                // 2. Fetch and process daily quests
-                console.log("[DEBUG] Starting daily quests fetch...");
-                const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({
-                    source: 'server' // Force server fetch to avoid cache issues
-                });
-
-                // Detailed logging of snapshot
-                console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
-                console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
-
-                // Handle case where document exists but has no tasks
-                const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
-                const dailyQuests = dailyQuestsRaw.tasks || [];
-                console.log("[DEBUG] Parsed daily quests:", dailyQuests);
-
-                // Validate quest data structure
-                const validatedDailyQuests = dailyQuests.map(quest => ({
-                    id: quest.id || Math.random().toString(36).substring(7), // Ensure each quest has an ID
-                    title: quest.title || "Untitled Quest",
-                    icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
-                    reward: Number(quest.reward) || 0,
-                    action: quest.action || 'GO',
-                    link: quest.link || '' // Assuming you might add a 'link' field to your quest data
-                }));
-                console.log("[DEBUG] Validated daily quests:", validatedDailyQuests);
-
-                // 3. Update Daily Quests UI
-                const dailyQuestList = document.getElementById('daily-quest-list');
-                const dailyQuestCount = document.getElementById('daily-quest-count');
-
-                if (!dailyQuestList || !dailyQuestCount) {
-                    throw new Error("Required DOM elements not found for daily quests");
-                }
-
-                dailyQuestCount.textContent = validatedDailyQuests.length;
-
-                dailyQuestList.innerHTML = validatedDailyQuests.length === 0 ? `
-                    <li class="no-quests">
-                        <p>No daily quests available</p>
-                    </li>
-                ` : validatedDailyQuests.map(quest => {
-                    const isClaimed = userData?.claimedQuests?.includes(quest.id);
-                    const buttonText = isClaimed ? 'Claimed' : quest.action;
-                    const buttonClass = isClaimed ? 'claimed-button' : 'go-button';
-                    const buttonStyle = isClaimed ? 'background: #ccc; cursor: default;' : 'background: linear-gradient(to right, #ff00ff, #ff6666);';
-                    return `
-                        <li class="quest-item" data-quest-id="${quest.id}">
-                            <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
-                            <span>${quest.title}</span>
-                            <div class="quest-reward">
-                                <img src="assets/icons/gem.png" alt="Gem">
-                                <span>+${quest.reward}</span>
-                                <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
-                            </div>
-                        </li>
-                    `;
-                }).join('');
-
-                // 4. Fetch and process basic quests
-                console.log("[DEBUG] Starting basic quests fetch...");
-                const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({
-                    source: 'server'
-                });
-
-                console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
-                console.log("[DEBUG] Basic snapshot data:", basicQuestsSnapshot.data());
-
-                const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
-                const basicQuests = basicQuestsRaw.tasks || [];
-                console.log("[DEBUG] Parsed basic quests:", basicQuests);
-
-                const validatedBasicQuests = basicQuests.map(quest => ({
-                    id: quest.id || Math.random().toString(36).substring(7), // Ensure each quest has an ID
-                    title: quest.title || "Untitled Quest",
-                    icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
-                    reward: Number(quest.reward) || 0,
-                    action: quest.action || 'GO',
-                    link: quest.link || '' // Assuming you might add a 'link' field to your quest data
-                }));
-                console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
-
-                // 5. Update Basic Quests UI
-                const basicQuestList = document.getElementById('basic-quest-list');
-                const basicQuestCount = document.getElementById('basic-quest-count');
-
-                if (!basicQuestList || !basicQuestCount) {
-                    throw new Error("Required DOM elements not found for basic quests");
-                }
-
-                basicQuestCount.textContent = validatedBasicQuests.length;
-
-                basicQuestList.innerHTML = validatedBasicQuests.length === 0 ? `
-                    <li class="no-quests">
-                        <p>No basic quests available</p>
-                    </li>
-                ` : validatedBasicQuests.map(quest => {
-                    const isClaimed = userData?.claimedQuests?.includes(quest.id);
-                    const buttonText = isClaimed ? 'Claimed' : quest.action;
-                    const buttonClass = isClaimed ? 'claimed-button' : 'go-button';
-                    const buttonStyle = isClaimed ? 'background: #ccc; cursor: default;' : 'background: linear-gradient(to right, #ff00ff, #ff6666);';
-                    return `
-                        <li class="quest-item" data-quest-id="${quest.id}">
-                            <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
-                            <span>${quest.title}</span>
-                            <div class="quest-reward">
-                                <img src="assets/icons/gem.png" alt="Gem">
-                                <span>+${quest.reward}</span>
-                                <button class="${buttonClass}" data-quest-link="${quest.link}" data-quests-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
-                            </div>
-                        </li>
-                    `;
-                }).join('');
-
-                console.log("[DEBUG] Earn section UI update completed successfully");
-
-            } catch (error) {
-                console.error("[ERROR] Failed to update earn section UI:", {
-                    message: error.message,
-                    stack: error.stack
-                });
-
-                // Fallback UI for both sections
-                const dailyQuestList = document.getElementById('daily-quest-list');
-                const basicQuestList = document.getElementById('basic-quest-list');
-
-                if (dailyQuestList) {
-                    dailyQuestList.innerHTML = `
-                        <li class="error">
-                            <p>Failed to load daily quests: ${error.message}</p>
-                        </li>
-                    `;
-                }
-
-                if (basicQuestList) {
-                    basicQuestList.innerHTML = `
-                        <li class="error">
-                            <p>Failed to load basic quests: ${error.message}</p>
-                        </li>
-                    `;
-                }
-            }
-        }
-
-        // Referral System
-        function generateReferralLink() {
-            if (!telegramUser) return;
-            const botUsername = 'fourgobot';
-            const referralLink = `https://t.me/${botUsername}?start=ref_${telegramUser.id}`;
-            document.querySelector('.invite-friend').setAttribute('data-link', referralLink);
-            document.querySelector('.copy-link').setAttribute('data-link', referralLink);
-            console.log("Referral link generated:", referralLink);
-        }
-
-        async function handleReferral() {
-            if (!telegramUser) return;
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot handle referral.");
-                return;
-            }
-            const initData = Telegram.WebApp.initDataUnsafe;
-            const startParam = initData.start_param;
-
-            if (startParam && startParam.startsWith('ref_')) {
-                const referrerId = startParam.split('_')[1];
-                if (referrerId === telegramUser.id.toString()) return;
-
-                const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-                const referrerDocRef = db.collection('userData').doc(referrerId);
-
-                try {
-                    const userDoc = await userDocRef.get();
-                    if (userDoc.data().isReferred) return;
-
-                    await userDocRef.update({ isReferred: true });
-                    const referrerDoc = await referrerDocRef.get();
-                    const newReferralCount = (referrerDoc.data().referrals || 0) + 1;
-                    const newGems = (referrerDoc.data().gems || 0) + 50;
-
-                    const newRecord = {
-                        username: telegramUser.username || telegramUser.first_name,
-                        joinTime: new Date().toISOString().replace('T', ' ').split('.')[0],
-                        credit: 10
-                    };
-
-                    await referrerDocRef.update({
-                        referrals: newReferralCount,
-                        gems: newGems,
-                        inviteRecords: firebase.firestore.FieldValue.arrayUnion(newRecord)
-                    });
-
-                    analytics.logEvent('referral_success', { referrerId, newUserId: telegramUser.id });
-                    console.log("Referral handled successfully");
-                } catch (error) {
-                    console.error("Error handling referral:", error.message);
-                }
-            }
-        }
-
-        async function updateInviteSectionUI() {
-            if (!telegramUser) return;
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot update invite section UI.");
-                return;
-            }
-            try {
+            let userData;
+            if (telegramUser && firebaseInitialized && db) {
                 const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
-                const data = userDoc.data();
-                const referrals = data.referrals || 0;
-                const totalCredit = referrals * 10;
-
-                document.getElementById('my-invite').textContent = `My Invite: ${referrals}`;
-                document.getElementById('total-credit').textContent = `Total Credit ! : ${totalCredit}`;
-                document.getElementById('invite-record-title').textContent = `Invite Record (${referrals})`;
-
-                const recordList = document.querySelector('.invite-record .record-list');
-                recordList.innerHTML = data.inviteRecords.length === 0 ? `
-                    <div class="no-frens">
-                        <img src="assets/icons/nofrens.png" alt="No Frens">
-                        <p>No invites yet</p>
-                    </div>
-                ` : data.inviteRecords.map(record => `
-                    <div class="record-item">
-                        <img src="https://via.placeholder.com/40/808080/000000?text=${record.username[0]}" alt="${record.username}">
-                        <div class="user-info">
-                            <span>${record.username}</span>
-                            <small>${record.joinTime}</small>
-                        </div>
-                        <span class="credit">${record.credit}</span>
-                    </div>
-                `).join('');
-                console.log("Invite section UI updated successfully");
-            } catch (error) {
-                console.error("Error updating invite section UI:", error.message);
+                userData = userDoc.data();
             }
-        }
 
-        async function updateTopSectionUI() {
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot update top section UI.");
-                return;
+            // 2. Fetch and process daily quests
+            console.log("[DEBUG] Starting daily quests fetch...");
+            const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({
+                source: 'server' // Force server fetch to avoid cache issues
+            });
+
+            // Detailed logging of snapshot
+            console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
+            console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
+
+            // Handle case where document exists but has no tasks
+            const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
+            const dailyQuests = dailyQuestsRaw.tasks || [];
+            console.log("[DEBUG] Parsed daily quests:", dailyQuests);
+
+            // Validate quest data structure
+            const validatedDailyQuests = dailyQuests.map(quest => ({
+                id: quest.id || Math.random().toString(36).substring(7), // Ensure each quest has an ID
+                title: quest.title || "Untitled Quest",
+                icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
+                reward: Number(quest.reward) || 0,
+                action: quest.action || 'GO',
+                link: quest.link || '' // Assuming you might add a 'link' field to your quest data
+            }));
+            console.log("[DEBUG] Validated daily quests:", validatedDailyQuests);
+
+            // 3. Update Daily Quests UI
+            const dailyQuestList = document.getElementById('daily-quest-list');
+            const dailyQuestCount = document.getElementById('daily-quest-count');
+
+            if (!dailyQuestList || !dailyQuestCount) {
+                throw new Error("Required DOM elements not found for daily quests");
             }
-            try {
-                const rankingsSnapshot = await db.collection('users')
-                    .orderBy('foxMedals', 'desc')
-                    .limit(20)
-                    .get();
-                const rankings = [];
-                rankingsSnapshot.forEach(doc => {
-                    const data = doc.data();
-                    rankings.push({
-                        username: data.username || 'Anonymous',
-                        foxMedals: data.foxMedals || 0,
-                        photoUrl: data.photoUrl || 'https://via.placeholder.com/40/808080/000000?text=U'
-                    });
-                });
 
-                const rankingList = document.getElementById('ranking-list');
-                rankingList.innerHTML = rankings.length === 0 ? `
-                    <li class="no-rankings">
-                        <p>No rankings available</p>
-                    </li>
-                ` : rankings.map(user => `
-                    <li class="ranking-item">
-                        <img src="${user.photoUrl}" alt="${user.username}">
-                        <span>${user.username}</span>
-                        <div class="medal-count">
-                            <span>${user.foxMedals}</span>
-                            <img src="assets/icons/fox-medal.png" alt="Fox Medal">
+            dailyQuestCount.textContent = validatedDailyQuests.length;
+
+            dailyQuestList.innerHTML = validatedDailyQuests.length === 0 ? `
+                <li class="no-quests">
+                    <p>No daily quests available</p>
+                </li>
+            ` : validatedDailyQuests.map(quest => {
+                const isClaimed = userData?.claimedQuests?.includes(quest.id);
+                const buttonText = isClaimed ? 'Claimed' : quest.action;
+                const buttonClass = isClaimed ? 'claimed-button' : 'go-button';
+                const buttonStyle = isClaimed ? 'background: #ccc; cursor: default;' : 'background: linear-gradient(to right, #ff00ff, #ff6666);';
+                return `
+                    <li class="quest-item" data-quest-id="${quest.id}">
+                        <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
+                        <span>${quest.title}</span>
+                        <div class="quest-reward">
+                            <img src="assets/icons/gem.png" alt="Gem">
+                            <span>+${quest.reward}</span>
+                            <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
                         </div>
                     </li>
-                `).join('');
+                `;
+            }).join('');
 
-                console.log("Top section UI updated successfully");
-            } catch (error) {
-                console.error("Error updating top section UI:", error.message);
+            // 4. Fetch and process basic quests
+            console.log("[DEBUG] Starting basic quests fetch...");
+            const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({
+                source: 'server'
+            });
+
+            console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
+            console.log("[DEBUG] Basic snapshot data:", basicQuestsSnapshot.data());
+
+            const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
+            const basicQuests = basicQuestsRaw.tasks || [];
+            console.log("[DEBUG] Parsed basic quests:", basicQuests);
+
+            const validatedBasicQuests = basicQuests.map(quest => ({
+                id: quest.id || Math.random().toString(36).substring(7), // Ensure each quest has an ID
+                title: quest.title || "Untitled Quest",
+                icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
+                reward: Number(quest.reward) || 0,
+                action: quest.action || 'GO',
+                link: quest.link || '' // Assuming you might add a 'link' field to your quest data
+            }));
+            console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
+
+            // 5. Update Basic Quests UI
+            const basicQuestList = document.getElementById('basic-quest-list');
+            const basicQuestCount = document.getElementById('basic-quest-count');
+
+            if (!basicQuestList || !basicQuestCount) {
+                throw new Error("Required DOM elements not found for basic quests");
+            }
+
+            basicQuestCount.textContent = validatedBasicQuests.length;
+
+            basicQuestList.innerHTML = validatedBasicQuests.length === 0 ? `
+                <li class="no-quests">
+                    <p>No basic quests available</p>
+                </li>
+            ` : validatedBasicQuests.map(quest => {
+                const isClaimed = userData?.claimedQuests?.includes(quest.id);
+                const buttonText = isClaimed ? 'Claimed' : quest.action;
+                const buttonClass = isClaimed ? 'claimed-button' : 'go-button';
+                const buttonStyle = isClaimed ? 'background: #ccc; cursor: default;' : 'background: linear-gradient(to right, #ff00ff, #ff6666);';
+                return `
+                    <li class="quest-item" data-quest-id="${quest.id}">
+                        <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
+                        <span>${quest.title}</span>
+                        <div class="quest-reward">
+                            <img src="assets/icons/gem.png" alt="Gem">
+                            <span>+${quest.reward}</span>
+                            <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
+                        </div>
+                    </li>
+                `;
+            }).join('');
+
+            console.log("[DEBUG] Earn section UI update completed successfully");
+
+        } catch (error) {
+            console.error("[ERROR] Failed to update earn section UI:", {
+                message: error.message,
+                stack: error.stack
+            });
+
+            // Fallback UI for both sections
+            const dailyQuestList = document.getElementById('daily-quest-list');
+            const basicQuestList = document.getElementById('basic-quest-list');
+
+            if (dailyQuestList) {
+                dailyQuestList.innerHTML = `
+                    <li class="error">
+                        <p>Failed to load daily quests: ${error.message}</p>
+                    </li>
+                `;
+            }
+
+            if (basicQuestList) {
+                basicQuestList.innerHTML = `
+                    <li class="error">
+                        <p>Failed to load basic quests: ${error.message}</p>
+                    </li>
+                `;
             }
         }
+    }
 
-        // New Wallet Section UI Update Function
-        async function updateWalletSectionUI() {
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot update wallet section UI.");
-                return;
-            }
-            try {
-                await updateUserStatsUI();
-                await updateTransactionHistory();
-                console.log("Wallet section UI updated successfully");
-            } catch (error) {
-                console.error("Error updating wallet section UI:", error.message);
-            }
+    // Referral System
+    function generateReferralLink() {
+        if (!telegramUser) return;
+        const botUsername = 'fourgobot';
+        const referralLink = `https://t.me/${botUsername}?start=ref_${telegramUser.id}`;
+        document.querySelector('.invite-friend').setAttribute('data-link', referralLink);
+        document.querySelector('.copy-link').setAttribute('data-link', referralLink);
+        console.log("Referral link generated:", referralLink);
+    }
+
+    async function handleReferral() {
+        if (!telegramUser) return;
+        if (!firebaseInitialized || !db) {
+            console.error("Firestore not initialized. Cannot handle referral.");
+            return;
         }
+        const initData = Telegram.WebApp.initDataUnsafe;
+        const startParam = initData.start_param;
 
-        // Claim Credits Logic
-        document.querySelector('.invite-section .claim-button').addEventListener('click', async () => {
-            if (!telegramUser) {
-                alert("User not authenticated. Please try again.");
-                return;
-            }
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot claim credits.");
-                alert("Database not initialized. Please try again later.");
-                return;
-            }
+        if (startParam && startParam.startsWith('ref_')) {
+            const referrerId = startParam.split('_')[1];
+            if (referrerId === telegramUser.id.toString()) return;
+
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+            const referrerDocRef = db.collection('userData').doc(referrerId);
+
             try {
                 const userDoc = await userDocRef.get();
-                const data = userDoc.data();
-                const totalCredit = (data.referrals || 0) * 10;
+                if (userDoc.data().isReferred) return;
 
-                if (totalCredit < 10000) {
-                    alert(`You need 10,000 credits to claim 1 USDT. You have ${totalCredit}.`);
-                    return;
-                }
+                await userDocRef.update({ isReferred: true });
+                const referrerDoc = await referrerDocRef.get();
+                const newReferralCount = (referrerDoc.data().referrals || 0) + 1;
+                const newGems = (referrerDoc.data().gems || 0) + 50;
 
-                const usdtToClaim = Math.floor(totalCredit / 10000);
-                const remainingCredits = totalCredit % 10000;
-                const newReferralCount = Math.floor(remainingCredits / 10);
-
-                await userDocRef.update({
-                    usdt: firebase.firestore.FieldValue.increment(usdtToClaim),
-                    referrals: newReferralCount
-                });
-
-                await updateUserStatsUI();
-                await updateInviteSectionUI();
-                alert(`Successfully claimed ${usdtToClaim} USDT!`);
-                analytics.logEvent('credit_claim', { userId: telegramUser.id, usdt: usdtToClaim });
-            } catch (error) {
-                console.error("Error claiming credits:", error.message);
-                alert("Failed to claim credits: " + error.message);
-            }
-        });
-
-        // Chest Slider Logic
-        const chests = [
-            { name: "Wood Chest", next: "Bronze", image: "wood-chest.png", gemCost: 200, vip: 0 },
-            { name: "Bronze Chest", next: "Silver", image: "bronze-chest.png", gemCost: 500, vip: 1 },
-            { name: "Silver Chest", next: "Gold", image: "silver-chest.png", gemCost: 1000, vip: 2 },
-            { name: "Gold Chest", next: "Master", image: "gold-chest.png", gemCost: 2000, vip: 3 },
-            { name: "Master Chest", next: "Legendary", image: "master-chest.png", gemCost: 5000, vip: 4 },
-            { name: "Legendary Chest", next: "Mythic", image: "legendary-chest.png", gemCost: 10000, vip: 5 },
-            { name: "Mythic Chest", next: "", image: "mythic-chest.png", gemCost: 20000, vip: 6 }
-        ];
-
-        let currentChestIndex = 0;
-        const chestContainer = document.getElementById('chestContainer');
-        const chestCostElement = document.getElementById('chestCost');
-        const chestVipRequirementElement = document.getElementById('chestVipRequirement');
-
-        chests.forEach(chest => {
-            const chestItem = document.createElement('div');
-            chestItem.classList.add('chest-item');
-            chestItem.innerHTML = `
-                <div class="chest-title">
-                    <h2>${chest.name}</h2>
-                    <span>${chest.next}</span>
-                </div>
-                <div class="chest-image">
-                    <img src="assets/graphics/${chest.image}" alt="${chest.name}">
-                </div>
-                <div class="not-enough">
-                    <span>NOT ENOUGH</span>
-                    <img src="assets/icons/gem.png" alt="Gem">
-                </div>
-            `;
-            chestContainer.appendChild(chestItem);
-        });
-
-        function updateChest() {
-            const chest = chests[currentChestIndex];
-            chestContainer.style.transform = `translateX(-${currentChestIndex * 100}%)`;
-
-            if (chest.vip === 0) {
-                chestCostElement.style.display = 'flex';
-                chestCostElement.querySelector('span').textContent = chest.gemCost;
-                chestVipRequirementElement.style.display = 'none';
-            } else {
-                chestCostElement.style.display = 'none';
-                chestVipRequirementElement.style.display = 'block';
-                chestVipRequirementElement.textContent = `NEED VIP ${chest.vip}`;
-            }
-
-            document.querySelector('.nav-arrow.left').style.display = currentChestIndex === 0 ? 'none' : 'block';
-            document.querySelector('.nav-arrow.right').style.display = currentChestIndex === chests.length - 1 ? 'none' : 'block';
-        }
-
-        window.nextChest = function() {
-            if (currentChestIndex < chests.length - 1) {
-                currentChestIndex++;
-                updateChest();
-            }
-        };
-
-        window.prevChest = function() {
-            if (currentChestIndex > 0) {
-                currentChestIndex--;
-                updateChest();
-            }
-        };
-
-        window.openChest = async function() {
-            if (!telegramUser) {
-                alert("User not authenticated. Please try again.");
-                return;
-            }
-            if (!firebaseInitialized || !db) {
-                console.error("Firestore not initialized. Cannot open chest.");
-                alert("Database not initialized. Please try again later.");
-                return;
-            }
-            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-            try {
-                const userDoc = await userDocRef.get();
-                const userData = userDoc.data();
-                const chest = chests[currentChestIndex];
-
-                if (userData.gems < chest.gemCost) {
-                    alert(`You need ${chest.gemCost} gems to open the ${chest.name}! Current: ${userData.gems}`);
-                    return;
-                }
-
-                const rewards = {
-                    usdt: (Math.random() * 0.5 + 0.1).toFixed(4),
-                    landPiece: 1,
-                    foxMedal: 1
+                const newRecord = {
+                    username: telegramUser.username || telegramUser.first_name,
+                    joinTime: new Date().toISOString().replace('T', ' ').split('.')[0],
+                    credit: 10
                 };
 
-                await userDocRef.update({
-                    gems: userData.gems - chest.gemCost,
-                    usdt: userData.usdt + parseFloat(rewards.usdt),
-                    landPieces: firebase.firestore.FieldValue.increment(rewards.landPiece),
-                    foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
+                await referrerDocRef.update({
+                    referrals: newReferralCount,
+                    gems: newGems,
+                    inviteRecords: firebase.firestore.FieldValue.arrayUnion(newRecord)
                 });
 
-                await db.collection('users').doc(telegramUser.id.toString()).update({
-                    foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
-                });
-
-                await updateUserStatsUI();
-                alert(`Opened ${chest.name}! Rewards: ${rewards.usdt} USDT, ${rewards.landPiece} Land Piece, ${rewards.foxMedal} Fox Medal`);
-                analytics.logEvent('chest_opened', { chestName: chest.name, userId: telegramUser.id });
+                analytics.logEvent('referral_success', { referrerId, newUserId: telegramUser.id });
+                console.log("Referral handled successfully");
             } catch (error) {
-                console.error("Error opening chest:", error.message);
-                alert("Failed to open chest: " + error.message);
+                console.error("Error handling referral:", error.message);
             }
-        };
+        }
+    }
 
-        updateChest();
+    async function updateInviteSectionUI() {
+        if (!telegramUser) return;
+        if (!firebaseInitialized || !db) {
+            console.error("Firestore not initialized. Cannot update invite section UI.");
+            return;
+        }
+        try {
+            const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
+            const data = userDoc.data();
+            const referrals = data.referrals || 0;
+            const totalCredit = referrals * 10;
 
-        // Earn Section Interactions (Modified)
-        document.addEventListener('click', async (event) => {
-            if (event.target.classList.contains('go-button')) {
-                const taskItem = event.target.closest('.quest-item');
-                if (!taskItem) return;
+            document.getElementById('my-invite').textContent = `My Invite: ${referrals}`;
+            document.getElementById('total-credit').textContent = `Total Credit ! : ${totalCredit}`;
+            document.getElementById('invite-record-title').textContent = `Invite Record (${referrals})`;
 
-                const taskTitle = taskItem.querySelector('span').textContent;
-                const reward = parseInt(event.target.previousElementSibling.textContent.replace('+', ''));
-                const action = event.target.textContent; // Assuming the "Go" button text might indicate the action
-                const taskLink = event.target.dataset.questLink;
-                const taskId = taskItem.dataset.questId;
+            const recordList = document.querySelector('.invite-record .record-list');
+            recordList.innerHTML = data.inviteRecords.length === 0 ? `
+                <div class="no-frens">
+                    <img src="assets/icons/nofrens.png" alt="No Frens">
+                    <p>No invites yet</p>
+                </div>
+            ` : data.inviteRecords.map(record => `
+                <div class="record-item">
+                    <img src="https://via.placeholder.com/40/808080/000000?text=${record.username[0]}" alt="${record.username}">
+                    <div class="user-info">
+                        <span>${record.username}</span>
+                        <small>${record.joinTime}</small>
+                    </div>
+                    <span class="credit">${record.credit}</span>
+                </div>
+            `).join('');
+            console.log("Invite section UI updated successfully");
+        } catch (error) {
+            console.error("Error updating invite section UI:", error.message);
+        }
+    }
 
-                if (!taskLink) {
-                    alert(`Link for "${taskTitle}" not provided.`);
-                    return;
-                }
-
-                // Open the task link in a new window/tab
-                window.open(taskLink, '_blank');
-
-                // Change the "Go" button to a "Claim" button and update its appearance
-                event.target.textContent = 'Claim';
-                event.target.classList.remove('go-button');
-                event.target.classList.add('claim-button');
-                event.target.style.background = 'linear-gradient(to right, #00ff00, #66ff66)'; // Green color
-
-                // Optionally, you could store the task details in the button's dataset
-                event.target.dataset.reward = reward;
-                event.target.dataset.taskTitle = taskTitle;
-                event.target.dataset.taskId = taskId;
-
-            } else if (event.target.classList.contains('claim-button')) {
-                if (!telegramUser) {
-                    alert("User not authenticated. Please try again.");
-                    return;
-                }
-                if (!firebaseInitialized || !db) {
-                    console.error("Firestore not initialized. Cannot claim reward.");
-                    alert("Database not initialized. Please try again later.");
-                    return;
-                }
-
-                const claimButton = event.target;
-                const reward = parseInt(claimButton.dataset.reward);
-                const taskTitle = claimButton.dataset.taskTitle;
-                const taskId = claimButton.dataset.taskId;
-                const taskItem = claimButton.closest('.quest-item');
-
-                const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-
-                try {
-                    await db.runTransaction(async (transaction) => {
-                        const userDoc = await transaction.get(userDocRef);
-                        if (!userDoc.exists) {
-                            throw "User document does not exist!";
-                        }
-                        const userData = userDoc.data();
-                        const currentGems = userData.gems || 0;
-                        const claimedQuests = userData.claimedQuests || [];
-
-                        if (claimedQuests.includes(taskId)) {
-                            alert("You have already claimed the reward for this task.");
-                            return;
-                        }
-
-                        transaction.update(userDocRef, {
-                            gems: currentGems + reward,
-                            claimedQuests: firebase.firestore.FieldValue.arrayUnion(taskId)
-                        });
-                    });
-
-                    await updateUserStatsUI();
-                    alert(`Reward claimed! +${reward} Gems for "${taskTitle}"`);
-
-                    // Update the UI immediately
-                    claimButton.textContent = 'Claimed';
-                    claimButton.classList.remove('claim-button');
-                    claimButton.classList.add('claimed-button');
-                    claimButton.disabled = true;
-                    claimButton.style.background = '#ccc';
-                    if (taskItem) {
-                        taskItem.classList.add('completed');
-                    }
-                    // Removed the line causing the error: claimButton.removeEventListener('click', arguments.callee);
-
-                    analytics.logEvent('task_claimed', { userId: telegramUser.id, reward: reward, task: taskTitle });
-
-                } catch (error) {
-                    console.error("Error claiming reward:", error);
-                    alert("Failed to claim reward: " + error);
-                }
-            }
-        });
-
-        // Wallet Section Interactions (Original + New Integration)
-        let isWalletConnected = false;
-        const connectButton = document.querySelector('.connect-button');
-        const statusElement = document.getElementById('connection-status');
-
-
-        document.querySelectorAll('.withdraw-button').forEach(button => {
-            button.addEventListener('click', () => {
-                if (!isWalletConnected) {
-                    alert('Please connect your wallet first!');
-                    return;
-                }
-                const currency = button.closest('.balance-card').classList.contains('usdt-card') ? 'USDT' : 'TON';
-                const available = parseFloat(document.getElementById(`wallet-${currency.toLowerCase()}`).textContent);
-                const modal = document.getElementById('withdraw-modal');
-                document.getElementById('available-balance').textContent = available;
-                document.getElementById('currency').textContent = currency;
-                const FEES = { USDT: 0.01, TON: 0.005 };
-                document.getElementById('withdraw-fee').textContent = FEES[currency];
-                document.getElementById('fee-currency').textContent = currency;
-                modal.style.display = 'flex';
+    async function updateTopSectionUI() {
+        if (!firebaseInitialized || !db) {
+            console.error("Firestore not initialized. Cannot update top section UI.");
+            return;
+        }
+        try {
+            const rankingsSnapshot = await db.collection('users')
+                .orderBy('foxMedals', 'desc')
+                .limit(20)
+                .get();
+            const rankings = [];
+            rankingsSnapshot.forEach(doc => {
+                const data = doc.data();
+                rankings.push({
+                    username: data.username || 'Anonymous',
+                    foxMedals: data.foxMedals || 0,
+                    photoUrl: data.photoUrl || 'https://via.placeholder.com/40/808080/000000?text=U'
+                });
             });
-        });
 
-        document.getElementById('confirm-withdraw').addEventListener('click', async () => {
+            const rankingList = document.getElementById('ranking-list');
+            rankingList.innerHTML = rankings.length === 0 ? `
+                <li class="no-rankings">
+                    <p>No rankings available</p>
+                </li>
+            ` : rankings.map(user => `
+                <li class="ranking-item">
+                    <img src="${user.photoUrl}" alt="${user.username}">
+                    <span>${user.username}</span>
+                    <div class="medal-count">
+                        <span>${user.foxMedals}</span>
+                        <img src="assets/icons/fox-medal.png" alt="Fox Medal">
+                    </div>
+                </li>
+            `).join('');
+
+            console.log("Top section UI updated successfully");
+        } catch (error) {
+            console.error("Error updating top section UI:", error.message);
+        }
+    }
+
+    // New Wallet Section UI Update Function
+    async function updateWalletSectionUI() {
+        if (!firebaseInitialized || !db) {
+            console.error("Firestore not initialized. Cannot update wallet section UI.");
+            return;
+        }
+        try {
+            await updateUserStatsUI();
+            await updateTransactionHistory();
+            console.log("Wallet section UI updated successfully");
+        } catch (error) {
+            console.error("Error updating wallet section UI:", error.message);
+        }
+    }
+
+    // Claim Credits Logic
+    document.querySelector('.invite-section .claim-button').addEventListener('click', async () => {
+        if (!telegramUser) {
+            alert("User not authenticated. Please try again.");
+            return;
+        }
+        if (!firebaseInitialized || !db) {
+            console.error("Firestore not initialized. Cannot claim credits.");
+            alert("Database not initialized. Please try again later.");
+            return;
+        }
+        const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+        try {
+            const userDoc = await userDocRef.get();
+            const data = userDoc.data();
+            const totalCredit = (data.referrals || 0) * 10;
+
+            if (totalCredit < 10000) {
+                alert(`You need 10,000 credits to claim 1 USDT. You have ${totalCredit}.`);
+                return;
+            }
+
+            const usdtToClaim = Math.floor(totalCredit / 10000);
+            const remainingCredits = totalCredit % 10000;
+            const newReferralCount = Math.floor(remainingCredits / 10);
+
+            await userDocRef.update({
+                usdt: firebase.firestore.FieldValue.increment(usdtToClaim),
+                referrals: newReferralCount
+            });
+
+            await updateUserStatsUI();
+            await updateInviteSectionUI();
+            alert(`Successfully claimed ${usdtToClaim} USDT!`);
+            analytics.logEvent('credit_claim', { userId: telegramUser.id, usdt: usdtToClaim });
+        } catch (error) {
+            console.error("Error claiming credits:", error.message);
+            alert("Failed to claim credits: " + error.message);
+        }
+    });
+
+    // Chest Slider Logic
+    const chests = [
+        { name: "Wood Chest", next: "Bronze", image: "wood-chest.png", gemCost: 200, vip: 0 },
+        { name: "Bronze Chest", next: "Silver", image: "bronze-chest.png", gemCost: 500, vip: 1 },
+        { name: "Silver Chest", next: "Gold", image: "silver-chest.png", gemCost: 1000, vip: 2 },
+        { name: "Gold Chest", next: "Master", image: "gold-chest.png", gemCost: 2000, vip: 3 },
+        { name: "Master Chest", next: "Legendary", image: "master-chest.png", gemCost: 5000, vip: 4 },
+        { name: "Legendary Chest", next: "Mythic", image: "legendary-chest.png", gemCost: 10000, vip: 5 },
+        { name: "Mythic Chest", next: "", image: "mythic-chest.png", gemCost: 20000, vip: 6 }
+    ];
+
+    let currentChestIndex = 0;
+    const chestContainer = document.getElementById('chestContainer');
+    const chestCostElement = document.getElementById('chestCost');
+    const chestVipRequirementElement = document.getElementById('chestVipRequirement');
+
+    chests.forEach(chest => {
+        const chestItem = document.createElement('div');
+        chestItem.classList.add('chest-item');
+        chestItem.innerHTML = `
+            <div class="chest-title">
+                <h2>${chest.name}</h2>
+                <span>${chest.next}</span>
+            </div>
+            <div class="chest-image">
+                <img src="assets/graphics/${chest.image}" alt="${chest.name}">
+            </div>
+            <div class="not-enough">
+                <span>NOT ENOUGH</span>
+                <img src="assets/icons/gem.png" alt="Gem">
+            </div>
+        `;
+        chestContainer.appendChild(chestItem);
+    });
+
+    function updateChest() {
+        const chest = chests[currentChestIndex];
+        chestContainer.style.transform = `translateX(-${currentChestIndex * 100}%)`;
+
+        if (chest.vip === 0) {
+            chestCostElement.style.display = 'flex';
+            chestCostElement.querySelector('span').textContent = chest.gemCost;
+            chestVipRequirementElement.style.display = 'none';
+        } else {
+            chestCostElement.style.display = 'none';
+            chestVipRequirementElement.style.display = 'block';
+            chestVipRequirementElement.textContent = `NEED VIP ${chest.vip}`;
+        }
+
+        document.querySelector('.nav-arrow.left').style.display = currentChestIndex === 0 ? 'none' : 'block';
+        document.querySelector('.nav-arrow.right').style.display = currentChestIndex === chests.length - 1 ? 'none' : 'block';
+    }
+
+    window.nextChest = function() {
+        if (currentChestIndex < chests.length - 1) {
+            currentChestIndex++;
+            updateChest();
+        }
+    };
+
+    window.prevChest = function() {
+        if (currentChestIndex > 0) {
+            currentChestIndex--;
+            updateChest();
+        }
+    };
+
+    window.openChest = async function() {
+        if (!telegramUser) {
+            alert("User not authenticated. Please try again.");
+            return;
+        }
+        if (!firebaseInitialized || !db) {
+            console.error("Firestore not initialized. Cannot open chest.");
+            alert("Database not initialized. Please try again later.");
+            return;
+        }
+        const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+        try {
+            const userDoc = await userDocRef.get();
+            const userData = userDoc.data();
+            const chest = chests[currentChestIndex];
+
+            if (userData.gems < chest.gemCost) {
+                alert(`You need ${chest.gemCost} gems to open the ${chest.name}! Current: ${userData.gems}`);
+                return;
+            }
+
+            const rewards = {
+                usdt: (Math.random() * 0.5 + 0.1).toFixed(4),
+                landPiece: 1,
+                foxMedal: 1
+            };
+
+            await userDocRef.update({
+                gems: userData.gems - chest.gemCost,
+                usdt: userData.usdt + parseFloat(rewards.usdt),
+                landPieces: firebase.firestore.FieldValue.increment(rewards.landPiece),
+                foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
+            });
+
+            await db.collection('users').doc(telegramUser.id.toString()).update({
+                foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
+            });
+
+            await updateUserStatsUI();
+            alert(`Opened ${chest.name}! Rewards: ${rewards.usdt} USDT, ${rewards.landPiece} Land Piece, ${rewards.foxMedal} Fox Medal`);
+            analytics.logEvent('chest_opened', { chestName: chest.name, userId: telegramUser.id });
+        } catch (error) {
+            console.error("Error opening chest:", error.message);
+            alert("Failed to open chest: " + error.message);
+        }
+    };
+
+    updateChest();
+
+    // Earn Section Interactions (Modified)
+    document.addEventListener('click', async (event) => {
+        if (event.target.classList.contains('go-button')) {
+            const taskItem = event.target.closest('.quest-item');
+            if (!taskItem) return;
+
+            const questId = taskItem.dataset.questId;
+            const reward = parseInt(event.target.dataset.questReward);
+            const link = event.target.dataset.questLink || 'https://t.me/fourgobot';
+
             if (!firebaseInitialized || !db) {
-                alert('Database not initialized. Please try again later.');
-                return;
-            }
-            const amount = parseFloat(document.getElementById('withdraw-amount').value);
-            const currency = document.getElementById('currency').textContent;
-            const available = parseFloat(document.getElementById('available-balance').textContent);
-            const MIN_WITHDRAW = { USDT: 1, TON: 0.1 };
-
-            if (amount <= 0 || amount > available) {
-                alert('Invalid amount!');
-                return;
-            }
-            if (amount < MIN_WITHDRAW[currency]) {
-                alert(`Minimum withdrawal is ${MIN_WITHDRAW[currency]} ${currency}`);
+                console.error("Firestore not initialized. Cannot process quest.");
+                alert("Database not initialized. Please try again later.");
                 return;
             }
 
             try {
-                await withdrawFunds(amount, currency);
-                alert(`Successfully withdrew ${amount} ${currency}!`);
-                document.getElementById('withdraw-modal').style.display = 'none';
-                await updateWalletSectionUI();
-            } catch (error) {
-                alert('Withdrawal failed: ' + error.message);
-            }
-        });
+                const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+                const userDoc = await userDocRef.get();
+                const userData = userDoc.data();
 
-        document.getElementById('cancel-withdraw').addEventListener('click', () => {
-            document.getElementById('withdraw-modal').style.display = 'none';
-        });
+                if (userData.claimedQuests.includes(questId)) {
+                    alert("This quest has already been claimed!");
+                    return;
+                }
 
-        async function withdrawFunds(amount, currency) {
-            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-            await db.runTransaction(async (transaction) => {
-                const doc = await transaction.get(userDocRef);
-                const data = doc.data();
-                const field = currency.toLowerCase();
-                if (data[field] < amount) throw new Error('Insufficient balance');
-                transaction.update(userDocRef, { [field]: data[field] - amount });
-                // Log transaction
-                await db.collection('transactions').add({
-                    userId: telegramUser.id,
-                    type: 'Withdrawal',
-                    amount: amount,
-                    currency: currency,
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                Telegram.WebApp.openTelegramLink(link);
+
+                await userDocRef.update({
+                    gems: userData.gems + reward,
+                    claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId)
                 });
-            });
-            // Add actual blockchain withdrawal logic here (e.g., TON transaction)
-        }
 
-        async function updateTransactionHistory() {
-            if (!firebaseInitialized || !db) return;
-            const transactions = await db.collection('transactions')
-                .where('userId', '==', telegramUser.id)
-                .orderBy('timestamp', 'desc')
-                .limit(10)
-                .get();
-            
-            const transactionList = document.getElementById('transaction-list');
-            transactionList.innerHTML = transactions.empty ? '<li>No transactions yet</li>' : 
-                transactions.docs.map(doc => {
-                    const data = doc.data();
-                    return `<li>${data.type}: ${data.amount} ${data.currency} - ${data.timestamp ? new Date(data.timestamp.toDate()).toLocaleString() : 'Pending'}</li>`;
-                }).join('');
-        }
+                event.target.textContent = 'Claimed';
+                event.target.classList.remove('go-button');
+                event.target.classList.add('claimed-button');
+                event.target.disabled = true;
+                event.target.style.background = '#ccc';
+                event.target.style.cursor = 'default';
 
-        document.querySelectorAll('.warning-button').forEach(button => {
-            button.addEventListener('click', () => {
-                alert('Warning: Ensure your wallet is connected to withdraw funds.');
-            });
+                await updateUserStatsUI();
+                alert(`Quest completed! You earned ${reward} gems.`);
+                analytics.logEvent('quest_completed', { questId, userId: telegramUser.id, reward });
+            } catch (error) {
+                console.error("Error completing quest:", error.message);
+                alert("Failed to complete quest: " + error.message);
+            }
+        }
+    });
+
+    // Invite Section Interactions
+    document.querySelector('.invite-friend').addEventListener('click', () => {
+        const link = document.querySelector('.invite-friend').dataset.link;
+        Telegram.WebApp.openTelegramLink(link);
+    });
+
+    document.querySelector('.copy-link').addEventListener('click', () => {
+        const link = document.querySelector('.copy-link').dataset.link;
+        navigator.clipboard.writeText(link).then(() => {
+            alert("Referral link copied to clipboard!");
         });
+    });
 
-// New Telegram Wallet Integration
-document.addEventListener('DOMContentLoaded', function() {
-    const tg = window.Telegram.WebApp;
-    tg.expand(); // Expand the web app to full height
-    
-    // Elements
+    // TON Wallet Integration
+    const tonConnect = new TonConnect({
+        manifestUrl: 'https://your-app-domain.com/tonconnect-manifest.json' // Replace with your manifest URL
+    });
+
     const connectButton = document.querySelector('.connect-button');
     const connectionStatus = document.getElementById('connection-status');
     const withdrawButtons = document.querySelectorAll('.withdraw-button');
-    const walletStatusDiv = document.querySelector('.wallet-status');
-    
-    // TON Connect Setup
-    const tonConnect = new TonConnect({
-        manifestUrl: 'https://4go.netlify.app/tonconnect-manifest.json' // Ensure this URL is correct
+    const warningButtons = document.querySelectorAll('.warning-button');
+
+    async function updateWalletUI() {
+        if (tonConnect.connected) {
+            connectButton.textContent = 'DISCONNECT WALLET';
+            connectButton.classList.add('connected');
+            connectionStatus.textContent = 'Connected';
+            connectionStatus.parentElement.classList.remove('disconnected');
+            connectionStatus.parentElement.classList.add('connected');
+            withdrawButtons.forEach(btn => btn.disabled = false);
+
+            const walletAddress = await Storage.getItem('walletAddress') || 'Not set';
+            console.log("Wallet connected, address:", walletAddress);
+        } else {
+            connectButton.textContent = 'CONNECT TON WALLET';
+            connectButton.classList.remove('connected');
+            connectionStatus.textContent = 'Disconnected';
+            connectionStatus.parentElement.classList.remove('connected');
+            connectionStatus.parentElement.classList.add('disconnected');
+            withdrawButtons.forEach(btn => btn.disabled = true);
+            console.log("Wallet disconnected");
+        }
+    }
+
+    connectButton.addEventListener('click', async () => {
+        if (tonConnect.connected) {
+            await tonConnect.disconnect();
+            await Storage.setItem('walletAddress', null);
+            updateWalletUI();
+        } else {
+            try {
+                await tonConnect.connect({ wallets: ['tonkeeper', 'telegram-wallet'] });
+                const walletInfo = tonConnect.account;
+                if (walletInfo) {
+                    await Storage.setItem('walletAddress', walletInfo.address);
+                    updateWalletUI();
+                }
+            } catch (error) {
+                console.error("Error connecting wallet:", error.message);
+                alert("Failed to connect wallet: " + error.message);
+            }
+        }
     });
 
-    // Update UI for connected wallet state
-    function updateUIForConnectedState(address) {
-        connectButton.textContent = 'WALLET CONNECTED';
-        connectButton.classList.add('connected');
-        connectionStatus.textContent = 'Connected: ' + (address ? address.slice(0, 6) + '...' : 'Connected');
-        walletStatusDiv.classList.remove('disconnected');
-        walletStatusDiv.classList.add('connected');
-        withdrawButtons.forEach(button => {
-            button.disabled = false;
-        });
-        isWalletConnected = true; // Sync with original logic
-    }
+    tonConnect.onStatusChange((walletInfo) => {
+        updateWalletUI();
+    });
 
-    // Update UI for disconnected wallet state
-    function updateUIForDisconnectedState() {
-        connectButton.textContent = 'CONNECT TON WALLET';
-        connectButton.classList.remove('connected');
-        connectionStatus.textContent = 'Disconnected';
-        walletStatusDiv.classList.remove('connected');
-        walletStatusDiv.classList.add('disconnected');
-        withdrawButtons.forEach(button => {
-            button.disabled = true;
-        });
-        isWalletConnected = false; // Sync with original logic
-    }
+    // Withdrawal Logic
+    const withdrawModal = document.getElementById('withdraw-modal');
+    const withdrawAmountInput = document.getElementById('withdraw-amount');
+    const availableBalanceSpan = document.getElementById('available-balance');
+    const currencySpan = document.getElementById('currency');
+    const withdrawFeeSpan = document.getElementById('withdraw-fee');
+    const feeCurrencySpan = document.getElementById('fee-currency');
+    const confirmWithdrawButton = document.getElementById('confirm-withdraw');
+    const cancelWithdrawButton = document.getElementById('cancel-withdraw');
 
-    // Fetch wallet data from Firebase (instead of external API)
-    function fetchWalletData(userId) {
-        if (!firebaseInitialized || !db) {
-            console.error("Firestore not initialized. Cannot fetch wallet data.");
+    withdrawButtons.forEach(button => {
+        button.addEventListener('click', async () => {
+            const card = button.closest('.balance-card');
+            const currency = card.classList.contains('usdt-card') ? 'USDT' : 'TON';
+            const balanceElement = card.querySelector('.balance-info span');
+            const balance = parseFloat(balanceElement.textContent);
+
+            availableBalanceSpan.textContent = balance.toFixed(4);
+            currencySpan.textContent = currency;
+            withdrawFeeSpan.textContent = currency === 'USDT' ? '0.01' : '0.005';
+            feeCurrencySpan.textContent = currency;
+            withdrawAmountInput.value = '';
+
+            withdrawModal.style.display = 'flex';
+        });
+    });
+
+    cancelWithdrawButton.addEventListener('click', () => {
+        withdrawModal.style.display = 'none';
+    });
+
+    confirmWithdrawButton.addEventListener('click', async () => {
+        const amount = parseFloat(withdrawAmountInput.value);
+        const currency = currencySpan.textContent;
+        const availableBalance = parseFloat(availableBalanceSpan.textContent);
+        const fee = parseFloat(withdrawFeeSpan.textContent);
+
+        if (isNaN(amount) || amount <= 0) {
+            alert("Please enter a valid amount.");
             return;
         }
-        db.collection('userData').doc(userId.toString()).get()
-            .then(doc => {
-                if (doc.exists) {
-                    const data = doc.data();
-                    document.getElementById('wallet-usdt').textContent = (data.usdt || 0).toFixed(4);
-                    document.getElementById('wallet-ton').textContent = (data.ton || 0).toFixed(4);
-                    document.getElementById('usdt').textContent = (data.usdt || 0).toFixed(4);
-                    document.getElementById('ton').textContent = (data.ton || 0).toFixed(4);
-                    updateTransactionHistory(data.transactions || []);
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching wallet data:', error);
-                showError('Could not retrieve wallet data. Please try again later.');
-            });
-    }
-    
-    // Update transaction history (enhanced version)
-    function updateTransactionHistory(transactions) {
-        const transactionList = document.getElementById('transaction-list');
-        transactionList.innerHTML = ''; // Clear existing list
-        
-        if (transactions && transactions.length > 0) {
-            transactions.forEach(tx => {
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <div class="tx-type">${tx.type}</div>
-                    <div class="tx-amount">${tx.amount} ${tx.currency}</div>
-                    <div class="tx-date">${formatDate(tx.timestamp)}</div>
-                    <div class="tx-status ${tx.status ? tx.status.toLowerCase() : 'pending'}">${tx.status || 'Pending'}</div>
-                `;
-                transactionList.appendChild(li);
-            });
-        } else {
-            const li = document.createElement('li');
-            li.textContent = 'No transactions yet';
-            transactionList.appendChild(li);
-        }
-    }
-    
-    // Format date helper
-    function formatDate(dateStr) {
-        const date = dateStr.toDate ? dateStr.toDate() : new Date(dateStr);
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-    }
-    
-    // Show error message
-    function showError(message) {
-        let errorDiv = document.querySelector('.error-message');
-        if (!errorDiv) {
-            errorDiv = document.createElement('div');
-            errorDiv.className = 'error-message';
-            document.querySelector('.wallet-section').appendChild(errorDiv);
-        }
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-        setTimeout(() => {
-            errorDiv.style.display = 'none';
-        }, 5000);
-    }
 
-    // Monitor TON Connect status changes
-    tonConnect.onStatusChange((walletInfo) => {
-        if (walletInfo && walletInfo.account.address) {
-            updateUIForConnectedState(walletInfo.account.address);
-            fetchWalletData(tg.initDataUnsafe.user.id);
-        } else {
-            updateUIForDisconnectedState();
+        if (amount + fee > availableBalance) {
+            alert(`Insufficient balance. You need ${fee} ${currency} for the fee.`);
+            return;
         }
-    });
 
-    // Handle wallet connection with TON Connect
-    connectButton.addEventListener('click', async function() {
-        if (walletStatusDiv.classList.contains('connected')) {
-            if (confirm('Disconnect wallet?')) {
-                try {
-                    await tonConnect.disconnect();
-                    await Storage.setItem('walletAddress', null);
-                    updateUIForDisconnectedState();
-                } catch (error) {
-                    console.error('Disconnect error:', error);
-                    showError('Failed to disconnect wallet: ' + error.message);
-                }
-            }
+        if ((currency === 'USDT' && amount < 1) || (currency === 'TON' && amount < 0.1)) {
+            alert(`Minimum withdrawal is ${currency === 'USDT' ? '1 USDT' : '0.1 TON'}.`);
             return;
         }
 
         try {
-            console.log('Initiating TON Connect on platform:', tg.platform);
-            const wallet = await tonConnect.connect({
-                wallets: ['tonkeeper', 'telegram-wallet']
-            });
-            if (!wallet || !wallet.account?.address) {
-                const universalLink = tonConnect.getUniversalLink();
-                console.log('Universal link:', universalLink);
-                showError('Open this link in Tonkeeper or Telegram Wallet: ' + universalLink);
-                tg.openLink(universalLink);
-                return;
-            }
-            const address = wallet.account.address;
-            console.log('Connected address:', address);
-            await Storage.setItem('walletAddress', address);
-            updateUIForConnectedState(address);
-            fetchWalletData(tg.initDataUnsafe.user.id);
+            await processWithdrawal(amount, currency);
+            withdrawModal.style.display = 'none';
+            await updateUserStatsUI();
+            await updateTransactionHistory();
+            alert(`Withdrawal of ${amount} ${currency} initiated successfully!`);
         } catch (error) {
-            console.error('TON Connect error:', error);
-            showError('Failed to connect wallet: ' + error.message);
+            console.error("Withdrawal error:", error.message);
+            alert("Withdrawal failed: " + error.message);
         }
     });
 
-    // Check existing connection on load
-    if (tg.initDataUnsafe?.user) {
-        const storedAddress = await Storage.getItem('walletAddress');
-        if (storedAddress && tonConnect.connected) {
-            updateUIForConnectedState(storedAddress);
-            fetchWalletData(tg.initDataUnsafe.user.id);
+    async function processWithdrawal(amount, currency) {
+        if (!firebaseInitialized || !db) {
+            throw new Error("Firestore not initialized");
+        }
+        if (!tonConnect.connected) {
+            throw new Error("Wallet not connected");
+        }
+
+        const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+        const fee = currency === 'USDT' ? 0.01 : 0.005;
+        const totalDeduction = amount + fee;
+
+        const userDoc = await userDocRef.get();
+        const userData = userDoc.data();
+        const currentBalance = currency === 'USDT' ? userData.usdt : userData.ton;
+
+        if (currentBalance < totalDeduction) {
+            throw new Error("Insufficient balance");
+        }
+
+        // Simulate TON transaction (replace with actual TON blockchain interaction)
+        const txId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+        await userDocRef.update({
+            [currency.toLowerCase()]: firebase.firestore.FieldValue.increment(-totalDeduction)
+        });
+
+        const transaction = {
+            txId,
+            amount,
+            currency,
+            fee,
+            status: 'pending',
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        await db.collection('transactions').doc(telegramUser.id.toString()).collection('history').doc(txId).set(transaction);
+
+        // Simulate transaction completion (replace with real TON status check)
+        setTimeout(async () => {
+            await db.collection('transactions').doc(telegramUser.id.toString()).collection('history').doc(txId).update({
+                status: 'completed'
+            });
+            console.log(`Transaction ${txId} completed`);
+        }, 5000);
+
+        analytics.logEvent('withdrawal_initiated', { userId: telegramUser.id, amount, currency });
+    }
+
+    async function updateTransactionHistory() {
+        if (!firebaseInitialized || !db) {
+            console.error("Firestore not initialized. Cannot update transaction history.");
+            return;
+        }
+        try {
+            const txSnapshot = await db.collection('transactions')
+                .doc(telegramUser.id.toString())
+                .collection('history')
+                .orderBy('timestamp', 'desc')
+                .limit(10)
+                .get();
+
+            const txList = document.getElementById('transaction-list');
+            txList.innerHTML = txSnapshot.empty ? '<li>No transactions yet</li>' : txSnapshot.docs.map(doc => {
+                const tx = doc.data();
+                return `
+                    <li>
+                        ${tx.amount} ${tx.currency} - Fee: ${tx.fee} - 
+                        <span class="tx-status ${tx.status}">${tx.status}</span> - 
+                        ${tx.timestamp.toDate().toLocaleString()}
+                    </li>
+                `;
+            }).join('');
+        } catch (error) {
+            console.error("Error updating transaction history:", error.message);
         }
     }
-            
-            // Handle withdraw functionality
-            withdrawButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const withdrawModal = document.getElementById('withdraw-modal');
-                    const currency = this.closest('.balance-card').classList.contains('usdt-card') ? 'USDT' : 'TON';
-                    const availableBalance = currency === 'USDT' ? 
-                        parseFloat(document.getElementById('wallet-usdt').textContent) : 
-                        parseFloat(document.getElementById('wallet-ton').textContent);
-                    
-                    // Set modal details
-                    document.getElementById('available-balance').textContent = availableBalance.toFixed(4);
-                    document.getElementById('currency').textContent = currency;
-                    document.getElementById('fee-currency').textContent = currency;
-                    document.getElementById('withdraw-fee').textContent = (currency === 'USDT' ? 0.01 : 0.005).toFixed(4); // Example fee
-                    
-                    // Reset form
-                    document.getElementById('withdraw-amount').value = '';
-                    document.getElementById('withdraw-amount').max = availableBalance;
-                    
-                    // Show modal
-                    withdrawModal.style.display = 'flex';
-                });
-            });
-            
-            // Handle modal buttons
-            document.getElementById('confirm-withdraw').addEventListener('click', async function() {
-                const amount = parseFloat(document.getElementById('withdraw-amount').value);
-                const currency = document.getElementById('currency').textContent;
-                const availableBalance = parseFloat(document.getElementById('available-balance').textContent);
-                
-                if (isNaN(amount) || amount <= 0) {
-                    showError('Please enter a valid amount.');
-                    return;
-                }
-                
-                if (amount > availableBalance) {
-                    showError('Insufficient balance.');
-                    return;
-                }
-                
-                // Process withdrawal
-                await processWithdrawal(amount, currency);
-                
-                // Hide modal
-                document.getElementById('withdraw-modal').style.display = 'none';
-            });
-            
-            document.getElementById('cancel-withdraw').addEventListener('click', function() {
-                document.getElementById('withdraw-modal').style.display = 'none';
-            });
-            
-            // Process withdrawal
-            async function processWithdrawal(amount, currency) {
-                if (!firebaseInitialized || !db) {
-                    showError('Database not initialized. Please try again later.');
-                    return;
-                }
-                const userId = tg.initDataUnsafe.user.id;
-                const userDocRef = db.collection('userData').doc(userId.toString());
-                
-                try {
-                    await db.runTransaction(async (transaction) => {
-                        const doc = await transaction.get(userDocRef);
-                        if (!doc.exists) throw new Error('User document does not exist');
-                        const data = doc.data();
-                        const field = currency.toLowerCase();
-                        if (data[field] < amount) throw new Error('Insufficient balance');
-                        
-                        transaction.update(userDocRef, {
-                            [field]: data[field] - amount,
-                            transactions: firebase.firestore.FieldValue.arrayUnion({
-                                type: 'Withdrawal',
-                                amount: amount,
-                                currency: currency,
-                                status: 'Pending',
-                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                            })
-                        });
-                    });
-                    
-                    await updateUserStatsUI();
-                    fetchWalletData(userId);
-                    alert(`Withdrawal of ${amount} ${currency} initiated.`);
-                    analytics.logEvent('withdrawal_initiated', { userId, amount, currency });
-                    
-                    // Simulate TON transaction (replace with real TON SDK call if implemented)
-                    // const tx = await tonConnect.sendTransaction({ to: 'recipient_address', value: amount * 1e9 });
-                } catch (error) {
-                    console.error('Error processing withdrawal:', error);
-                    showError('Withdrawal failed: ' + error.message);
-                }
-            }
-            
-            // Warning button info tooltips
-            document.querySelectorAll('.warning-button').forEach(button => {
-                button.addEventListener('click', function() {
-                    const currency = this.closest('.balance-card').classList.contains('usdt-card') ? 'USDT' : 'TON';
-                    alert(`${currency} withdrawal information:\n\n` +
-                          `Minimum withdrawal: ${currency === 'USDT' ? 1.0 : 0.1} ${currency}\n` +
-                          `Fee: ${currency === 'USDT' ? 0.01 : 0.005} ${currency}\n` +
-                          `Processing time: Up to 24 hours`);
-                });
-            });
-            
-            // Check auth status on load
-            checkTelegramAuth();
-        });
 
-        // Invite Section Interactions
-        document.querySelector('.invite-friend').addEventListener('click', () => {
-            const link = document.querySelector('.invite-friend').getAttribute('data-link');
-            if (link) {
-                window.open(link, '_blank');
-            } else {
-                alert('Referral link not generated yet.');
-            }
+    warningButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const currency = button.closest('.balance-card').classList.contains('usdt-card') ? 'USDT' : 'TON';
+            alert(`Note:\n- Minimum withdrawal: ${currency === 'USDT' ? '1 USDT' : '0.1 TON'}\n- Fee: ${currency === 'USDT' ? '0.01 USDT' : '0.005 TON'}\n- Ensure your wallet is connected.`);
         });
+    });
 
-        document.querySelector('.copy-link').addEventListener('click', () => {
-            const link = document.querySelector('.copy-link').getAttribute('data-link');
-            if (link) {
-                navigator.clipboard.writeText(link).then(() => {
-                    alert('Referral link copied to clipboard!');
-                }).catch(err => {
-                    console.error('Failed to copy link:', err);
-                    alert('Failed to copy link. Please try again.');
-                });
-            } else {
-                alert('Referral link not generated yet.');
-            }
-        });
-
-        document.querySelector('.invite-stats .warning').addEventListener('click', () => {
-            alert('Spin rewards coming soon!');
-        });
-
-        document.querySelector('#total-credit .warning').addEventListener('click', () => {
-            alert('Total Credit: Earn credits by inviting friends. 10,000 credits = 1 USDT.');
-        });
-
-        // Initialize the app
-        async function initApp() {
-            console.log("Initializing app...");
+    // Initialize Application
+    async function initApp() {
+        try {
             const firebaseSuccess = await initializeFirebase();
-            if (firebaseSuccess) {
+            if (!firebaseSuccess) {
+                console.error("Firebase initialization failed. App may not function correctly.");
+                alert("Failed to initialize database connection. Some features may not work.");
+            } else {
                 await initializeUserData();
-                await updateUserStatsUI();
-                await updateEarnSectionUI();
-                generateReferralLink();
                 await handleReferral();
+                await updateEarnSectionUI();
                 await updateInviteSectionUI();
                 await updateTopSectionUI();
                 await updateWalletSectionUI();
-                console.log("App initialized successfully");
-            } else {
-                console.error("App initialization failed due to Firebase issues");
-                alert("Failed to initialize app. Please try again later.");
+                generateReferralLink();
+                updateWalletUI();
             }
+        } catch (error) {
+            console.error("Error initializing app:", error.message);
+            alert("Failed to initialize app: " + error.message);
         }
+    }
 
-        initApp();
-    </script>
+    initApp();
+</script>
 </body>
 </html>
