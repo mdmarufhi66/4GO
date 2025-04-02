@@ -3,208 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>4Metas Mini App</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>4Metas</title>
+    <link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon">
     <style>
-        body {
-            background: linear-gradient(to bottom, #330033, #000000);
-            color: white;
-            font-family: Arial, sans-serif;
+        * {
             margin: 0;
-            padding: 10px;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(to bottom, #1a1a2e, #16213e);
+            color: #fff;
             min-height: 100vh;
+            overflow-x: hidden;
             display: flex;
             flex-direction: column;
+            align-items: center;
+            padding-bottom: 70px;
         }
+
         header {
+            width: 100%;
+            padding: 15px 20px;
+            background: rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
+            position: fixed;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
         }
-        header h1 {
-            font-size: 24px;
-            margin: 0;
-        }
-        .back-arrow, .menu-dots {
-            font-size: 24px;
-            cursor: pointer;
-        }
-        .user-stats {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 10px 0;
-        }
-        .user-stats .logo img {
-            width: 50px;
-            height: 50px;
-        }
-        .user-stats .metric {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .user-stats .metric img {
-            width: 20px;
-            height: 20px;
-        }
-        .user-stats .profile-pic img {
+
+        .profile-pic img {
             width: 40px;
             height: 40px;
             border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fff;
         }
+
+        h1 {
+            font-size: 24px;
+            background: linear-gradient(to right, #ff00ff, #ff6666);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stats {
+            display: flex;
+            gap: 15px;
+            margin: 60px 0 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(5px);
+        }
+
+        .stat-card img {
+            width: 20px;
+            height: 20px;
+        }
+
+        .stat-card span {
+            font-size: 16px;
+            font-weight: bold;
+        }
+
         .section {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
             display: none;
-            flex: 1;
         }
+
         .section.active {
             display: block;
         }
-        .banner-placeholder {
-            background: #1a1a3d;
-            border-radius: 10px;
-            padding: 10px;
-            text-align: center;
-            margin-bottom: 20px;
+
+        h2 {
+            font-size: 22px;
+            margin-bottom: 15px;
+            background: linear-gradient(to right, #ff00ff, #ff6666);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .banner-placeholder img {
-            width: 100%;
-            border-radius: 10px;
-        }
-        .quest-section h2 {
-            font-size: 18px;
-            margin: 10px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .quest-section .badge {
-            background: #ff00ff;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 12px;
-        }
-        .quest-list {
+
+        .earn-section .quest-list {
             list-style: none;
-            padding: 0;
-        }
-        .quest-item {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #1a1a3d;
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 10px;
+            flex-direction: column;
+            gap: 10px;
         }
+
+        .quest-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: transform 0.2s;
+        }
+
+        .quest-item:hover {
+            transform: scale(1.02);
+        }
+
         .quest-item img {
             width: 30px;
             height: 30px;
-            border-radius: 50%;
+            margin-right: 10px;
         }
+
+        .quest-item span {
+            flex-grow: 1;
+            font-size: 14px;
+        }
+
         .quest-reward {
             display: flex;
             align-items: center;
             gap: 5px;
         }
+
         .quest-reward img {
             width: 20px;
             height: 20px;
         }
+
         .go-button, .claim-button, .claimed-button {
+            padding: 5px 10px;
             border: none;
-            color: white;
-            padding: 5px 15px;
-            border-radius: 15px;
+            border-radius: 5px;
+            font-size: 12px;
             cursor: pointer;
-            font-size: 14px;
+            transition: background 0.3s;
         }
+
         .go-button {
             background: linear-gradient(to right, #ff00ff, #ff6666);
+            color: #fff;
         }
+
         .claim-button {
             background: linear-gradient(to right, #00ff00, #66ff66);
+            color: #fff;
         }
+
         .claimed-button {
             background: #ccc;
+            color: #666;
             cursor: default;
         }
-        .wallet-section h2 {
-            font-size: 18px;
-            margin: 10px 0;
+
+        .no-quests {
+            text-align: center;
+            padding: 20px;
+            color: #aaa;
         }
-        .balance-card {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #1a1a3d;
-            padding: 10px;
+
+        .wallet-section .balance-card {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
             border-radius: 10px;
-            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
         }
+
         .balance-card img {
             width: 30px;
             height: 30px;
         }
-        .balance-info span {
-            display: block;
-            font-size: 16px;
+
+        .balance-info {
+            flex-grow: 1;
+            margin-left: 10px;
         }
+
+        .balance-info span {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
         .balance-info small {
             font-size: 12px;
-            color: #ccc;
+            color: #aaa;
         }
-        .withdraw-button {
-            background: #00ff00;
+
+        .withdraw-button, .connect-button, .warning-button {
+            padding: 8px 15px;
             border: none;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 15px;
+            border-radius: 5px;
+            font-size: 12px;
             cursor: pointer;
+            transition: background 0.3s;
         }
-        .warning-button {
-            background: #ffcc00;
-            border: none;
-            color: black;
-            padding: 5px 10px;
-            border-radius: 50%;
-            cursor: pointer;
+
+        .withdraw-button:disabled, .connect-button:disabled {
+            background: #555;
+            cursor: not-allowed;
         }
+
         .connect-button {
-            background: linear-gradient(to right, #ff00ff, #ff6666);
-            border: none;
-            color: white;
-            padding: 10px;
-            border-radius: 15px;
             width: 100%;
-            cursor: pointer;
-            margin-top: 10px;
+            background: linear-gradient(to right, #ff00ff, #ff6666);
+            color: #fff;
+            margin-top: 15px;
         }
-        .wallet-status {
+
+        .warning-button {
+            background: #ff4444;
+            color: #fff;
+            margin-left: 5px;
+            width: 25px;
+            height: 25px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .instruction {
+            font-size: 12px;
+            color: #aaa;
             text-align: center;
             margin: 10px 0;
         }
-        .wallet-status.connected {
-            color: #00ff00;
-        }
-        .wallet-status.disconnected {
-            color: #ffcc00;
-        }
+
         .transaction-history {
             margin-top: 20px;
         }
+
         .transaction-history ul {
             list-style: none;
-            padding: 0;
+            font-size: 12px;
+            color: #ccc;
         }
-        .transaction-history li {
-            background: #1a1a3d;
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-        }
+
         .modal {
             position: fixed;
             top: 0;
@@ -215,340 +261,428 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            z-index: 2000;
         }
+
         .modal-content {
-            background: #1a1a3d;
+            background: #2a2a4a;
             padding: 20px;
             border-radius: 10px;
-            color: white;
+            width: 90%;
+            max-width: 300px;
+            text-align: center;
         }
+
+        .modal-content label {
+            display: block;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
         .modal-content input {
             width: 100%;
             padding: 5px;
-            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background: #fff;
+            color: #000;
         }
-        .game-section h2 {
-            font-size: 18px;
-            margin: 10px 0;
+
+        .modal-content button {
+            margin: 10px 5px 0;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
-        .game-list {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
+
+        .modal-content button:first-child {
+            background: linear-gradient(to right, #ff00ff, #ff6666);
+            color: #fff;
+        }
+
+        .modal-content button:last-child {
+            background: #555;
+            color: #fff;
+        }
+
+        .game-section .game-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
             gap: 10px;
         }
+
         .game-item {
-            background: #1a1a3d;
-            border-radius: 10px;
-            text-align: center;
-            padding: 5px;
-        }
-        .game-item img {
-            width: 100%;
-            border-radius: 10px;
-        }
-        .game-item p {
-            margin: 5px 0;
-            font-size: 12px;
-        }
-        .invite-section .invite-stats {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            justify-content: space-between;
         }
-        .invite-stats .spin-info {
+
+        .game-item img {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+        }
+
+        .game-item span {
+            flex-grow: 1;
+            font-size: 14px;
+        }
+
+        .game-reward {
             display: flex;
             align-items: center;
             gap: 5px;
         }
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+
+        .game-reward img {
+            width: 20px;
+            height: 20px;
         }
-        .action-button {
-            background: linear-gradient(to right, #00ff00, #66ff66);
+
+        .play-button {
+            padding: 5px 10px;
             border: none;
-            color: white;
-            padding: 10px;
-            border-radius: 15px;
-            flex: 1;
+            border-radius: 5px;
+            background: linear-gradient(to right, #ff00ff, #ff6666);
+            color: #fff;
+            font-size: 12px;
             cursor: pointer;
         }
-        .total-credit {
-            display: flex;
+
+        .invite-section .stats {
+            margin: 0 0 20px;
             justify-content: space-between;
-            align-items: center;
-            background: #1a1a3d;
+        }
+
+        .invite-section .claim-button {
+            width: 100%;
             padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-        .total-credit small {
-            font-size: 12px;
-            color: #ccc;
-        }
-        .total-credit small img {
-            width: 15px;
-            height: 15px;
-        }
-        .record-section h3, .invite-record h3 {
-            font-size: 16px;
-            margin: 10px 0;
-        }
-        .no-frens {
-            text-align: center;
-            color: #ccc;
-        }
-        .no-frens img {
-            width: 50px;
-            height: 50px;
-        }
-        .record-header {
-            display: flex;
-            justify-content: space-between;
+            border: none;
+            border-radius: 5px;
+            background: linear-gradient(to right, #ff00ff, #ff6666);
+            color: #fff;
             font-size: 14px;
-            color: #ccc;
-            margin-bottom: 10px;
+            cursor: pointer;
+            margin-top: 15px;
         }
-        .record-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #1a1a3d;
+
+        .invite-friend, .copy-link {
+            width: 100%;
             padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+            background: linear-gradient(to right, #00ffcc, #66ffcc);
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 10px 0;
+            text-align: center;
+            text-decoration: none;
+            display: block;
         }
+
+        .invite-record {
+            margin-top: 20px;
+        }
+
+        .record-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .record-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
         .record-item img {
             width: 40px;
             height: 40px;
             border-radius: 50%;
+            margin-right: 10px;
         }
-        .record-item .user-info {
-            flex: 1;
-            margin-left: 10px;
+
+        .user-info {
+            flex-grow: 1;
         }
-        .record-item .user-info small {
-            color: #ccc;
+
+        .user-info span {
+            font-size: 14px;
+        }
+
+        .user-info small {
+            font-size: 10px;
+            color: #aaa;
+        }
+
+        .credit {
             font-size: 12px;
+            background: linear-gradient(to right, #ff00ff, #ff6666);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .record-item .credit {
-            background: #ff00ff;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 15px;
+
+        .no-frens {
+            text-align: center;
+            padding: 20px;
         }
-        .chest-section .chest-slider {
-            position: relative;
-            overflow: hidden;
-            margin-bottom: 20px;
+
+        .no-frens img {
+            width: 80px;
+            height: 80px;
         }
-        .chest-container {
-            display: flex;
-            transition: transform 0.3s ease;
+
+        .no-frens p {
+            margin-top: 10px;
+            color: #aaa;
         }
-        .chest-item {
-            flex: 0 0 100%;
+
+        .chest-section {
             text-align: center;
         }
-        .chest-title {
+
+        .chest-slider {
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #chestContainer {
             display: flex;
-            justify-content: space-between;
+            transition: transform 0.5s ease;
+        }
+
+        .chest-item {
+            min-width: 100%;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            font-size: 16px;
         }
+
+        .chest-title {
+            margin-bottom: 10px;
+        }
+
         .chest-title span {
-            color: #ccc;
+            font-size: 12px;
+            color: #aaa;
         }
+
         .chest-image img {
             width: 150px;
             height: 150px;
+            animation: bounce 2s infinite;
         }
-        .not-enough {
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+
+        .open-button {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: linear-gradient(to right, #ff00ff, #ff6666);
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        .chest-cost, .chest-vip-requirement {
             display: flex;
-            justify-content: center;
             align-items: center;
             gap: 5px;
-            color: #ffcc00;
             margin-top: 10px;
+            font-size: 14px;
         }
+
+        .chest-cost img {
+            width: 20px;
+            height: 20px;
+        }
+
+        .chest-vip-requirement {
+            color: #ff4444;
+        }
+
+        .not-enough {
+            display: none;
+            margin-top: 10px;
+            color: #ff4444;
+        }
+
         .not-enough img {
             width: 20px;
             height: 20px;
         }
+
         .nav-arrow {
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.5);
-            border: none;
-            color: white;
-            padding: 10px;
-            cursor: pointer;
-        }
-        .nav-arrow.left {
-            left: 0;
-        }
-        .nav-arrow.right {
-            right: 0;
-        }
-        .rewards {
+            width: 30px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
             display: flex;
-            justify-content: space-around;
-            margin-bottom: 20px;
-        }
-        .reward-item {
-            text-align: center;
-        }
-        .reward-item img {
-            width: 40px;
-            height: 40px;
-        }
-        .reward-item p {
-            margin: 5px 0;
-            font-size: 12px;
-        }
-        .cost {
-            display: flex;
+            align-items: center;
             justify-content: center;
-            align-items: center;
-            gap: 5px;
-            margin-bottom: 10px;
-        }
-        .cost img {
-            width: 20px;
-            height: 20px;
-        }
-        .vip-requirement {
-            text-align: center;
-            color: #ffcc00;
-            margin-bottom: 10px;
-        }
-        .open-chest-button {
-            background: linear-gradient(to right, #ff00ff, #ff6666);
-            border: none;
-            color: white;
-            padding: 10px;
-            border-radius: 15px;
-            width: 100%;
             cursor: pointer;
+            user-select: none;
         }
-        .top-section h2 {
-            font-size: 18px;
-            margin: 10px 0;
+
+        .nav-arrow.left {
+            left: 10px;
         }
-        .ranking-list {
+
+        .nav-arrow.right {
+            right: 10px;
+        }
+
+        .top-section .ranking-list {
             list-style: none;
-            padding: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
         }
+
         .ranking-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
-            background: #1a1a3d;
-            padding: 10px;
-            border-radius: 10px;
-            margin-bottom: 10px;
+            justify-content: space-between;
         }
+
         .ranking-item img {
             width: 40px;
             height: 40px;
             border-radius: 50%;
             margin-right: 10px;
         }
+
         .ranking-item span {
-            flex: 1;
+            flex-grow: 1;
+            font-size: 14px;
         }
-        .ranking-item .medal-count {
+
+        .medal-count {
             display: flex;
             align-items: center;
             gap: 5px;
         }
-        .ranking-item .medal-count img {
+
+        .medal-count img {
             width: 20px;
             height: 20px;
         }
-        .bottom-nav {
+
+        .no-rankings {
+            text-align: center;
+            padding: 20px;
+            color: #aaa;
+        }
+
+        nav {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            max-width: 400px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 0;
             display: flex;
             justify-content: space-around;
-            background: #1a1a3d;
-            padding: 10px 0;
-            position: sticky;
-            bottom: 0;
+            backdrop-filter: blur(5px);
+            z-index: 1000;
         }
+
         .nav-button {
-            background: none;
-            border: none;
-            color: #ccc;
             display: flex;
             flex-direction: column;
             align-items: center;
-            cursor: pointer;
+            color: #fff;
+            text-decoration: none;
+            font-size: 12px;
+            padding: 5px;
+            flex: 1;
         }
-        .nav-button.active {
-            color: white;
-        }
+
         .nav-button img {
             width: 24px;
             height: 24px;
             margin-bottom: 5px;
+            filter: grayscale(100%);
+            transition: filter 0.3s;
+        }
+
+        .nav-button.active img {
+            filter: none;
+        }
+
+        .nav-button.active {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
         }
     </style>
 </head>
 <body>
     <header>
-        <div class="back-arrow">X</div>
-        <h1>4Metas</h1>
-        <div class="menu-dots">⋮</div>
-    </header>
-    <section class="user-stats">
-        <div class="logo">
-            <img src="assets/icons/logo.png" alt="4Metas Logo">
+        <div class="profile-pic">
+            <img src="assets/icons/user-avatar.png" alt="Profile">
         </div>
-        <div class="metric">
-            <img src="assets/icons/gem.png" alt="Gem">
+        <h1>4Metas</h1>
+        <div style="width: 40px;"></div>
+    </header>
+
+    <div class="stats">
+        <div class="stat-card">
+            <img src="assets/icons/gem.png" alt="Gems">
             <span id="gems">0</span>
         </div>
-        <div class="metric">
+        <div class="stat-card">
             <img src="assets/icons/usdt.png" alt="USDT">
             <span id="usdt">0.0000</span>
         </div>
-        <div class="metric">
+        <div class="stat-card">
             <img src="assets/icons/ton.png" alt="TON">
             <span id="ton">0.0000</span>
         </div>
-        <div class="profile-pic">
-            <img src="assets/icons/user-avatar.png" alt="User Profile">
-        </div>
-    </section>
+    </div>
 
     <section id="earn" class="section earn-section active">
-        <div class="banner-placeholder">
-            <img src="assets/icons/banner.png" alt="Banner">
-        </div>
-        <div class="quest-section">
-            <h2>DAILY QUEST <span class="badge" id="daily-quest-count">0</span></h2>
-            <ul class="quest-list" id="daily-quest-list">
-                <li class="no-quests">
-                    <p>No daily quests available</p>
-                </li>
-            </ul>
-        </div>
-        <div class="quest-section">
-            <h2>BASIC QUEST <span class="badge" id="basic-quest-count">0</span></h2>
-            <ul class="quest-list" id="basic-quest-list">
-                <li class="no-quests">
-                    <p>No basic quests available</p>
-                </li>
-            </ul>
-        </div>
+        <h2>Earn</h2>
+        <h3>Daily Quests (<span id="daily-quest-count">0</span>)</h3>
+        <ul id="daily-quest-list" class="quest-list">
+            <li class="no-quests">
+                <p>Loading daily quests...</p>
+            </li>
+        </ul>
+        <h3>Basic Quests (<span id="basic-quest-count">0</span>)</h3>
+        <ul id="basic-quest-list" class="quest-list">
+            <li class="no-quests">
+                <p>Loading basic quests...</p>
+            </li>
+        </ul>
     </section>
 
     <section id="wallet" class="section wallet-section">
         <h2>Wallet</h2>
-        <div class="wallet-status disconnected">
-            <span id="connection-status">Disconnected</span>
-        </div>
         <div class="balance-card usdt-card">
             <img src="assets/icons/usdt.png" alt="USDT Icon">
             <div class="balance-info">
@@ -588,103 +722,44 @@
     </section>
 
     <section id="game" class="section game-section">
-        <div class="banner-placeholder">
-            <img src="assets/icons/game-banner.png" alt="Game Banner">
-        </div>
-        <h2>Game List</h2>
-        <div class="game-list">
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FF0000/FFFFFF?text=TG" alt="Traffic Go">
-                <p>Traffic Go</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/00FF00/FFFFFF?text=CM" alt="Cutting Master">
-                <p>Cutting Master</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/0000FF/FFFFFF?text=EM" alt="Element Magic">
-                <p>Element Magic</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FFFF00/FFFFFF?text=JS" alt="Juicy Splash">
-                <p>Juicy Splash</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FF00FF/FFFFFF?text=COR" alt="Creed of Rescue">
-                <p>Creed of Rescue</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/00FFFF/FFFFFF?text=FJ" alt="Farm Jam">
-                <p>Farm Jam</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FFA500/FFFFFF?text=2048" alt="2048 Blocks">
-                <p>2048 Blocks</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/800080/FFFFFF?text=CRC" alt="Cut Rope Combo">
-                <p>Cut Rope Combo</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/008000/FFFFFF?text=HJ" alt="Happy Jelly Jump">
-                <p>Happy Jelly Jump</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/000080/FFFFFF?text=UTR" alt="Undersea Tunnel Race">
-                <p>Undersea Tunnel Race</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FFC0CB/FFFFFF?text=MM" alt="Motor Master">
-                <p>Motor Master</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FFD700/FFFFFF?text=OF" alt="Open Fire">
-                <p>Open Fire</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/ADFF2F/FFFFFF?text=MTD" alt="Monster TD">
-                <p>Monster TD</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FF4500/FFFFFF?text=BW" alt="Bloody Warrior">
-                <p>Bloody Warrior</p>
-            </div>
-        </div>
+        <h2>Game</h2>
+        <ul class="game-list">
+            <li class="game-item">
+                <img src="assets/icons/game1.png" alt="Game 1">
+                <span>Fox Run</span>
+                <div class="game-reward">
+                    <img src="assets/icons/gem.png" alt="Gem">
+                    <span>+50</span>
+                    <button class="play-button">PLAY</button>
+                </div>
+            </li>
+            <li class="game-item">
+                <img src="assets/icons/game2.png" alt="Game 2">
+                <span>Treasure Hunt</span>
+                <div class="game-reward">
+                    <img src="assets/icons/gem.png" alt="Gem">
+                    <span>+100</span>
+                    <button class="play-button">PLAY</button>
+                </div>
+            </li>
+        </ul>
     </section>
 
     <section id="invite" class="section invite-section">
-        <div class="invite-stats">
-            <span id="my-invite">My Invite: 0</span>
-            <div class="spin-info">
-                <span>Spin x0</span>
-                <span class="warning">!</span>
+        <h2>Invite</h2>
+        <div class="stats">
+            <div class="stat-card">
+                <span id="my-invite">My Invite: 0</span>
+            </div>
+            <div class="stat-card">
+                <span id="total-credit">Total Credit ! : 0</span>
             </div>
         </div>
-        <div class="action-buttons">
-            <button class="action-button invite-friend">Invite Friend</button>
-            <button class="action-button copy-link">Copy Link</button>
-        </div>
-        <div class="total-credit">
-            <div class="credit-info">
-                <span id="total-credit">Total Credit <span class="warning">!</span> : 0</span>
-                <small>10,000 = 1 <img src="assets/icons/usdt.png" alt="USDT"></small>
-            </div>
-            <button class="claim-button">Claim</button>
-        </div>
-        <div class="record-section">
-            <h3>Claim Record</h3>
-            <div class="no-frens">
-                <img src="assets/icons/nofrens.png" alt="No Frens">
-                <p>No Frens yet</p>
-            </div>
-        </div>
+        <a href="#" class="invite-friend" data-link="">Invite a Friend</a>
+        <button class="copy-link" data-link="">Copy Invite Link</button>
+        <button class="claim-button">Claim Credits</button>
         <div class="invite-record">
             <h3 id="invite-record-title">Invite Record (0)</h3>
-            <div class="record-header">
-                <span>User</span>
-                <span>Join Time</span>
-                <span>Credit</span>
-            </div>
             <div class="record-list">
                 <div class="no-frens">
                     <img src="assets/icons/nofrens.png" alt="No Frens">
@@ -695,72 +770,57 @@
     </section>
 
     <section id="chest" class="section chest-section">
+        <h2>Chest</h2>
         <div class="chest-slider">
-            <button class="nav-arrow left" onclick="prevChest()"><</button>
-            <div class="chest-container" id="chestContainer">
-                </div>
-            <button class="nav-arrow right" onclick="nextChest()">></button>
+            <div id="chestContainer"></div>
+            <div class="nav-arrow left" onclick="prevChest()">◄</div>
+            <div class="nav-arrow right" onclick="nextChest()">►</div>
         </div>
-        <div class="rewards">
-            <div class="reward-item usdt">
-                <img src="assets/icons/usdt.png" alt="USDT">
-                <p>USDT</p>
-            </div>
-            <div class="reward-item land-piece">
-                <img src="assets/icons/land-piece.png" alt="Land Piece">
-                <p>Land Piece</p>
-            </div>
-            <div class="reward-item fox-medal">
-                <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                <p>Fox Medal</p>
-            </div>
-        </div>
-        <div class="cost" id="chestCost">
-            <span>200</span>
+        <div class="chest-cost" id="chestCost">
             <img src="assets/icons/gem.png" alt="Gem">
+            <span>0</span>
         </div>
-        <div class="vip-requirement" id="chestVipRequirement" style="display: none;">
-            NEED VIP 1
-        </div>
-        <button class="open-chest-button" onclick="openChest()">Open Chest</button>
+        <div class="chest-vip-requirement" id="chestVipRequirement" style="display: none;">NEED VIP 0</div>
+        <button class="open-button" onclick="openChest()">OPEN</button>
     </section>
 
     <section id="top" class="section top-section">
-        <h2>Medal Ranking <span class="warning">!</span></h2>
-        <ul class="ranking-list" id="ranking-list">
+        <h2>Top</h2>
+        <ul id="ranking-list" class="ranking-list">
             <li class="no-rankings">
-                <p>No rankings available</p>
+                <p>Loading rankings...</p>
             </li>
         </ul>
     </section>
 
-    <nav class="bottom-nav">
-        <button class="nav-button active" data-section="earn">
+    <nav>
+        <a href="#" class="nav-button active" data-section="earn">
             <img src="assets/icons/earn.png" alt="Earn">
-            Earn
-        </button>
-        <button class="nav-button" data-section="wallet">
+            <span>Earn</span>
+        </a>
+        <a href="#" class="nav-button" data-section="wallet">
             <img src="assets/icons/wallet.png" alt="Wallet">
-            Wallet
-        </button>
-        <button class="nav-button" data-section="game">
+            <span>Wallet</span>
+        </a>
+        <a href="#" class="nav-button" data-section="game">
             <img src="assets/icons/game.png" alt="Game">
-            Game
-        </button>
-        <button class="nav-button" data-section="invite">
+            <span>Game</span>
+        </a>
+        <a href="#" class="nav-button" data-section="invite">
             <img src="assets/icons/invite.png" alt="Invite">
-            Invite
-        </button>
-        <button class="nav-button" data-section="chest">
+            <span>Invite</span>
+        </a>
+        <a href="#" class="nav-button" data-section="chest">
             <img src="assets/icons/chest.png" alt="Chest">
-            Chest
-        </button>
-        <button class="nav-button" data-section="top">
+            <span>Chest</span>
+        </a>
+        <a href="#" class="nav-button" data-section="top">
             <img src="assets/icons/top.png" alt="Top">
-            Top
-        </button>
+            <span>Top</span>
+        </a>
     </nav>
 
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         // Function to dynamically load a script and return a Promise
         function loadScript(src, retries = 3, delay = 1000) {
@@ -1098,7 +1158,6 @@
         // Fetch and Update Earn Section (Quests) with Enhanced Debugging
         async function updateEarnSectionUI() {
             try {
-                // 1. Verify Firebase initialization
                 if (!firebaseInitialized || !db) {
                     console.log("[DEBUG] Firebase not initialized, attempting to initialize...");
                     const success = await initializeFirebase();
@@ -1114,33 +1173,28 @@
                     userData = userDoc.data();
                 }
 
-                // 2. Fetch and process daily quests
                 console.log("[DEBUG] Starting daily quests fetch...");
                 const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({
-                    source: 'server' // Force server fetch to avoid cache issues
+                    source: 'server'
                 });
 
-                // Detailed logging of snapshot
                 console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
                 console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
 
-                // Handle case where document exists but has no tasks
                 const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
                 const dailyQuests = dailyQuestsRaw.tasks || [];
                 console.log("[DEBUG] Parsed daily quests:", dailyQuests);
 
-                // Validate quest data structure
                 const validatedDailyQuests = dailyQuests.map(quest => ({
-                    id: quest.id || Math.random().toString(36).substring(7), // Ensure each quest has an ID
+                    id: quest.id || Math.random().toString(36).substring(7),
                     title: quest.title || "Untitled Quest",
                     icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
                     reward: Number(quest.reward) || 0,
                     action: quest.action || 'GO',
-                    link: quest.link || '' // Assuming you might add a 'link' field to your quest data
+                    link: quest.link || ''
                 }));
                 console.log("[DEBUG] Validated daily quests:", validatedDailyQuests);
 
-                // 3. Update Daily Quests UI
                 const dailyQuestList = document.getElementById('daily-quest-list');
                 const dailyQuestCount = document.getElementById('daily-quest-count');
 
@@ -1172,10 +1226,9 @@
                     `;
                 }).join('');
 
-                // 4. Fetch and process basic quests
                 console.log("[DEBUG] Starting basic quests fetch...");
                 const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({
-                    source: `'server`
+                    source: 'server'
                 });
 
                 console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
@@ -1186,16 +1239,15 @@
                 console.log("[DEBUG] Parsed basic quests:", basicQuests);
 
                 const validatedBasicQuests = basicQuests.map(quest => ({
-                    id: quest.id || Math.random().toString(36).substring(7), // Ensure each quest has an ID
+                    id: quest.id || Math.random().toString(36).substring(7),
                     title: quest.title || "Untitled Quest",
                     icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
                     reward: Number(quest.reward) || 0,
                     action: quest.action || 'GO',
-                    link: quest.link || '' // Assuming you might add a 'link' field to your quest data
+                    link: quest.link || ''
                 }));
                 console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
 
-                // 5. Update Basic Quests UI
                 const basicQuestList = document.getElementById('basic-quest-list');
                 const basicQuestCount = document.getElementById('basic-quest-count');
 
@@ -1235,7 +1287,6 @@
                     stack: error.stack
                 });
 
-                // Fallback UI for both sections
                 const dailyQuestList = document.getElementById('daily-quest-list');
                 const basicQuestList = document.getElementById('basic-quest-list');
 
@@ -1572,7 +1623,7 @@
 
                 const taskTitle = taskItem.querySelector('span').textContent;
                 const reward = parseInt(event.target.previousElementSibling.textContent.replace('+', ''));
-                const action = event.target.textContent; // Assuming the "Go" button text might indicate the action
+                const action = event.target.textContent;
                 const taskLink = event.target.dataset.questLink;
                 const taskId = taskItem.dataset.questId;
 
@@ -1581,16 +1632,13 @@
                     return;
                 }
 
-                // Open the task link in a new window/tab
                 window.open(taskLink, '_blank');
 
-                // Change the "Go" button to a "Claim" button and update its appearance
                 event.target.textContent = 'Claim';
                 event.target.classList.remove('go-button');
                 event.target.classList.add('claim-button');
-                event.target.style.background = 'linear-gradient(to right, #00ff00, #66ff66)'; // Green color
+                event.target.style.background = 'linear-gradient(to right, #00ff00, #66ff66)';
 
-                // Optionally, you could store the task details in the button's dataset
                 event.target.dataset.reward = reward;
                 event.target.dataset.taskTitle = taskTitle;
                 event.target.dataset.taskId = taskId;
@@ -1638,7 +1686,6 @@
                     await updateUserStatsUI();
                     alert(`Reward claimed! +${reward} Gems for "${taskTitle}"`);
 
-                    // Update the UI immediately
                     claimButton.textContent = 'Claimed';
                     claimButton.classList.remove('claim-button');
                     claimButton.classList.add('claimed-button');
@@ -1647,7 +1694,6 @@
                     if (taskItem) {
                         taskItem.classList.add('completed');
                     }
-                    // Removed the line causing the error: claimButton.removeEventListener('click', arguments.callee);
 
                     analytics.logEvent('task_claimed', { userId: telegramUser.id, reward: reward, task: taskTitle });
 
@@ -1663,10 +1709,8 @@
         const connectButton = document.querySelector('.connect-button');
         const statusElement = document.getElementById('connection-status');
 
-        // Simulated TON wallet connection (replace with actual TON SDK integration)
+        // Simulated TON wallet connection (original placeholder)
         async function connectTonWallet() {
-            // Placeholder for TON wallet connection logic
-            // Example: const wallet = await tonConnect.connect();
             return new Promise((resolve) => {
                 setTimeout(() => {
                     const address = "TON_TEST_ADDRESS_" + telegramUser.id;
@@ -1675,28 +1719,234 @@
             });
         }
 
+        // TON Wallet Integration (New Code)
+        const TonWallet = {
+            isConnected: false,
+            walletAddress: null,
+            walletType: null,
+            
+            init: async function() {
+                try {
+                    await loadScript('https://cdn.jsdelivr.net/npm/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js');
+                    
+                    this.connector = new TonConnect.TonConnect({
+                        manifestUrl: 'https://4metas.app/tonconnect-manifest.json'
+                    });
+                    
+                    const walletConnectionSource = {
+                        jsBridgeKey: 'tonconnect'
+                    };
+                    
+                    if (this.connector.connected) {
+                        const walletInfo = this.connector.account;
+                        this.walletAddress = walletInfo.address;
+                        this.walletType = walletInfo.device.appName;
+                        this.isConnected = true;
+                        
+                        const isValid = await this.verifyAddress(walletInfo.address);
+                        if (!isValid) {
+                            console.error('Invalid wallet address');
+                            this.disconnect();
+                            return false;
+                        }
+                        
+                        return true;
+                    }
+                    
+                    return false;
+                } catch (error) {
+                    console.error('TON Wallet init error:', error);
+                    return false;
+                }
+            },
+            
+            connect: async function() {
+                try {
+                    if (!this.connector) await this.init();
+                    
+                    const wallets = await this.connector.getWallets();
+                    const walletConnectionSource = {
+                        jsBridgeKey: 'tonconnect'
+                    };
+                    
+                    this.connector.connect(wallets, walletConnectionSource);
+                    
+                    this.connector.onStatusChange(async (wallet) => {
+                        if (wallet) {
+                            this.walletAddress = wallet.account.address;
+                            this.walletType = wallet.device.appName;
+                            this.isConnected = true;
+                            
+                            const isValid = await this.verifyAddress(wallet.account.address);
+                            if (!isValid) {
+                                console.error('Invalid wallet address');
+                                this.disconnect();
+                                return;
+                            }
+                            
+                            await this.saveWalletInfo();
+                            updateWalletUI(true);
+                            
+                            console.log('TON Wallet connected:', wallet);
+                        } else {
+                            this.disconnect();
+                        }
+                    });
+                    
+                    return true;
+                } catch (error) {
+                    console.error('TON Wallet connection error:', error);
+                    return false;
+                }
+            },
+            
+            disconnect: async function() {
+                try {
+                    if (this.connector) {
+                        await this.connector.disconnect();
+                    }
+                    this.isConnected = false;
+                    this.walletAddress = null;
+                    this.walletType = null;
+                    
+                    if (firebaseInitialized && db && telegramUser) {
+                        await db.collection('userData')
+                            .doc(telegramUser.id.toString())
+                            .update({ walletAddress: null });
+                    }
+                    
+                    updateWalletUI(false);
+                    return true;
+                } catch (error) {
+                    console.error('TON Wallet disconnect error:', error);
+                    return false;
+                }
+            },
+            
+            verifyAddress: async function(address) {
+                try {
+                    if (!address || !address.startsWith('EQ') || address.length !== 48) {
+                        return false;
+                    }
+                    
+                    const response = await fetch(`https://tonapi.io/v1/account/getInfo?account=${address}`);
+                    if (!response.ok) {
+                        return false;
+                    }
+                    
+                    const data = await response.json();
+                    return data && data.balance !== undefined;
+                } catch (error) {
+                    console.error('Address verification error:', error);
+                    return false;
+                }
+            },
+            
+            saveWalletInfo: async function() {
+                if (!firebaseInitialized || !db || !telegramUser || !this.walletAddress) return false;
+                
+                try {
+                    await db.collection('userData')
+                        .doc(telegramUser.id.toString())
+                        .update({ 
+                            walletAddress: this.walletAddress,
+                            walletType: this.walletType,
+                            walletConnectedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+                    return true;
+                } catch (error) {
+                    console.error('Error saving wallet info:', error);
+                    return false;
+                }
+            },
+            
+            sendTransaction: async function(toAddress, amount, payload = null) {
+                if (!this.isConnected || !this.walletAddress) {
+                    throw new Error('Wallet not connected');
+                }
+                
+                try {
+                    const transaction = {
+                        validUntil: Math.floor(Date.now() / 1000) + 300,
+                        messages: [
+                            {
+                                address: toAddress,
+                                amount: amount.toString(),
+                                payload: payload
+                            }
+                        ]
+                    };
+                    
+                    const result = await this.connector.sendTransaction(transaction);
+                    
+                    const txVerified = await this.verifyTransaction(result.boc);
+                    if (!txVerified) {
+                        throw new Error('Transaction verification failed');
+                    }
+                    
+                    return result;
+                } catch (error) {
+                    console.error('Transaction error:', error);
+                    throw error;
+                }
+            },
+            
+            verifyTransaction: async function(boc) {
+                try {
+                    const response = await fetch('https://tonapi.io/v1/blockchain/emulate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ boc })
+                    });
+                    
+                    if (!response.ok) return false;
+                    
+                    const data = await response.json();
+                    return data && data.success;
+                } catch (error) {
+                    console.error('Transaction verification error:', error);
+                    return false;
+                }
+            }
+        };
+
+        // Update wallet UI (Original, no new elements)
+        function updateWalletUI(connected) {
+            const connectButton = document.querySelector('.connect-button');
+            if (connected) {
+                connectButton.textContent = 'Disconnect Wallet';
+                toggleWithdrawButtons(true);
+            } else {
+                connectButton.textContent = 'Connect TON Wallet';
+                toggleWithdrawButtons(false);
+            }
+        }
+
+        // Modified connect button handler with TON Wallet integration
         connectButton.addEventListener('click', async () => {
             try {
-                if (!isWalletConnected) {
-                    const address = await connectTonWallet();
-                    await Storage.setItem('walletAddress', address);
-                    isWalletConnected = true;
-                    statusElement.textContent = 'Connected';
-                    statusElement.parentElement.classList.remove('disconnected');
-                    statusElement.parentElement.classList.add('connected');
-                    connectButton.textContent = 'Disconnect Wallet';
-                    toggleWithdrawButtons(true);
+                if (!TonWallet.isConnected && !isWalletConnected) {
+                    // Attempt TON Wallet connection first
+                    const success = await TonWallet.connect();
+                    if (success) {
+                        isWalletConnected = true; // Sync with original state
+                    } else {
+                        // Fallback to original simulated connection
+                        const address = await connectTonWallet();
+                        await Storage.setItem('walletAddress', address);
+                        isWalletConnected = true;
+                        updateWalletUI(true);
+                    }
                 } else {
+                    // Disconnect both TON Wallet and original state
+                    await TonWallet.disconnect();
                     await Storage.setItem('walletAddress', null);
                     isWalletConnected = false;
-                    statusElement.textContent = 'Disconnected';
-                    statusElement.parentElement.classList.remove('connected');
-                    statusElement.parentElement.classList.add('disconnected');
-                    connectButton.textContent = 'Connect TON Wallet';
-                    toggleWithdrawButtons(false);
+                    updateWalletUI(false);
                 }
             } catch (error) {
-                alert('Failed to connect/disconnect wallet: ' + error.message);
+                console.error('Wallet connection error:', error);
+                alert('Wallet error: ' + error.message);
             }
         });
 
@@ -1708,7 +1958,7 @@
 
         document.querySelectorAll('.withdraw-button').forEach(button => {
             button.addEventListener('click', () => {
-                if (!isWalletConnected) {
+                if (!isWalletConnected && !TonWallet.isConnected) {
                     alert('Please connect your wallet first!');
                     return;
                 }
@@ -1765,7 +2015,6 @@
                 const field = currency.toLowerCase();
                 if (data[field] < amount) throw new Error('Insufficient balance');
                 transaction.update(userDocRef, { [field]: data[field] - amount });
-                // Log transaction
                 await db.collection('transactions').add({
                     userId: telegramUser.id,
                     type: 'Withdrawal',
@@ -1774,7 +2023,12 @@
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
             });
-            // Add actual blockchain withdrawal logic here (e.g., TON transaction)
+            // Add TON Wallet transaction if connected
+            if (TonWallet.isConnected) {
+                const amountInNano = currency === 'TON' ? Math.floor(amount * 1e9) : Math.floor(amount * 1e6);
+                const withdrawalAddress = 'EQ...'; // Replace with actual address or fetch from backend
+                await TonWallet.sendTransaction(withdrawalAddress, amountInNano);
+            }
         }
 
         async function updateTransactionHistory() {
@@ -1822,7 +2076,7 @@
             });
         });
 
-        // Initialize the app
+        // Initialize the app with TON Wallet
         (async () => {
             try {
                 console.log("Starting app initialization...");
@@ -1831,6 +2085,17 @@
                     throw new Error("Firebase initialization failed or Firestore is not available");
                 }
                 console.log("Firebase and Firestore ready, proceeding with app setup...");
+                
+                // Initialize TON Wallet
+                const walletConnected = await TonWallet.init();
+                if (walletConnected) {
+                    updateWalletUI(true);
+                    isWalletConnected = true; // Sync with original state
+                    console.log("TON Wallet initialized and connected");
+                } else {
+                    console.log("TON Wallet initialized but not connected");
+                }
+
                 await initializeUserData();
                 generateReferralLink();
                 await handleReferral();
