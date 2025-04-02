@@ -1128,6 +1128,7 @@
     <!-- Your existing JavaScript remains unchanged -->
 <script>
     console.log('Script started');
+    console.log('Nav buttons present at start:', document.querySelectorAll('.nav-button').length);
 
     // Function to dynamically load a script and return a Promise
     function loadScript(src, retries = 3, delay = 1000) {
@@ -1337,15 +1338,20 @@
         }
     };
 
-    // Navigation Logic - Updated with DOMContentLoaded and Debugging
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('DOM fully loaded');
-
+    // Navigation Logic with Extra Debugging
+    try {
+        console.log('Setting up navigation');
         const sections = document.querySelectorAll('.section');
         const navButtons = document.querySelectorAll('.nav-button');
+        const bottomNav = document.querySelector('.bottom-nav');
 
         console.log('Found sections:', sections.length);
         console.log('Found nav buttons:', navButtons.length);
+        console.log('Bottom nav exists:', !!bottomNav);
+        if (bottomNav) {
+            console.log('Bottom nav display style:', window.getComputedStyle(bottomNav).display);
+        }
+
         navButtons.forEach((btn, index) => {
             console.log(`Button ${index}:`, btn.getAttribute('data-section'));
         });
@@ -1395,7 +1401,18 @@
         // Set default section
         console.log('Setting default section to Earn');
         switchSection('earn');
-    });
+
+        // Ensure nav is visible
+        if (bottomNav) {
+            bottomNav.style.display = 'flex';
+            console.log('Forced bottom-nav display to flex');
+            console.log('Bottom nav display after force:', window.getComputedStyle(bottomNav).display);
+        } else {
+            console.error('Bottom nav element not found in DOM');
+        }
+    } catch (error) {
+        console.error('Navigation setup failed:', error.message);
+    }
 
     // Helper to ensure Firebase is ready before running a callback
     async function ensureFirebaseReady(callback) {
@@ -1438,7 +1455,7 @@
                     isReferred: false,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                     claimedQuests: [],
-                    walletAddress: null // Added for wallet integration
+                    walletAddress: null
                 });
 
                 await rankingDocRef.set({
@@ -1480,7 +1497,6 @@
     // Fetch and Update Earn Section (Quests) with Enhanced Debugging
     async function updateEarnSectionUI() {
         try {
-            // 1. Verify Firebase initialization
             if (!firebaseInitialized || !db) {
                 console.log("[DEBUG] Firebase not initialized, attempting to initialize...");
                 const success = await initializeFirebase();
@@ -1496,33 +1512,28 @@
                 userData = userDoc.data();
             }
 
-            // 2. Fetch and process daily quests
             console.log("[DEBUG] Starting daily quests fetch...");
             const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({
-                source: 'server' // Force server fetch to avoid cache issues
+                source: 'server'
             });
 
-            // Detailed logging of snapshot
             console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
             console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
 
-            // Handle case where document exists but has no tasks
             const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
             const dailyQuests = dailyQuestsRaw.tasks || [];
             console.log("[DEBUG] Parsed daily quests:", dailyQuests);
 
-            // Validate quest data structure
             const validatedDailyQuests = dailyQuests.map(quest => ({
-                id: quest.id || Math.random().toString(36).substring(7), // Ensure each quest has an ID
+                id: quest.id || Math.random().toString(36).substring(7),
                 title: quest.title || "Untitled Quest",
                 icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
                 reward: Number(quest.reward) || 0,
                 action: quest.action || 'GO',
-                link: quest.link || '' // Assuming you might add a 'link' field to your quest data
+                link: quest.link || ''
             }));
             console.log("[DEBUG] Validated daily quests:", validatedDailyQuests);
 
-            // 3. Update Daily Quests UI
             const dailyQuestList = document.getElementById('daily-quest-list');
             const dailyQuestCount = document.getElementById('daily-quest-count');
 
@@ -1554,7 +1565,6 @@
                 `;
             }).join('');
 
-            // 4. Fetch and process basic quests
             console.log("[DEBUG] Starting basic quests fetch...");
             const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({
                 source: 'server'
@@ -1568,16 +1578,15 @@
             console.log("[DEBUG] Parsed basic quests:", basicQuests);
 
             const validatedBasicQuests = basicQuests.map(quest => ({
-                id: quest.id || Math.random().toString(36).substring(7), // Ensure each quest has an ID
+                id: quest.id || Math.random().toString(36).substring(7),
                 title: quest.title || "Untitled Quest",
                 icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
                 reward: Number(quest.reward) || 0,
                 action: quest.action || 'GO',
-                link: quest.link || '' // Assuming you might add a 'link' field to your quest data
+                link: quest.link || ''
             }));
             console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
 
-            // 5. Update Basic Quests UI
             const basicQuestList = document.getElementById('basic-quest-list');
             const basicQuestCount = document.getElementById('basic-quest-count');
 
@@ -1617,7 +1626,6 @@
                 stack: error.stack
             });
 
-            // Fallback UI for both sections
             const dailyQuestList = document.getElementById('daily-quest-list');
             const basicQuestList = document.getElementById('basic-quest-list');
 
@@ -1774,7 +1782,6 @@
         }
     }
 
-    // New Wallet Section UI Update Function
     async function updateWalletSectionUI() {
         if (!firebaseInitialized || !db) {
             console.error("Firestore not initialized. Cannot update wallet section UI.");
@@ -1946,7 +1953,7 @@
 
     updateChest();
 
-    // Earn Section Interactions (Modified)
+    // Earn Section Interactions
     document.addEventListener('click', async (event) => {
         if (event.target.classList.contains('go-button')) {
             const taskItem = event.target.closest('.quest-item');
@@ -2011,7 +2018,7 @@
 
     // TON Wallet Integration
     const tonConnect = new TonConnect({
-        manifestUrl: 'https://your-app-domain.com/tonconnect-manifest.json' // Replace with your manifest URL
+        manifestUrl: 'https://your-app-domain.com/tonconnect-manifest.json'
     });
 
     const connectButton = document.querySelector('.connect-button');
@@ -2149,7 +2156,6 @@
             throw new Error("Insufficient balance");
         }
 
-        // Simulate TON transaction (replace with actual TON blockchain interaction)
         const txId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
         await userDocRef.update({
             [currency.toLowerCase()]: firebase.firestore.FieldValue.increment(-totalDeduction)
@@ -2166,7 +2172,6 @@
 
         await db.collection('transactions').doc(telegramUser.id.toString()).collection('history').doc(txId).set(transaction);
 
-        // Simulate transaction completion (replace with real TON status check)
         setTimeout(async () => {
             await db.collection('transactions').doc(telegramUser.id.toString()).collection('history').doc(txId).update({
                 status: 'completed'
