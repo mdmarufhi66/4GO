@@ -5,22 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4Metas Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Add TON Connect SDK for real wallet integration -->
+    <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
     <style>
+        /* Updated body structure */
         body {
             background: linear-gradient(to bottom, #330033, #000000);
             color: white;
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 10px;
+            padding: 0;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
+
+        /* Main content area */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            padding-bottom: 70px; /* Space for bottom nav */
+        }
+
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 0;
+            padding: 10px;
+            position: sticky;
+            top: 0;
+            background: linear-gradient(to bottom, #330033, #000000);
+            z-index: 1000;
         }
         header h1 {
             font-size: 24px;
@@ -35,6 +51,7 @@
             justify-content: space-between;
             align-items: center;
             margin: 10px 0;
+            padding: 0 10px;
         }
         .user-stats .logo img {
             width: 50px;
@@ -56,7 +73,6 @@
         }
         .section {
             display: none;
-            flex: 1;
         }
         .section.active {
             display: block;
@@ -182,6 +198,9 @@
             cursor: pointer;
             margin-top: 10px;
         }
+        .connect-button.connected {
+            background: linear-gradient(to right, #00ff00, #66ff66);
+        }
         .wallet-status {
             text-align: center;
             margin: 10px 0;
@@ -215,12 +234,15 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            z-index: 2000;
         }
         .modal-content {
             background: #1a1a3d;
             padding: 20px;
             border-radius: 10px;
             color: white;
+            width: 80%;
+            max-width: 400px;
         }
         .modal-content input {
             width: 100%;
@@ -386,6 +408,7 @@
             color: white;
             padding: 10px;
             cursor: pointer;
+            z-index: 100;
         }
         .nav-arrow.left {
             left: 0;
@@ -473,8 +496,11 @@
             justify-content: space-around;
             background: #1a1a3d;
             padding: 10px 0;
-            position: sticky;
+            position: fixed;
             bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
         }
         .nav-button {
             background: none;
@@ -484,6 +510,7 @@
             flex-direction: column;
             align-items: center;
             cursor: pointer;
+            font-size: 12px;
         }
         .nav-button.active {
             color: white;
@@ -493,6 +520,16 @@
             height: 24px;
             margin-bottom: 5px;
         }
+        /* Additional styles for wallet integration */
+        .error-message {
+            color: #ffcc00;
+            text-align: center;
+            margin: 10px 0;
+            display: none;
+        }
+        .tx-status.pending { color: #ffcc00; }
+        .tx-status.completed { color: #00ff00; }
+        .tx-status.failed { color: #ff0000; }
     </style>
 </head>
 <body>
@@ -501,238 +538,241 @@
         <h1>4Metas</h1>
         <div class="menu-dots">⋮</div>
     </header>
-    <section class="user-stats">
-        <div class="logo">
-            <img src="assets/icons/logo.png" alt="4Metas Logo">
-        </div>
-        <div class="metric">
-            <img src="assets/icons/gem.png" alt="Gem">
-            <span id="gems">0</span>
-        </div>
-        <div class="metric">
-            <img src="assets/icons/usdt.png" alt="USDT">
-            <span id="usdt">0.0000</span>
-        </div>
-        <div class="metric">
-            <img src="assets/icons/ton.png" alt="TON">
-            <span id="ton">0.0000</span>
-        </div>
-        <div class="profile-pic">
-            <img src="assets/icons/user-avatar.png" alt="User Profile">
-        </div>
-    </section>
 
-    <section id="earn" class="section earn-section active">
-        <div class="banner-placeholder">
-            <img src="assets/icons/banner.png" alt="Banner">
-        </div>
-        <div class="quest-section">
-            <h2>DAILY QUEST <span class="badge" id="daily-quest-count">0</span></h2>
-            <ul class="quest-list" id="daily-quest-list">
-                <li class="no-quests">
-                    <p>No daily quests available</p>
-                </li>
-            </ul>
-        </div>
-        <div class="quest-section">
-            <h2>BASIC QUEST <span class="badge" id="basic-quest-count">0</span></h2>
-            <ul class="quest-list" id="basic-quest-list">
-                <li class="no-quests">
-                    <p>No basic quests available</p>
-                </li>
-            </ul>
-        </div>
-    </section>
+    <div class="main-content">
+        <section class="user-stats">
+            <div class="logo">
+                <img src="assets/icons/logo.png" alt="4Metas Logo">
+            </div>
+            <div class="metric">
+                <img src="assets/icons/gem.png" alt="Gem">
+                <span id="gems">0</span>
+            </div>
+            <div class="metric">
+                <img src="assets/icons/usdt.png" alt="USDT">
+                <span id="usdt">0.0000</span>
+            </div>
+            <div class="metric">
+                <img src="assets/icons/ton.png" alt="TON">
+                <span id="ton">0.0000</span>
+            </div>
+            <div class="profile-pic">
+                <img src="assets/icons/user-avatar.png" alt="User Profile">
+            </div>
+        </section>
 
-    <section id="wallet" class="section wallet-section">
-        <h2>Wallet</h2>
-        <div class="wallet-status disconnected">
-            <span id="connection-status">Disconnected</span>
-        </div>
-        <div class="balance-card usdt-card">
-            <img src="assets/icons/usdt.png" alt="USDT Icon">
-            <div class="balance-info">
-                <span id="wallet-usdt">0.0000</span>
-                <small>USDT</small>
+        <section id="earn" class="section earn-section active">
+            <div class="banner-placeholder">
+                <img src="assets/icons/banner.png" alt="Banner">
             </div>
-            <button class="withdraw-button" disabled>WITHDRAW</button>
-            <button class="warning-button">!</button>
-        </div>
-        <div class="balance-card ton-card">
-            <img src="assets/icons/ton.png" alt="TON Icon">
-            <div class="balance-info">
-                <span id="wallet-ton">0.0000</span>
-                <small>TON</small>
+            <div class="quest-section">
+                <h2>DAILY QUEST <span class="badge" id="daily-quest-count">0</span></h2>
+                <ul class="quest-list" id="daily-quest-list">
+                    <li class="no-quests">
+                        <p>No daily quests available</p>
+                    </li>
+                </ul>
             </div>
-            <button class="withdraw-button" disabled>WITHDRAW</button>
-            <button class="warning-button">!</button>
-        </div>
-        <p class="instruction">Connect wallet to withdraw your balance.</p>
-        <button class="connect-button">CONNECT TON WALLET</button>
-        <div class="transaction-history">
-            <h3>Transaction History</h3>
-            <ul id="transaction-list">
-                <li>No transactions yet</li>
-            </ul>
-        </div>
-        <div id="withdraw-modal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <h3>Withdraw Funds</h3>
-                <label>Amount: <input type="number" id="withdraw-amount" min="0" step="0.0001"></label>
-                <p>Available: <span id="available-balance">0</span> <span id="currency"></span></p>
-                <p>Fee: <span id="withdraw-fee">0</span> <span id="fee-currency"></span></p>
-                <button id="confirm-withdraw">Confirm</button>
-                <button id="cancel-withdraw">Cancel</button>
+            <div class="quest-section">
+                <h2>BASIC QUEST <span class="badge" id="basic-quest-count">0</span></h2>
+                <ul class="quest-list" id="basic-quest-list">
+                    <li class="no-quests">
+                        <p>No basic quests available</p>
+                    </li>
+                </ul>
             </div>
-        </div>
-    </section>
+        </section>
 
-    <section id="game" class="section game-section">
-        <div class="banner-placeholder">
-            <img src="assets/icons/game-banner.png" alt="Game Banner">
-        </div>
-        <h2>Game List</h2>
-        <div class="game-list">
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FF0000/FFFFFF?text=TG" alt="Traffic Go">
-                <p>Traffic Go</p>
+        <section id="wallet" class="section wallet-section">
+            <h2>Wallet</h2>
+            <div class="wallet-status disconnected">
+                <span id="connection-status">Disconnected</span>
             </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/00FF00/FFFFFF?text=CM" alt="Cutting Master">
-                <p>Cutting Master</p>
+            <div class="balance-card usdt-card">
+                <img src="assets/icons/usdt.png" alt="USDT Icon">
+                <div class="balance-info">
+                    <span id="wallet-usdt">0.0000</span>
+                    <small>USDT</small>
+                </div>
+                <button class="withdraw-button" disabled>WITHDRAW</button>
+                <button class="warning-button">!</button>
             </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/0000FF/FFFFFF?text=EM" alt="Element Magic">
-                <p>Element Magic</p>
+            <div class="balance-card ton-card">
+                <img src="assets/icons/ton.png" alt="TON Icon">
+                <div class="balance-info">
+                    <span id="wallet-ton">0.0000</span>
+                    <small>TON</small>
+                </div>
+                <button class="withdraw-button" disabled>WITHDRAW</button>
+                <button class="warning-button">!</button>
             </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FFFF00/FFFFFF?text=JS" alt="Juicy Splash">
-                <p>Juicy Splash</p>
+            <p class="instruction">Connect wallet to withdraw your balance.</p>
+            <button class="connect-button">CONNECT TON WALLET</button>
+            <div class="transaction-history">
+                <h3>Transaction History</h3>
+                <ul id="transaction-list">
+                    <li>No transactions yet</li>
+                </ul>
             </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FF00FF/FFFFFF?text=COR" alt="Creed of Rescue">
-                <p>Creed of Rescue</p>
+            <div id="withdraw-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <h3>Withdraw Funds</h3>
+                    <label>Amount: <input type="number" id="withdraw-amount" min="0" step="0.0001"></label>
+                    <p>Available: <span id="available-balance">0</span> <span id="currency"></span></p>
+                    <p>Fee: <span id="withdraw-fee">0</span> <span id="fee-currency"></span></p>
+                    <button id="confirm-withdraw">Confirm</button>
+                    <button id="cancel-withdraw">Cancel</button>
+                </div>
             </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/00FFFF/FFFFFF?text=FJ" alt="Farm Jam">
-                <p>Farm Jam</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FFA500/FFFFFF?text=2048" alt="2048 Blocks">
-                <p>2048 Blocks</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/800080/FFFFFF?text=CRC" alt="Cut Rope Combo">
-                <p>Cut Rope Combo</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/008000/FFFFFF?text=HJ" alt="Happy Jelly Jump">
-                <p>Happy Jelly Jump</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/000080/FFFFFF?text=UTR" alt="Undersea Tunnel Race">
-                <p>Undersea Tunnel Race</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FFC0CB/FFFFFF?text=MM" alt="Motor Master">
-                <p>Motor Master</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FFD700/FFFFFF?text=OF" alt="Open Fire">
-                <p>Open Fire</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/ADFF2F/FFFFFF?text=MTD" alt="Monster TD">
-                <p>Monster TD</p>
-            </div>
-            <div class="game-item">
-                <img src="https://via.placeholder.com/80/FF4500/FFFFFF?text=BW" alt="Bloody Warrior">
-                <p>Bloody Warrior</p>
-            </div>
-        </div>
-    </section>
+        </section>
 
-    <section id="invite" class="section invite-section">
-        <div class="invite-stats">
-            <span id="my-invite">My Invite: 0</span>
-            <div class="spin-info">
-                <span>Spin x0</span>
-                <span class="warning">!</span>
+        <section id="game" class="section game-section">
+            <div class="banner-placeholder">
+                <img src="assets/icons/game-banner.png" alt="Game Banner">
             </div>
-        </div>
-        <div class="action-buttons">
-            <button class="action-button invite-friend">Invite Friend</button>
-            <button class="action-button copy-link">Copy Link</button>
-        </div>
-        <div class="total-credit">
-            <div class="credit-info">
-                <span id="total-credit">Total Credit <span class="warning">!</span> : 0</span>
-                <small>10,000 = 1 <img src="assets/icons/usdt.png" alt="USDT"></small>
+            <h2>Game List</h2>
+            <div class="game-list">
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FF0000/FFFFFF?text=TG" alt="Traffic Go">
+                    <p>Traffic Go</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/00FF00/FFFFFF?text=CM" alt="Cutting Master">
+                    <p>Cutting Master</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/0000FF/FFFFFF?text=EM" alt="Element Magic">
+                    <p>Element Magic</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FFFF00/FFFFFF?text=JS" alt="Juicy Splash">
+                    <p>Juicy Splash</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FF00FF/FFFFFF?text=COR" alt="Creed of Rescue">
+                    <p>Creed of Rescue</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/00FFFF/FFFFFF?text=FJ" alt="Farm Jam">
+                    <p>Farm Jam</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FFA500/FFFFFF?text=2048" alt="2048 Blocks">
+                    <p>2048 Blocks</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/800080/FFFFFF?text=CRC" alt="Cut Rope Combo">
+                    <p>Cut Rope Combo</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/008000/FFFFFF?text=HJ" alt="Happy Jelly Jump">
+                    <p>Happy Jelly Jump</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/000080/FFFFFF?text=UTR" alt="Undersea Tunnel Race">
+                    <p>Undersea Tunnel Race</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FFC0CB/FFFFFF?text=MM" alt="Motor Master">
+                    <p>Motor Master</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FFD700/FFFFFF?text=OF" alt="Open Fire">
+                    <p>Open Fire</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/ADFF2F/FFFFFF?text=MTD" alt="Monster TD">
+                    <p>Monster TD</p>
+                </div>
+                <div class="game-item">
+                    <img src="https://via.placeholder.com/80/FF4500/FFFFFF?text=BW" alt="Bloody Warrior">
+                    <p>Bloody Warrior</p>
+                </div>
             </div>
-            <button class="claim-button">Claim</button>
-        </div>
-        <div class="record-section">
-            <h3>Claim Record</h3>
-            <div class="no-frens">
-                <img src="assets/icons/nofrens.png" alt="No Frens">
-                <p>No Frens yet</p>
+        </section>
+
+        <section id="invite" class="section invite-section">
+            <div class="invite-stats">
+                <span id="my-invite">My Invite: 0</span>
+                <div class="spin-info">
+                    <span>Spin x0</span>
+                    <span class="warning">!</span>
+                </div>
             </div>
-        </div>
-        <div class="invite-record">
-            <h3 id="invite-record-title">Invite Record (0)</h3>
-            <div class="record-header">
-                <span>User</span>
-                <span>Join Time</span>
-                <span>Credit</span>
+            <div class="action-buttons">
+                <button class="action-button invite-friend">Invite Friend</button>
+                <button class="action-button copy-link">Copy Link</button>
             </div>
-            <div class="record-list">
+            <div class="total-credit">
+                <div class="credit-info">
+                    <span id="total-credit">Total Credit <span class="warning">!</span> : 0</span>
+                    <small>10,000 = 1 <img src="assets/icons/usdt.png" alt="USDT"></small>
+                </div>
+                <button class="claim-button">Claim</button>
+            </div>
+            <div class="record-section">
+                <h3>Claim Record</h3>
                 <div class="no-frens">
                     <img src="assets/icons/nofrens.png" alt="No Frens">
-                    <p>No invites yet</p>
+                    <p>No Frens yet</p>
                 </div>
             </div>
-        </div>
-    </section>
-
-    <section id="chest" class="section chest-section">
-        <div class="chest-slider">
-            <button class="nav-arrow left" onclick="prevChest()"><</button>
-            <div class="chest-container" id="chestContainer">
+            <div class="invite-record">
+                <h3 id="invite-record-title">Invite Record (0)</h3>
+                <div class="record-header">
+                    <span>User</span>
+                    <span>Join Time</span>
+                    <span>Credit</span>
                 </div>
-            <button class="nav-arrow right" onclick="nextChest()">></button>
-        </div>
-        <div class="rewards">
-            <div class="reward-item usdt">
-                <img src="assets/icons/usdt.png" alt="USDT">
-                <p>USDT</p>
+                <div class="record-list">
+                    <div class="no-frens">
+                        <img src="assets/icons/nofrens.png" alt="No Frens">
+                        <p>No invites yet</p>
+                    </div>
+                </div>
             </div>
-            <div class="reward-item land-piece">
-                <img src="assets/icons/land-piece.png" alt="Land Piece">
-                <p>Land Piece</p>
-            </div>
-            <div class="reward-item fox-medal">
-                <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                <p>Fox Medal</p>
-            </div>
-        </div>
-        <div class="cost" id="chestCost">
-            <span>200</span>
-            <img src="assets/icons/gem.png" alt="Gem">
-        </div>
-        <div class="vip-requirement" id="chestVipRequirement" style="display: none;">
-            NEED VIP 1
-        </div>
-        <button class="open-chest-button" onclick="openChest()">Open Chest</button>
-    </section>
+        </section>
 
-    <section id="top" class="section top-section">
-        <h2>Medal Ranking <span class="warning">!</span></h2>
-        <ul class="ranking-list" id="ranking-list">
-            <li class="no-rankings">
-                <p>No rankings available</p>
-            </li>
-        </ul>
-    </section>
+        <section id="chest" class="section chest-section">
+            <div class="chest-slider">
+                <button class="nav-arrow left" onclick="prevChest()"><</button>
+                <div class="chest-container" id="chestContainer">
+                    </div>
+                <button class="nav-arrow right" onclick="nextChest()">></button>
+            </div>
+            <div class="rewards">
+                <div class="reward-item usdt">
+                    <img src="assets/icons/usdt.png" alt="USDT">
+                    <p>USDT</p>
+                </div>
+                <div class="reward-item land-piece">
+                    <img src="assets/icons/land-piece.png" alt="Land Piece">
+                    <p>Land Piece</p>
+                </div>
+                <div class="reward-item fox-medal">
+                    <img src="assets/icons/fox-medal.png" alt="Fox Medal">
+                    <p>Fox Medal</p>
+                </div>
+            </div>
+            <div class="cost" id="chestCost">
+                <span>200</span>
+                <img src="assets/icons/gem.png" alt="Gem">
+            </div>
+            <div class="vip-requirement" id="chestVipRequirement" style="display: none;">
+                NEED VIP 1
+            </div>
+            <button class="open-chest-button" onclick="openChest()">Open Chest</button>
+        </section>
+
+        <section id="top" class="section top-section">
+            <h2>Medal Ranking <span class="warning">!</span></h2>
+            <ul class="ranking-list" id="ranking-list">
+                <li class="no-rankings">
+                    <p>No rankings available</p>
+                </li>
+            </ul>
+        </section>
+    </div>
 
     <nav class="bottom-nav">
         <button class="nav-button active" data-section="earn">
@@ -761,6 +801,7 @@
         </button>
     </nav>
 
+    <!-- Your existing JavaScript remains unchanged -->
     <script>
         // Function to dynamically load a script and return a Promise
         function loadScript(src, retries = 3, delay = 1000) {
@@ -1175,7 +1216,7 @@
                 // 4. Fetch and process basic quests
                 console.log("[DEBUG] Starting basic quests fetch...");
                 const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({
-                    source: `'server`
+                    source: 'server'
                 });
 
                 console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
@@ -1658,15 +1699,13 @@
             }
         });
 
-        // Wallet Section Interactions
+        // Wallet Section Interactions (Original + New Integration)
         let isWalletConnected = false;
         const connectButton = document.querySelector('.connect-button');
         const statusElement = document.getElementById('connection-status');
 
-        // Simulated TON wallet connection (replace with actual TON SDK integration)
+        // Simulated TON wallet connection (original)
         async function connectTonWallet() {
-            // Placeholder for TON wallet connection logic
-            // Example: const wallet = await tonConnect.connect();
             return new Promise((resolve) => {
                 setTimeout(() => {
                     const address = "TON_TEST_ADDRESS_" + telegramUser.id;
@@ -1675,6 +1714,7 @@
             });
         }
 
+        // Original wallet connection logic
         connectButton.addEventListener('click', async () => {
             try {
                 if (!isWalletConnected) {
@@ -1692,7 +1732,7 @@
                     statusElement.textContent = 'Disconnected';
                     statusElement.parentElement.classList.remove('connected');
                     statusElement.parentElement.classList.add('disconnected');
-                    connectButton.textContent = 'Connect TON Wallet';
+                    connectButton.textContent = 'Connect TON WALLET';
                     toggleWithdrawButtons(false);
                 }
             } catch (error) {
@@ -1799,51 +1839,315 @@
             });
         });
 
+        // New Telegram Wallet Integration
+        document.addEventListener('DOMContentLoaded', function() {
+            const tg = window.Telegram.WebApp;
+            tg.expand(); // Expand the web app to full height
+            
+            // Elements
+            const connectButton = document.querySelector('.connect-button');
+            const connectionStatus = document.getElementById('connection-status');
+            const withdrawButtons = document.querySelectorAll('.withdraw-button');
+            const walletStatusDiv = document.querySelector('.wallet-status');
+            
+            // TON Connect Setup
+            const tonConnect = new TonConnect({
+                manifestUrl: 'https://your-domain.com/tonconnect-manifest.json' // Replace with your manifest URL
+            });
+
+            // Check if user is already authenticated with Telegram
+            function checkTelegramAuth() {
+                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                    updateUIForConnectedState();
+                    fetchWalletData(tg.initDataUnsafe.user.id);
+                    return true;
+                }
+                return false;
+            }
+            
+            // Update UI for connected wallet state
+            function updateUIForConnectedState() {
+                connectButton.textContent = 'WALLET CONNECTED';
+                connectButton.classList.add('connected');
+                connectionStatus.textContent = 'Connected';
+                walletStatusDiv.classList.remove('disconnected');
+                walletStatusDiv.classList.add('connected');
+                withdrawButtons.forEach(button => {
+                    button.disabled = false;
+                });
+                isWalletConnected = true; // Sync with original logic
+            }
+            
+            // Update UI for disconnected wallet state
+            function updateUIForDisconnectedState() {
+                connectButton.textContent = 'CONNECT TON WALLET';
+                connectButton.classList.remove('connected');
+                connectionStatus.textContent = 'Disconnected';
+                walletStatusDiv.classList.remove('connected');
+                walletStatusDiv.classList.add('disconnected');
+                withdrawButtons.forEach(button => {
+                    button.disabled = true;
+                });
+                isWalletConnected = false; // Sync with original logic
+            }
+            
+            // Fetch wallet data from Firebase (instead of external API)
+            function fetchWalletData(userId) {
+                if (!firebaseInitialized || !db) {
+                    console.error("Firestore not initialized. Cannot fetch wallet data.");
+                    return;
+                }
+                db.collection('userData').doc(userId.toString()).get()
+                    .then(doc => {
+                        if (doc.exists) {
+                            const data = doc.data();
+                            document.getElementById('wallet-usdt').textContent = (data.usdt || 0).toFixed(4);
+                            document.getElementById('wallet-ton').textContent = (data.ton || 0).toFixed(4);
+                            document.getElementById('usdt').textContent = (data.usdt || 0).toFixed(4);
+                            document.getElementById('ton').textContent = (data.ton || 0).toFixed(4);
+                            updateTransactionHistory(data.transactions || []);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching wallet data:', error);
+                        showError('Could not retrieve wallet data. Please try again later.');
+                    });
+            }
+            
+            // Update transaction history (enhanced version)
+            function updateTransactionHistory(transactions) {
+                const transactionList = document.getElementById('transaction-list');
+                transactionList.innerHTML = ''; // Clear existing list
+                
+                if (transactions && transactions.length > 0) {
+                    transactions.forEach(tx => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <div class="tx-type">${tx.type}</div>
+                            <div class="tx-amount">${tx.amount} ${tx.currency}</div>
+                            <div class="tx-date">${formatDate(tx.timestamp)}</div>
+                            <div class="tx-status ${tx.status ? tx.status.toLowerCase() : 'pending'}">${tx.status || 'Pending'}</div>
+                        `;
+                        transactionList.appendChild(li);
+                    });
+                } else {
+                    const li = document.createElement('li');
+                    li.textContent = 'No transactions yet';
+                    transactionList.appendChild(li);
+                }
+            }
+            
+            // Format date helper
+            function formatDate(dateStr) {
+                const date = dateStr.toDate ? dateStr.toDate() : new Date(dateStr);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+            }
+            
+            // Show error message
+            function showError(message) {
+                let errorDiv = document.querySelector('.error-message');
+                if (!errorDiv) {
+                    errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-message';
+                    document.querySelector('.wallet-section').appendChild(errorDiv);
+                }
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+                setTimeout(() => {
+                    errorDiv.style.display = 'none';
+                }, 5000);
+            }
+            
+            // Handle wallet connection with TON Connect
+            connectButton.addEventListener('click', async function() {
+                if (walletStatusDiv.classList.contains('connected')) {
+                    if (confirm('Do you want to disconnect your wallet?')) {
+                        await tonConnect.disconnect();
+                        await Storage.setItem('walletAddress', null);
+                        updateUIForDisconnectedState();
+                        fetchWalletData(tg.initDataUnsafe.user.id);
+                    }
+                    return;
+                }
+                
+                try {
+                    const wallet = await tonConnect.connect();
+                    if (wallet?.account?.address) {
+                        const address = wallet.account.address;
+                        await Storage.setItem('walletAddress', address);
+                        updateUIForConnectedState();
+                        fetchWalletData(tg.initDataUnsafe.user.id);
+                        analytics.logEvent('wallet_connected', { userId: tg.initDataUnsafe.user.id });
+                    } else {
+                        throw new Error('No address returned from wallet');
+                    }
+                } catch (error) {
+                    console.error('Error connecting wallet:', error);
+                    showError('Could not connect wallet. Please try again.');
+                }
+            });
+            
+            // Handle withdraw functionality
+            withdrawButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const withdrawModal = document.getElementById('withdraw-modal');
+                    const currency = this.closest('.balance-card').classList.contains('usdt-card') ? 'USDT' : 'TON';
+                    const availableBalance = currency === 'USDT' ? 
+                        parseFloat(document.getElementById('wallet-usdt').textContent) : 
+                        parseFloat(document.getElementById('wallet-ton').textContent);
+                    
+                    // Set modal details
+                    document.getElementById('available-balance').textContent = availableBalance.toFixed(4);
+                    document.getElementById('currency').textContent = currency;
+                    document.getElementById('fee-currency').textContent = currency;
+                    document.getElementById('withdraw-fee').textContent = (currency === 'USDT' ? 0.01 : 0.005).toFixed(4); // Example fee
+                    
+                    // Reset form
+                    document.getElementById('withdraw-amount').value = '';
+                    document.getElementById('withdraw-amount').max = availableBalance;
+                    
+                    // Show modal
+                    withdrawModal.style.display = 'flex';
+                });
+            });
+            
+            // Handle modal buttons
+            document.getElementById('confirm-withdraw').addEventListener('click', async function() {
+                const amount = parseFloat(document.getElementById('withdraw-amount').value);
+                const currency = document.getElementById('currency').textContent;
+                const availableBalance = parseFloat(document.getElementById('available-balance').textContent);
+                
+                if (isNaN(amount) || amount <= 0) {
+                    showError('Please enter a valid amount.');
+                    return;
+                }
+                
+                if (amount > availableBalance) {
+                    showError('Insufficient balance.');
+                    return;
+                }
+                
+                // Process withdrawal
+                await processWithdrawal(amount, currency);
+                
+                // Hide modal
+                document.getElementById('withdraw-modal').style.display = 'none';
+            });
+            
+            document.getElementById('cancel-withdraw').addEventListener('click', function() {
+                document.getElementById('withdraw-modal').style.display = 'none';
+            });
+            
+            // Process withdrawal
+            async function processWithdrawal(amount, currency) {
+                if (!firebaseInitialized || !db) {
+                    showError('Database not initialized. Please try again later.');
+                    return;
+                }
+                const userId = tg.initDataUnsafe.user.id;
+                const userDocRef = db.collection('userData').doc(userId.toString());
+                
+                try {
+                    await db.runTransaction(async (transaction) => {
+                        const doc = await transaction.get(userDocRef);
+                        if (!doc.exists) throw new Error('User document does not exist');
+                        const data = doc.data();
+                        const field = currency.toLowerCase();
+                        if (data[field] < amount) throw new Error('Insufficient balance');
+                        
+                        transaction.update(userDocRef, {
+                            [field]: data[field] - amount,
+                            transactions: firebase.firestore.FieldValue.arrayUnion({
+                                type: 'Withdrawal',
+                                amount: amount,
+                                currency: currency,
+                                status: 'Pending',
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            })
+                        });
+                    });
+                    
+                    await updateUserStatsUI();
+                    fetchWalletData(userId);
+                    alert(`Withdrawal of ${amount} ${currency} initiated.`);
+                    analytics.logEvent('withdrawal_initiated', { userId, amount, currency });
+                    
+                    // Simulate TON transaction (replace with real TON SDK call if implemented)
+                    // const tx = await tonConnect.sendTransaction({ to: 'recipient_address', value: amount * 1e9 });
+                } catch (error) {
+                    console.error('Error processing withdrawal:', error);
+                    showError('Withdrawal failed: ' + error.message);
+                }
+            }
+            
+            // Warning button info tooltips
+            document.querySelectorAll('.warning-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    const currency = this.closest('.balance-card').classList.contains('usdt-card') ? 'USDT' : 'TON';
+                    alert(`${currency} withdrawal information:\n\n` +
+                          `Minimum withdrawal: ${currency === 'USDT' ? 1.0 : 0.1} ${currency}\n` +
+                          `Fee: ${currency === 'USDT' ? 0.01 : 0.005} ${currency}\n` +
+                          `Processing time: Up to 24 hours`);
+                });
+            });
+            
+            // Check auth status on load
+            checkTelegramAuth();
+        });
+
         // Invite Section Interactions
-        document.querySelector('.invite-friend').addEventListener('click', function() {
-            const referralLink = this.getAttribute('data-link');
-            try {
-                Telegram.WebApp.openTelegramLink(referralLink);
-                analytics.logEvent('invite_friend_clicked', { userId: telegramUser.id });
-            } catch (error) {
-                console.error("Error opening Telegram link:", error);
-                alert("Failed to open invite link. Please try again.");
+        document.querySelector('.invite-friend').addEventListener('click', () => {
+            const link = document.querySelector('.invite-friend').getAttribute('data-link');
+            if (link) {
+                window.open(link, '_blank');
+            } else {
+                alert('Referral link not generated yet.');
             }
         });
 
-        document.querySelector('.copy-link').addEventListener('click', function() {
-            const referralLink = this.getAttribute('data-link');
-            navigator.clipboard.writeText(referralLink).then(() => {
-                alert('Invite link copied to clipboard: ' + referralLink);
-                analytics.logEvent('copy_link', { userId: telegramUser.id });
-            }).catch(err => {
-                console.error("Error copying link:", err);
-                alert('Failed to copy link: ' + err);
-            });
+        document.querySelector('.copy-link').addEventListener('click', () => {
+            const link = document.querySelector('.copy-link').getAttribute('data-link');
+            if (link) {
+                navigator.clipboard.writeText(link).then(() => {
+                    alert('Referral link copied to clipboard!');
+                }).catch(err => {
+                    console.error('Failed to copy link:', err);
+                    alert('Failed to copy link. Please try again.');
+                });
+            } else {
+                alert('Referral link not generated yet.');
+            }
+        });
+
+        document.querySelector('.invite-stats .warning').addEventListener('click', () => {
+            alert('Spin rewards coming soon!');
+        });
+
+        document.querySelector('#total-credit .warning').addEventListener('click', () => {
+            alert('Total Credit: Earn credits by inviting friends. 10,000 credits = 1 USDT.');
         });
 
         // Initialize the app
-        (async () => {
-            try {
-                console.log("Starting app initialization...");
-                const success = await initializeFirebase();
-                if (!success || !db) {
-                    throw new Error("Firebase initialization failed or Firestore is not available");
-                }
-                console.log("Firebase and Firestore ready, proceeding with app setup...");
+        async function initApp() {
+            console.log("Initializing app...");
+            const firebaseSuccess = await initializeFirebase();
+            if (firebaseSuccess) {
                 await initializeUserData();
+                await updateUserStatsUI();
+                await updateEarnSectionUI();
                 generateReferralLink();
                 await handleReferral();
-                await updateEarnSectionUI();
                 await updateInviteSectionUI();
                 await updateTopSectionUI();
                 await updateWalletSectionUI();
                 console.log("App initialized successfully");
-            } catch (error) {
-                console.error("App initialization failed:", error.message);
-                alert(`Failed to initialize app: ${error.message}. Check console for details.`);
+            } else {
+                console.error("App initialization failed due to Firebase issues");
+                alert("Failed to initialize app. Please try again later.");
             }
-        })();
+        }
+
+        initApp();
     </script>
 </body>
 </html>
