@@ -6,7 +6,7 @@
     <title>4Metas Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <!-- Add TON Connect SDK for real wallet integration -->
-    <script src="https://unpkg.com/@tonconnect/sdk@3.1.0/dist/tonconnect-sdk.min.js"></script>
+    <script src="https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js"></script>
     <style>
         /* Updated body structure */
         body {
@@ -1704,37 +1704,6 @@
         const connectButton = document.querySelector('.connect-button');
         const statusElement = document.getElementById('connection-status');
 
-        // Original wallet connection logic
-        connectButton.addEventListener('click', async () => {
-            try {
-                if (!isWalletConnected) {
-                    const address = await connectTonWallet();
-                    await Storage.setItem('walletAddress', address);
-                    isWalletConnected = true;
-                    statusElement.textContent = 'Connected';
-                    statusElement.parentElement.classList.remove('disconnected');
-                    statusElement.parentElement.classList.add('connected');
-                    connectButton.textContent = 'Disconnect Wallet';
-                    toggleWithdrawButtons(true);
-                } else {
-                    await Storage.setItem('walletAddress', null);
-                    isWalletConnected = false;
-                    statusElement.textContent = 'Disconnected';
-                    statusElement.parentElement.classList.remove('connected');
-                    statusElement.parentElement.classList.add('disconnected');
-                    connectButton.textContent = 'Connect TON WALLET';
-                    toggleWithdrawButtons(false);
-                }
-            } catch (error) {
-                alert('Failed to connect/disconnect wallet: ' + error.message);
-            }
-        });
-
-        function toggleWithdrawButtons(enable) {
-            document.querySelectorAll('.withdraw-button').forEach(btn => {
-                btn.disabled = !enable;
-            });
-        }
 
         document.querySelectorAll('.withdraw-button').forEach(button => {
             button.addEventListener('click', () => {
@@ -1829,154 +1798,172 @@
             });
         });
 
-        // New Telegram Wallet Integration
-        document.addEventListener('DOMContentLoaded', function() {
-            const tg = window.Telegram.WebApp;
-            tg.expand(); // Expand the web app to full height
-            
-            // Elements
-            const connectButton = document.querySelector('.connect-button');
-            const connectionStatus = document.getElementById('connection-status');
-            const withdrawButtons = document.querySelectorAll('.withdraw-button');
-            const walletStatusDiv = document.querySelector('.wallet-status');
-            
-            // TON Connect Setup
-            const tonConnect = new TonConnect({
-                manifestUrl: 'https://4go.netlify.app/tonconnect-manifest.json' // Replace with your manifest URL
-            });
+// New Telegram Wallet Integration
+document.addEventListener('DOMContentLoaded', function() {
+    const tg = window.Telegram.WebApp;
+    tg.expand(); // Expand the web app to full height
+    
+    // Elements
+    const connectButton = document.querySelector('.connect-button');
+    const connectionStatus = document.getElementById('connection-status');
+    const withdrawButtons = document.querySelectorAll('.withdraw-button');
+    const walletStatusDiv = document.querySelector('.wallet-status');
+    
+    // TON Connect Setup
+    const tonConnect = new TonConnect({
+        manifestUrl: 'https://4go.netlify.app/tonconnect-manifest.json' // Ensure this URL is correct
+    });
 
-            // Check if user is already authenticated with Telegram
-            function checkTelegramAuth() {
-                if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                    updateUIForConnectedState();
-                    fetchWalletData(tg.initDataUnsafe.user.id);
-                    return true;
+    // Update UI for connected wallet state
+    function updateUIForConnectedState(address) {
+        connectButton.textContent = 'WALLET CONNECTED';
+        connectButton.classList.add('connected');
+        connectionStatus.textContent = 'Connected: ' + (address ? address.slice(0, 6) + '...' : 'Connected');
+        walletStatusDiv.classList.remove('disconnected');
+        walletStatusDiv.classList.add('connected');
+        withdrawButtons.forEach(button => {
+            button.disabled = false;
+        });
+        isWalletConnected = true; // Sync with original logic
+    }
+
+    // Update UI for disconnected wallet state
+    function updateUIForDisconnectedState() {
+        connectButton.textContent = 'CONNECT TON WALLET';
+        connectButton.classList.remove('connected');
+        connectionStatus.textContent = 'Disconnected';
+        walletStatusDiv.classList.remove('connected');
+        walletStatusDiv.classList.add('disconnected');
+        withdrawButtons.forEach(button => {
+            button.disabled = true;
+        });
+        isWalletConnected = false; // Sync with original logic
+    }
+
+    // Fetch wallet data from Firebase (instead of external API)
+    function fetchWalletData(userId) {
+        if (!firebaseInitialized || !db) {
+            console.error("Firestore not initialized. Cannot fetch wallet data.");
+            return;
+        }
+        db.collection('userData').doc(userId.toString()).get()
+            .then(doc => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    document.getElementById('wallet-usdt').textContent = (data.usdt || 0).toFixed(4);
+                    document.getElementById('wallet-ton').textContent = (data.ton || 0).toFixed(4);
+                    document.getElementById('usdt').textContent = (data.usdt || 0).toFixed(4);
+                    document.getElementById('ton').textContent = (data.ton || 0).toFixed(4);
+                    updateTransactionHistory(data.transactions || []);
                 }
-                return false;
-            }
-            
-            // Update UI for connected wallet state
-            function updateUIForConnectedState() {
-                connectButton.textContent = 'WALLET CONNECTED';
-                connectButton.classList.add('connected');
-                connectionStatus.textContent = 'Connected';
-                walletStatusDiv.classList.remove('disconnected');
-                walletStatusDiv.classList.add('connected');
-                withdrawButtons.forEach(button => {
-                    button.disabled = false;
-                });
-                isWalletConnected = true; // Sync with original logic
-            }
-            
-            // Update UI for disconnected wallet state
-            function updateUIForDisconnectedState() {
-                connectButton.textContent = 'CONNECT TON WALLET';
-                connectButton.classList.remove('connected');
-                connectionStatus.textContent = 'Disconnected';
-                walletStatusDiv.classList.remove('connected');
-                walletStatusDiv.classList.add('disconnected');
-                withdrawButtons.forEach(button => {
-                    button.disabled = true;
-                });
-                isWalletConnected = false; // Sync with original logic
-            }
-            
-            // Fetch wallet data from Firebase (instead of external API)
-            function fetchWalletData(userId) {
-                if (!firebaseInitialized || !db) {
-                    console.error("Firestore not initialized. Cannot fetch wallet data.");
-                    return;
-                }
-                db.collection('userData').doc(userId.toString()).get()
-                    .then(doc => {
-                        if (doc.exists) {
-                            const data = doc.data();
-                            document.getElementById('wallet-usdt').textContent = (data.usdt || 0).toFixed(4);
-                            document.getElementById('wallet-ton').textContent = (data.ton || 0).toFixed(4);
-                            document.getElementById('usdt').textContent = (data.usdt || 0).toFixed(4);
-                            document.getElementById('ton').textContent = (data.ton || 0).toFixed(4);
-                            updateTransactionHistory(data.transactions || []);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error fetching wallet data:', error);
-                        showError('Could not retrieve wallet data. Please try again later.');
-                    });
-            }
-            
-            // Update transaction history (enhanced version)
-            function updateTransactionHistory(transactions) {
-                const transactionList = document.getElementById('transaction-list');
-                transactionList.innerHTML = ''; // Clear existing list
-                
-                if (transactions && transactions.length > 0) {
-                    transactions.forEach(tx => {
-                        const li = document.createElement('li');
-                        li.innerHTML = `
-                            <div class="tx-type">${tx.type}</div>
-                            <div class="tx-amount">${tx.amount} ${tx.currency}</div>
-                            <div class="tx-date">${formatDate(tx.timestamp)}</div>
-                            <div class="tx-status ${tx.status ? tx.status.toLowerCase() : 'pending'}">${tx.status || 'Pending'}</div>
-                        `;
-                        transactionList.appendChild(li);
-                    });
-                } else {
-                    const li = document.createElement('li');
-                    li.textContent = 'No transactions yet';
-                    transactionList.appendChild(li);
-                }
-            }
-            
-            // Format date helper
-            function formatDate(dateStr) {
-                const date = dateStr.toDate ? dateStr.toDate() : new Date(dateStr);
-                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-            }
-            
-            // Show error message
-            function showError(message) {
-                let errorDiv = document.querySelector('.error-message');
-                if (!errorDiv) {
-                    errorDiv = document.createElement('div');
-                    errorDiv.className = 'error-message';
-                    document.querySelector('.wallet-section').appendChild(errorDiv);
-                }
-                errorDiv.textContent = message;
-                errorDiv.style.display = 'block';
-                setTimeout(() => {
-                    errorDiv.style.display = 'none';
-                }, 5000);
-            }
-            
-            // Handle wallet connection with TON Connect
-            connectButton.addEventListener('click', async function() {
-    if (walletStatusDiv.classList.contains('connected')) {
-        if (confirm('Disconnect wallet?')) {
-            await tonConnect.disconnect();
-            await Storage.setItem('walletAddress', null);
+            })
+            .catch(error => {
+                console.error('Error fetching wallet data:', error);
+                showError('Could not retrieve wallet data. Please try again later.');
+            });
+    }
+    
+    // Update transaction history (enhanced version)
+    function updateTransactionHistory(transactions) {
+        const transactionList = document.getElementById('transaction-list');
+        transactionList.innerHTML = ''; // Clear existing list
+        
+        if (transactions && transactions.length > 0) {
+            transactions.forEach(tx => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div class="tx-type">${tx.type}</div>
+                    <div class="tx-amount">${tx.amount} ${tx.currency}</div>
+                    <div class="tx-date">${formatDate(tx.timestamp)}</div>
+                    <div class="tx-status ${tx.status ? tx.status.toLowerCase() : 'pending'}">${tx.status || 'Pending'}</div>
+                `;
+                transactionList.appendChild(li);
+            });
+        } else {
+            const li = document.createElement('li');
+            li.textContent = 'No transactions yet';
+            transactionList.appendChild(li);
+        }
+    }
+    
+    // Format date helper
+    function formatDate(dateStr) {
+        const date = dateStr.toDate ? dateStr.toDate() : new Date(dateStr);
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    }
+    
+    // Show error message
+    function showError(message) {
+        let errorDiv = document.querySelector('.error-message');
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            document.querySelector('.wallet-section').appendChild(errorDiv);
+        }
+        errorDiv.textContent = message;
+        errorDiv.style.display = 'block';
+        setTimeout(() => {
+            errorDiv.style.display = 'none';
+        }, 5000);
+    }
+
+    // Monitor TON Connect status changes
+    tonConnect.onStatusChange((walletInfo) => {
+        if (walletInfo && walletInfo.account.address) {
+            updateUIForConnectedState(walletInfo.account.address);
+            fetchWalletData(tg.initDataUnsafe.user.id);
+        } else {
             updateUIForDisconnectedState();
         }
-        return;
-    }
+    });
 
-    try {
-        console.log('Initiating TON Connect...');
-        const wallet = await tonConnect.connect();
-        console.log('Wallet response:', wallet);
-        if (!wallet || !wallet.account?.address) {
-            throw new Error('No wallet connected or address returned');
+    // Handle wallet connection with TON Connect
+    connectButton.addEventListener('click', async function() {
+        if (walletStatusDiv.classList.contains('connected')) {
+            if (confirm('Disconnect wallet?')) {
+                try {
+                    await tonConnect.disconnect();
+                    await Storage.setItem('walletAddress', null);
+                    updateUIForDisconnectedState();
+                } catch (error) {
+                    console.error('Disconnect error:', error);
+                    showError('Failed to disconnect wallet: ' + error.message);
+                }
+            }
+            return;
         }
-        const address = wallet.account.address;
-        console.log('Connected address:', address);
-        await Storage.setItem('walletAddress', address);
-        updateUIForConnectedState(address);
-        fetchWalletData(tg.initDataUnsafe.user.id);
-    } catch (error) {
-        console.error('TON Connect error:', error);
-        showError('Failed to connect wallet: ' + error.message);
-        updateUIForDisconnectedState();
+
+        try {
+            console.log('Initiating TON Connect on platform:', tg.platform);
+            const wallet = await tonConnect.connect({
+                wallets: ['tonkeeper', 'telegram-wallet']
+            });
+            if (!wallet || !wallet.account?.address) {
+                const universalLink = tonConnect.getUniversalLink();
+                console.log('Universal link:', universalLink);
+                showError('Open this link in Tonkeeper or Telegram Wallet: ' + universalLink);
+                tg.openLink(universalLink);
+                return;
+            }
+            const address = wallet.account.address;
+            console.log('Connected address:', address);
+            await Storage.setItem('walletAddress', address);
+            updateUIForConnectedState(address);
+            fetchWalletData(tg.initDataUnsafe.user.id);
+        } catch (error) {
+            console.error('TON Connect error:', error);
+            showError('Failed to connect wallet: ' + error.message);
+        }
+    });
+
+    // Check existing connection on load
+    if (tg.initDataUnsafe?.user) {
+        const storedAddress = await Storage.getItem('walletAddress');
+        if (storedAddress && tonConnect.connected) {
+            updateUIForConnectedState(storedAddress);
+            fetchWalletData(tg.initDataUnsafe.user.id);
+        }
     }
-});
             
             // Handle withdraw functionality
             withdrawButtons.forEach(button => {
