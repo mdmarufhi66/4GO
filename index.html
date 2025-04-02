@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -494,22 +493,42 @@
             height: 20px;
         }
 <style>
-    /* Consolidated bottom-nav styles */
-    .bottom-nav {
+    nav.bottom-nav {
         display: flex !important;
         justify-content: space-around !important;
         background: #1a1a3d !important;
         padding: 10px 0 !important;
         position: fixed !important;
-        bottom: 0 !important;
+        bottom: env(safe-area-inset-bottom, 0px) !important; /* Adjust for Telegram bottom bar */
         left: 0 !important;
         right: 0 !important;
-        z-index: 1000 !important;
-        height: 60px !important; /* Ensure it has a visible height */
-        border-top: 2px solid red !important; /* Debug: make it stand out */
+        z-index: 100000 !important; /* Even higher to avoid overlap */
+        height: 60px !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        border-top: 2px solid red !important; /* Debug marker */
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5) !important;
     }
 
-    .nav-button {
+    <style>
+    nav.bottom-nav {
+        display: flex !important;
+        justify-content: space-around !important;
+        background: #1a1a3d !important;
+        padding: 10px 0 !important;
+        position: fixed !important;
+        bottom: env(safe-area-inset-bottom, 0px) !important; /* Adjust for Telegram bottom bar */
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 100000 !important; /* Even higher to avoid overlap */
+        height: 60px !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        border-top: 2px solid red !important; /* Debug marker */
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    nav.bottom-nav .nav-button {
         background: none !important;
         border: none !important;
         color: #ccc !important;
@@ -518,18 +537,26 @@
         align-items: center !important;
         cursor: pointer !important;
         font-size: 12px !important;
-        width: 60px !important; /* Fixed width for consistency */
+        width: 60px !important;
         height: 100% !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        min-height: 40px !important; /* Ensure buttons have space */
     }
 
-    .nav-button.active {
+    nav.bottom-nav .nav-button.active {
         color: white !important;
     }
 
-    .nav-button img {
+    nav.bottom-nav .nav-button img {
         width: 24px !important;
         height: 24px !important;
         margin-bottom: 5px !important;
+        display: block !important; /* Ensure images show */
+    }
+
+    nav.bottom-nav .nav-button span {
+        display: block !important; /* Ensure text shows */
     }
 
     /* Additional styles for wallet integration */
@@ -828,22 +855,25 @@
             height: 20px;
         }
 
-    /* Consolidated bottom-nav styles */
-    .bottom-nav {
+<style>
+    nav.bottom-nav {
         display: flex !important;
         justify-content: space-around !important;
         background: #1a1a3d !important;
         padding: 10px 0 !important;
         position: fixed !important;
-        bottom: 0 !important;
+        bottom: env(safe-area-inset-bottom, 0px) !important; /* Adjust for Telegram bottom bar */
         left: 0 !important;
         right: 0 !important;
-        z-index: 1000 !important;
-        height: 60px !important; /* Ensure it has a visible height */
-        border-top: 2px solid red !important; /* Debug: make it stand out */
+        z-index: 100000 !important; /* Even higher to avoid overlap */
+        height: 60px !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        border-top: 2px solid red !important; /* Debug marker */
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5) !important;
     }
 
-    .nav-button {
+    nav.bottom-nav .nav-button {
         background: none !important;
         border: none !important;
         color: #ccc !important;
@@ -852,18 +882,26 @@
         align-items: center !important;
         cursor: pointer !important;
         font-size: 12px !important;
-        width: 60px !important; /* Fixed width for consistency */
+        width: 60px !important;
         height: 100% !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        min-height: 40px !important; /* Ensure buttons have space */
     }
 
-    .nav-button.active {
+    nav.bottom-nav .nav-button.active {
         color: white !important;
     }
 
-    .nav-button img {
+    nav.bottom-nav .nav-button img {
         width: 24px !important;
         height: 24px !important;
         margin-bottom: 5px !important;
+        display: block !important; /* Ensure images show */
+    }
+
+    nav.bottom-nav .nav-button span {
+        display: block !important; /* Ensure text shows */
     }
 
     /* Additional styles for wallet integration */
@@ -1121,33 +1159,32 @@
         </section>
     </div>
 
-    <nav class="bottom-nav">
-        <button class="nav-button active" data-section="earn">
-            <img src="assets/icons/earn.png" alt="Earn">
-            Earn
-        </button>
-        <button class="nav-button" data-section="wallet">
-            <img src="assets/icons/wallet.png" alt="Wallet">
-            Wallet
-        </button>
-        <button class="nav-button" data-section="game">
-            <img src="assets/icons/game.png" alt="Game">
-            Game
-        </button>
-        <button class="nav-button" data-section="invite">
-            <img src="assets/icons/invite.png" alt="Invite">
-            Invite
-        </button>
-        <button class="nav-button" data-section="chest">
-            <img src="assets/icons/chest.png" alt="Chest">
-            Chest
-        </button>
-        <button class="nav-button" data-section="top">
-            <img src="assets/icons/top.png" alt="Top">
-            Top
-        </button>
-    </nav>
-
+<nav class="bottom-nav">
+    <button class="nav-button" data-section="earn">
+        <img src="assets/icons/earn.png" alt="Earn">
+        <span>Earn</span>
+    </button>
+    <button class="nav-button" data-section="wallet">
+        <img src="assets/icons/wallet.png" alt="Wallet">
+        <span>Wallet</span>
+    </button>
+    <button class="nav-button" data-section="game">
+        <img src="assets/icons/game.png" alt="Game">
+        <span>Game</span>
+    </button>
+    <button class="nav-button" data-section="invite">
+        <img src="assets/icons/invite.png" alt="Invite">
+        <span>Invite</span>
+    </button>
+    <button class="nav-button" data-section="chest">
+        <img src="assets/icons/chest.png" alt="Chest">
+        <span>Chest</span>
+    </button>
+    <button class="nav-button" data-section="top">
+        <img src="assets/icons/top.png" alt="Top">
+        <span>Top</span>
+    </button>
+</nav>
     <!-- Your existing JavaScript remains unchanged -->
 <script>
     console.log('Script started');
@@ -1361,89 +1398,117 @@
         }
     };
 
-// Navigation Logic with Extra Debugging
-try {
-    console.log('Setting up navigation');
-    const sections = document.querySelectorAll('.section');
-    const navButtons = document.querySelectorAll('.nav-button');
-    const bottomNav = document.querySelector('.bottom-nav');
+// Navigation Logic with Delayed Execution and Debugging
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        console.log('Setting up navigation');
+        const sections = document.querySelectorAll('.section');
+        const navButtons = document.querySelectorAll('nav.bottom-nav .nav-button');
+        const bottomNav = document.querySelector('nav.bottom-nav');
 
-    console.log('Found sections:', sections.length);
-    console.log('Found nav buttons:', navButtons.length);
-    console.log('Bottom nav exists:', !!bottomNav);
-    if (bottomNav) {
-        const computedStyle = window.getComputedStyle(bottomNav);
-        console.log('Bottom nav display style:', computedStyle.display);
-        console.log('Bottom nav visibility:', computedStyle.visibility);
-        console.log('Bottom nav height:', computedStyle.height);
-        console.log('Bottom nav position:', computedStyle.position);
-        console.log('Bottom nav bottom:', computedStyle.bottom);
-    }
+        console.log('Found sections:', sections.length);
+        console.log('Found nav buttons:', navButtons.length);
+        console.log('Bottom nav exists:', !!bottomNav);
+        if (bottomNav) {
+            const computedStyle = window.getComputedStyle(bottomNav);
+            console.log('Initial styles:');
+            console.log('  Display:', computedStyle.display);
+            console.log('  Visibility:', computedStyle.visibility);
+            console.log('  Opacity:', computedStyle.opacity);
+            console.log('  Height:', computedStyle.height);
+            console.log('  Position:', computedStyle.position);
+            console.log('  Bottom:', computedStyle.bottom);
+            console.log('  Left:', computedStyle.left);
+            console.log('  Right:', computedStyle.right);
+            console.log('  Z-Index:', computedStyle.zIndex);
+            console.log('  Top:', computedStyle.top);
+        }
 
-    navButtons.forEach((btn, index) => {
-        console.log(`Button ${index}:`, btn.getAttribute('data-section'));
-    });
-
-    async function switchSection(sectionId) {
-        console.log(`Switching to section: ${sectionId}`);
-        sections.forEach(section => {
-            section.classList.remove('active');
-            console.log(`Hiding section: ${section.id}`);
+        navButtons.forEach((btn, index) => {
+            console.log(`Button ${index}:`, btn.getAttribute('data-section'));
+            // Debug button content
+            console.log(`Button ${index} content:`, btn.innerHTML);
+            console.log(`Button ${index} computed display:`, window.getComputedStyle(btn).display);
         });
-        navButtons.forEach(btn => {
-            btn.classList.remove('active');
-            console.log(`Deactivating button: ${btn.getAttribute('data-section')}`);
+
+        async function switchSection(sectionId) {
+            console.log(`Switching to section: ${sectionId}`);
+            sections.forEach(section => {
+                section.classList.remove('active');
+                console.log(`Hiding section: ${section.id}`);
+            });
+            navButtons.forEach(btn => {
+                btn.classList.remove('active');
+                console.log(`Deactivating button: ${btn.getAttribute('data-section')}`);
+            });
+
+            const targetSection = document.getElementById(sectionId);
+            const targetButton = document.querySelector(`.nav-button[data-section="${sectionId}"]`);
+
+            if (targetSection && targetButton) {
+                targetSection.classList.add('active');
+                targetButton.classList.add('active');
+                console.log(`Activated section: ${sectionId}`);
+            } else {
+                console.error(`Section or button not found for: ${sectionId}`);
+                if (!targetSection) console.error(`Section with id "${sectionId}" not found`);
+                if (!targetButton) console.error(`Button with data-section "${sectionId}" not found`);
+            }
+
+            try {
+                if (sectionId === 'earn') await ensureFirebaseReady(updateEarnSectionUI);
+                if (sectionId === 'invite') await ensureFirebaseReady(updateInviteSectionUI);
+                if (sectionId === 'top') await ensureFirebaseReady(updateTopSectionUI);
+                if (sectionId === 'wallet') await ensureFirebaseReady(updateWalletSectionUI);
+            } catch (error) {
+                console.error(`Error updating section ${sectionId}:`, error.message);
+            }
+        }
+
+        navButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const sectionId = button.getAttribute('data-section');
+                console.log(`Clicked section: ${sectionId}`);
+                switchSection(sectionId);
+            });
         });
 
-        const targetSection = document.getElementById(sectionId);
-        const targetButton = document.querySelector(`.nav-button[data-section="${sectionId}"]`);
+        // Set default section
+        console.log('Setting default section to Earn');
+        switchSection('earn');
 
-        if (targetSection && targetButton) {
-            targetSection.classList.add('active');
-            targetButton.classList.add('active');
-            console.log(`Activated section: ${sectionId}`);
+        // Ensure nav is visible and positioned
+        if (bottomNav) {
+            bottomNav.style.display = 'flex';
+            bottomNav.style.visibility = 'visible';
+            bottomNav.style.opacity = '1';
+            bottomNav.style.position = 'fixed';
+            bottomNav.style.bottom = '0px';
+            bottomNav.style.left = '0px';
+            bottomNav.style.right = '0px';
+            bottomNav.style.height = '60px';
+            bottomNav.style.zIndex = '100000';
+            bottomNav.style.backgroundColor = '#1a1a3d';
+            console.log('Forced bottom-nav styles: display=flex, visibility=visible, opacity=1, position=fixed, bottom=0px, height=60px');
+            const updatedStyle = window.getComputedStyle(bottomNav);
+            console.log('Post-force styles:');
+            console.log('  Display:', updatedStyle.display);
+            console.log('  Visibility:', updatedStyle.visibility);
+            console.log('  Opacity:', updatedStyle.opacity);
+            console.log('  Height:', updatedStyle.height);
+            console.log('  Position:', updatedStyle.position);
+            console.log('  Bottom:', updatedStyle.bottom);
+            console.log('  Left:', updatedStyle.left);
+            console.log('  Right:', updatedStyle.right);
+            console.log('  Z-Index:', updatedStyle.zIndex);
+            console.log('  Top:', updatedStyle.top);
         } else {
-            console.error(`Section or button not found for: ${sectionId}`);
-            if (!targetSection) console.error(`Section with id "${sectionId}" not found`);
-            if (!targetButton) console.error(`Button with data-section "${sectionId}" not found`);
+            console.error('Bottom nav element not found in DOM');
         }
-
-        try {
-            if (sectionId === 'earn') await ensureFirebaseReady(updateEarnSectionUI);
-            if (sectionId === 'invite') await ensureFirebaseReady(updateInviteSectionUI);
-            if (sectionId === 'top') await ensureFirebaseReady(updateTopSectionUI);
-            if (sectionId === 'wallet') await ensureFirebaseReady(updateWalletSectionUI);
-        } catch (error) {
-            console.error(`Error updating section ${sectionId}:`, error.message);
-        }
+    } catch (error) {
+        console.error('Navigation setup failed:', error.message);
     }
-
-    navButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const sectionId = button.getAttribute('data-section');
-            console.log(`Clicked section: ${sectionId}`);
-            switchSection(sectionId);
-        });
-    });
-
-    // Set default section
-    console.log('Setting default section to Earn');
-    switchSection('earn');
-
-    // Ensure nav is visible
-    if (bottomNav) {
-        bottomNav.style.display = 'flex';
-        bottomNav.style.visibility = 'visible'; // Extra assurance
-        console.log('Forced bottom-nav display to flex and visibility to visible');
-        const updatedStyle = window.getComputedStyle(bottomNav);
-        console.log('Bottom nav display after force:', updatedStyle.display);
-        console.log('Bottom nav visibility after force:', updatedStyle.visibility);
-    } else {
-        console.error('Bottom nav element not found in DOM');
-    }
-} catch (error) {
-    console.error('Navigation setup failed:', error.message);
-}
+});
 
     // Helper to ensure Firebase is ready before running a callback
     async function ensureFirebaseReady(callback) {
