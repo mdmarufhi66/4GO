@@ -1704,16 +1704,6 @@
         const connectButton = document.querySelector('.connect-button');
         const statusElement = document.getElementById('connection-status');
 
-        // Simulated TON wallet connection (original)
-        async function connectTonWallet() {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    const address = "TON_TEST_ADDRESS_" + telegramUser.id;
-                    resolve(address);
-                }, 1000);
-            });
-        }
-
         // Original wallet connection logic
         connectButton.addEventListener('click', async () => {
             try {
