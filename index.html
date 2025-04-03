@@ -1780,7 +1780,7 @@ const connectionStatus = document.getElementById('connection-status');
 const withdrawButtons = document.querySelectorAll('.withdraw-button');
 const warningButtons = document.querySelectorAll('.warning-button');
 
-// Function to load script with Promise and multiple fallbacks
+// Function to load script with Promise and fallback
 function loadTonConnectUIScript() {
     return new Promise((resolve, reject) => {
         if (window.TONCONNECTUI) {
@@ -1790,9 +1790,10 @@ function loadTonConnectUIScript() {
         }
 
         const attempts = [
-            'https://unpkg.com/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js', // Stable version
-            'https://cdn.jsdelivr.net/npm/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js',
-            // Add a local fallback if hosted (e.g., '/scripts/tonconnect-ui.min.js')
+            'https://unpkg.com/@tonconnect/ui@0.0.9/dist/tonconnect-ui.min.js', // Suggested stable version
+            // Optional: Add more fallback URLs if needed
+            // 'https://cdn.jsdelivr.net/npm/@tonconnect/ui@0.0.9/dist/tonconnect-ui.min.js',
+            // Local fallback: '/scripts/tonconnect-ui-0.0.9.min.js' (if you host it)
         ];
 
         let attemptIndex = 0;
@@ -1842,7 +1843,7 @@ async function initializeTonConnect() {
             manifestUrl: 'https://4go.netlify.app/tonconnect-manifest.json',
             uiPreferences: { theme: 'DARK', borderRadius: 'm' },
             walletsListConfiguration: {
-                includeWaltons: [
+                includeWallets: [ // Fixed typo: 'includeWaltons' -> 'includeWallets'
                     { appName: 'tonkeeper', name: 'Tonkeeper' },
                     { appName: 'telegram-wallet', name: 'Telegram Wallet' }
                 ]
@@ -1866,10 +1867,12 @@ async function initializeTonConnect() {
             connectButton.addEventListener('click', async () => {
                 try {
                     if (tonConnectUI.connected) {
+                        connectButton.disabled = true;
                         await tonConnectUI.disconnect();
                         await Storage.setItem('walletAddress', null);
                         await updateWalletUI();
                     } else {
+                        connectButton.disabled = true;
                         connectButton.textContent = 'Connecting...';
                         tonConnectUI.setConnectRequestParameters({
                             state: 'ready',
@@ -1881,9 +1884,12 @@ async function initializeTonConnect() {
                     console.error("Wallet connection error:", error.message);
                     alert(`Connection failed: ${error.message}`);
                 } finally {
+                    connectButton.disabled = false;
                     await updateWalletUI();
                 }
             });
+        } else {
+            console.error("Connect button not found in DOM");
         }
 
         await initApp();
@@ -1893,6 +1899,8 @@ async function initializeTonConnect() {
     }
 }
 
+// Call initialization
+initializeTonConnect().catch(error => console.error("Initial TON Connect call failed:", error));
 // Update wallet UI using globally defined elements
 async function updateWalletUI() {
     if (!tonConnectUI) {
