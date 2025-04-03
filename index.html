@@ -1801,81 +1801,91 @@ if (!window.TONCONNECTUI) {
     script.src = 'https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js';
     script.async = true;
     document.head.appendChild(script);
-    script.onload = initializeTonConnect;
+    script.onload = () => initializeTonConnect().catch(error => console.error("TON Connect init failed:", error));
+    script.onerror = () => console.error("Failed to load TON Connect UI script");
 } else {
-    initializeTonConnect();
+    initializeTonConnect().catch(error => console.error("TON Connect init failed:", error));
 }
 
 let tonConnectUI;  // Declare globally but don’t assign yet
 
 async function initializeTonConnect() {
-    const tonConnectUIInstance = new TONCONNECTUI.TonConnectUI({
-        manifestUrl: 'https://4go.netlify.app/tonconnect-manifest.json',
-        uiPreferences: {
-            theme: 'DARK',
-            borderRadius: 'm'
-        },
-        walletsListConfiguration: {
-            includeWallets: [
-                { appName: 'tonkeeper', name: 'Tonkeeper' },
-                { appName: 'telegram-wallet', name: 'Telegram Wallet' }
-            ]
-        },
-        actionsConfiguration: {
-            twaReturnUrl: 'https://t.me/fourgobot'
-        }
-    });
-
-    // Restore previous connection
-    await tonConnectUIInstance.restoreConnection();
-    tonConnectUI = tonConnectUIInstance;  // Assign to global variable here
-
-    // Define UI elements after initialization
-    const connectButton = document.querySelector('.connect-button');
-    const connectionStatus = document.getElementById('connection-status');
-    const withdrawButtons = document.querySelectorAll('.withdraw-button');
-    const warningButtons = document.querySelectorAll('.warning-button');
-
-    // Initial UI update
-    updateWalletUI(tonConnectUI);
-
-    // Listen for status changes
-    tonConnectUI.onStatusChange((walletInfo) => {
-        updateWalletUI(tonConnectUI);
-        if (walletInfo?.connectItems?.tonProof) {
-            verifyTonProof(walletInfo.connectItems.tonProof);
-        }
-    });
-
-    // Add event listener only after tonConnectUI is ready
-    connectButton.addEventListener('click', async () => {
-        try {
-            if (tonConnectUI.connected) {
-                connectButton.disabled = true;
-                await tonConnectUI.disconnect();
-                await Storage.setItem('walletAddress', null);
-                updateWalletUI(tonConnectUI);
-            } else {
-                connectButton.disabled = true;
-                connectButton.textContent = 'Connecting...';
-                tonConnectUI.setConnectRequestParameters({
-                    state: 'ready',
-                    value: { tonProof: `4metas-auth-${Date.now()}` }
-                });
-                await tonConnectUI.openModal();
+    try {
+        console.log("Initializing TON Connect...");
+        const tonConnectUIInstance = new TONCONNECTUI.TonConnectUI({
+            manifestUrl: 'https://4go.netlify.app/tonconnect-manifest.json',
+            uiPreferences: {
+                theme: 'DARK',
+                borderRadius: 'm'
+            },
+            walletsListConfiguration: {
+                includeWallets: [
+                    { appName: 'tonkeeper', name: 'Tonkeeper' },
+                    { appName: 'telegram-wallet', name: 'Telegram Wallet' }
+                ]
+            },
+            actionsConfiguration: {
+                twaReturnUrl: 'https://t.me/fourgobot'
             }
-        } catch (error) {
-            console.error("Wallet connection error:", error.message);
-            const errorMessage = document.querySelector('.error-message') || document.createElement('div');
-            errorMessage.className = 'error-message';
-            errorMessage.textContent = `Connection failed: ${error.message}`;
-            errorMessage.style.display = 'block';
-            document.querySelector('.wallet-section').appendChild(errorMessage);
-        } finally {
-            connectButton.disabled = false;
+        });
+
+        // Restore previous connection
+        await tonConnectUIInstance.restoreConnection();
+        tonConnectUI = tonConnectUIInstance;  // Assign to global variable here
+        console.log("TON Connect initialized successfully");
+
+        // Define UI elements after initialization
+        const connectButton = document.querySelector('.connect-button');
+        const connectionStatus = document.getElementById('connection-status');
+        const withdrawButtons = document.querySelectorAll('.withdraw-button');
+        const warningButtons = document.querySelectorAll('.warning-button');
+
+        // Initial UI update
+        await updateWalletUI(tonConnectUI);
+
+        // Listen for status changes
+        tonConnectUI.onStatusChange((walletInfo) => {
             updateWalletUI(tonConnectUI);
-        }
-    });
+            if (walletInfo?.connectItems?.tonProof) {
+                verifyTonProof(walletInfo.connectItems.tonProof);
+            }
+        });
+
+        // Add event listener only after tonConnectUI is ready
+        connectButton.addEventListener('click', async () => {
+            try {
+                if (tonConnectUI.connected) {
+                    connectButton.disabled = true;
+                    await tonConnectUI.disconnect();
+                    await Storage.setItem('walletAddress', null);
+                    await updateWalletUI(tonConnectUI);
+                } else {
+                    connectButton.disabled = true;
+                    connectButton.textContent = 'Connecting...';
+                    tonConnectUI.setConnectRequestParameters({
+                        state: 'ready',
+                        value: { tonProof: `4metas-auth-${Date.now()}` }
+                    });
+                    await tonConnectUI.openModal();
+                }
+            } catch (error) {
+                console.error("Wallet connection error:", error.message);
+                const errorMessage = document.querySelector('.error-message') || document.createElement('div');
+                errorMessage.className = 'error-message';
+                errorMessage.textContent = `Connection failed: ${error.message}`;
+                errorMessage.style.display = 'block';
+                document.querySelector('.wallet-section').appendChild(errorMessage);
+            } finally {
+                connectButton.disabled = false;
+                await updateWalletUI(tonConnectUI);
+            }
+        });
+
+        // After TON Connect is ready, proceed with app initialization
+        await initApp();
+    } catch (error) {
+        console.error("Error initializing TON Connect:", error.message);
+    }
 }
 
 async function updateWalletUI(tonConnectUI) {
@@ -1966,37 +1976,37 @@ async function verifyTonProof(tonProof) {
         });
 
         confirmWithdrawButton.addEventListener('click', async () => {
-            const amount = parseFloat(withdrawAmountInput.value);
-            const currency = currencySpan.textContent;
-            const availableBalance = parseFloat(availableBalanceSpan.textContent);
-            const fee = parseFloat(withdrawFeeSpan.textContent);
+    const amount = parseFloat(withdrawAmountInput.value);
+    const currency = currencySpan.textContent;
+    const availableBalance = parseFloat(availableBalanceSpan.textContent);
+    const fee = parseFloat(withdrawFeeSpan.textContent);
 
-            if (isNaN(amount) || amount <= 0) {
-                alert("Please enter a valid amount.");
-                return;
-            }
+    if (isNaN(amount) || amount <= 0) {
+        alert("Please enter a valid amount.");
+        return;
+    }
 
-            if (amount + fee > availableBalance) {
-                alert(`Insufficient balance. You need ${fee} ${currency} for the fee.`);
-                return;
-            }
+    if (amount + fee > availableBalance) {
+        alert(`Insufficient balance. You need ${fee} ${currency} for the fee.`);
+        return;
+    }
 
-            if ((currency === 'USDT' && amount < 1) || (currency === 'TON' && amount < 0.1)) {
-                alert(`Minimum withdrawal is ${currency === 'USDT' ? '1 USDT' : '0.1 TON'}.`);
-                return;
-            }
+    if ((currency === 'USDT' && amount < 1) || (currency === 'TON' && amount < 0.1)) {
+        alert(`Minimum withdrawal is ${currency === 'USDT' ? '1 USDT' : '0.1 TON'}.`);
+        return;
+    }
 
-            try {
-                await (amount, currency);
-                withdrawModal.style.display = 'none';
-                await updateUserStatsUI();
-                await updateTransactionHistory();
-                alert(`Withdrawal of ${amount} ${currency} initiated successfully!`);
-            } catch (error) {
-                console.error("Withdrawal error:", error.message);
-                alert("Withdrawal failed: " + error.message);
-            }
-        });
+    try {
+        await processWithdrawal(amount, currency);  // Corrected function call
+        withdrawModal.style.display = 'none';
+        await updateUserStatsUI();
+        await updateTransactionHistory();
+        alert(`Withdrawal of ${amount} ${currency} initiated successfully!`);
+    } catch (error) {
+        console.error("Withdrawal error:", error.message);
+        alert("Withdrawal failed: " + error.message);
+    }
+});
 
         async function processWithdrawal(amount, currency) {
     if (!firebaseInitialized || !db) {
@@ -2102,28 +2112,28 @@ async function verifyTonProof(tonProof) {
             });
         });
 
-        // Initialize Application
-        async function initApp() {
-            try {
-                const firebaseSuccess = await initializeFirebase();
-                if (!firebaseSuccess) {
-                    console.error("Firebase initialization failed. App may not function correctly.");
-                    alert("Failed to initialize database connection. Some features may not work.");
-                } else {
-                    await initializeUserData();
-                    await handleReferral();
-                    await updateEarnSectionUI();
-                    await updateInviteSectionUI();
-                    await updateTopSectionUI();
-                    await updateWalletSectionUI();
-                    generateReferralLink();
-                    updateWalletUI();
-                }
-            } catch (error) {
-                console.error("Error initializing app:", error.message);
-                alert("Failed to initialize app: " + error.message);
-            }
+// Initialize Application
+async function initApp() {
+    try {
+        const firebaseSuccess = await initializeFirebase();
+        if (!firebaseSuccess) {
+            console.error("Firebase initialization failed. App may not function correctly.");
+            alert("Failed to initialize database connection. Some features may not work.");
+        } else {
+            await initializeUserData();
+            await handleReferral();
+            await updateEarnSectionUI();
+            await updateInviteSectionUI();
+            await updateTopSectionUI();
+            await updateWalletSectionUI();
+            generateReferralLink();
+            // No direct call to updateWalletUI here; it’s handled in initializeTonConnect
         }
+    } catch (error) {
+        console.error("Error initializing app:", error.message);
+        alert("Failed to initialize app: " + error.message);
+    }
+}
 
         initApp();
     </script>
