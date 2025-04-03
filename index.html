@@ -1806,11 +1806,13 @@ if (!window.TONCONNECTUI) {
     initializeTonConnect();
 }
 
+let tonConnectUI;  // Declare globally but don’t assign yet
+
 async function initializeTonConnect() {
-    const tonConnectUI = new TONCONNECTUI.TonConnectUI({
+    const tonConnectUIInstance = new TONCONNECTUI.TonConnectUI({
         manifestUrl: 'https://4go.netlify.app/tonconnect-manifest.json',
         uiPreferences: {
-            theme: 'DARK', // Align with app's dark theme
+            theme: 'DARK',
             borderRadius: 'm'
         },
         walletsListConfiguration: {
@@ -1820,12 +1822,21 @@ async function initializeTonConnect() {
             ]
         },
         actionsConfiguration: {
-            twaReturnUrl: 'https://t.me/fourgobot' // Return to Telegram Mini App
+            twaReturnUrl: 'https://t.me/fourgobot'
         }
     });
 
     // Restore previous connection
-    await tonConnectUI.restoreConnection();
+    await tonConnectUIInstance.restoreConnection();
+    tonConnectUI = tonConnectUIInstance;  // Assign to global variable here
+
+    // Define UI elements after initialization
+    const connectButton = document.querySelector('.connect-button');
+    const connectionStatus = document.getElementById('connection-status');
+    const withdrawButtons = document.querySelectorAll('.withdraw-button');
+    const warningButtons = document.querySelectorAll('.warning-button');
+
+    // Initial UI update
     updateWalletUI(tonConnectUI);
 
     // Listen for status changes
@@ -1836,19 +1847,41 @@ async function initializeTonConnect() {
         }
     });
 
-    return tonConnectUI;
+    // Add event listener only after tonConnectUI is ready
+    connectButton.addEventListener('click', async () => {
+        try {
+            if (tonConnectUI.connected) {
+                connectButton.disabled = true;
+                await tonConnectUI.disconnect();
+                await Storage.setItem('walletAddress', null);
+                updateWalletUI(tonConnectUI);
+            } else {
+                connectButton.disabled = true;
+                connectButton.textContent = 'Connecting...';
+                tonConnectUI.setConnectRequestParameters({
+                    state: 'ready',
+                    value: { tonProof: `4metas-auth-${Date.now()}` }
+                });
+                await tonConnectUI.openModal();
+            }
+        } catch (error) {
+            console.error("Wallet connection error:", error.message);
+            const errorMessage = document.querySelector('.error-message') || document.createElement('div');
+            errorMessage.className = 'error-message';
+            errorMessage.textContent = `Connection failed: ${error.message}`;
+            errorMessage.style.display = 'block';
+            document.querySelector('.wallet-section').appendChild(errorMessage);
+        } finally {
+            connectButton.disabled = false;
+            updateWalletUI(tonConnectUI);
+        }
+    });
 }
 
-// Define tonConnectUI globally after initialization
-let tonConnectUI;
-initializeTonConnect().then(ui => tonConnectUI = ui);
-
-const connectButton = document.querySelector('.connect-button');
-const connectionStatus = document.getElementById('connection-status');
-const withdrawButtons = document.querySelectorAll('.withdraw-button');
-const warningButtons = document.querySelectorAll('.warning-button');
-
 async function updateWalletUI(tonConnectUI) {
+    const connectButton = document.querySelector('.connect-button');
+    const connectionStatus = document.getElementById('connection-status');
+    const withdrawButtons = document.querySelectorAll('.withdraw-button');
     const errorMessage = document.querySelector('.error-message') || document.createElement('div');
     errorMessage.className = 'error-message';
 
@@ -1877,34 +1910,6 @@ async function updateWalletUI(tonConnectUI) {
     document.querySelector('.wallet-section').appendChild(errorMessage);
 }
 
-connectButton.addEventListener('click', async () => {
-    try {
-        if (tonConnectUI.connected) {
-            connectButton.disabled = true;
-            await tonConnectUI.disconnect();
-            await Storage.setItem('walletAddress', null);
-            updateWalletUI(tonConnectUI);
-        } else {
-            connectButton.disabled = true;
-            connectButton.textContent = 'Connecting...';
-            // Request TON Proof for authentication
-            tonConnectUI.setConnectRequestParameters({
-                state: 'ready',
-                value: { tonProof: `4metas-auth-${Date.now()}` }
-            });
-            await tonConnectUI.openModal(); // Opens wallet selection modal
-        }
-    } catch (error) {
-        console.error("Wallet connection error:", error.message);
-        const errorMessage = document.querySelector('.error-message');
-        errorMessage.textContent = `Connection failed: ${error.message}`;
-        errorMessage.style.display = 'block';
-    } finally {
-        connectButton.disabled = false;
-        updateWalletUI(tonConnectUI);
-    }
-});
-
 // Add verifyTonProof right here
 async function verifyTonProof(tonProof) {
     try {
@@ -1919,7 +1924,6 @@ async function verifyTonProof(tonProof) {
         const result = await response.json();
         if (result.verified) {
             console.log("TON Proof verified successfully");
-            // Optionally store verified status in Firestore
         } else {
             throw new Error("TON Proof verification failed");
         }
