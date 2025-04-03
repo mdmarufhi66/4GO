@@ -1795,23 +1795,41 @@
         });
 
 // TON Wallet Integration
-// Load TON Connect UI script dynamically if not already included
-if (!window.TONCONNECTUI) {
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js';
-    script.async = true;
-    document.head.appendChild(script);
-    script.onload = () => initializeTonConnect().catch(error => console.error("TON Connect init failed:", error));
-    script.onerror = () => console.error("Failed to load TON Connect UI script");
-} else {
-    initializeTonConnect().catch(error => console.error("TON Connect init failed:", error));
+let tonConnectUI; // Declare globally
+
+// Function to load script with Promise
+function loadTonConnectUIScript() {
+    return new Promise((resolve, reject) => {
+        if (window.TONCONNECTUI) {
+            console.log("TON Connect UI already loaded");
+            resolve();
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js';
+        script.async = true;
+        script.onload = () => {
+            console.log("TON Connect UI script loaded successfully");
+            resolve();
+        };
+        script.onerror = () => {
+            console.error("Failed to load TON Connect UI script");
+            reject(new Error("Failed to load TON Connect UI script"));
+        };
+        document.head.appendChild(script);
+    });
 }
 
-let tonConnectUI;  // Declare globally but don’t assign yet
-
+// Initialize TON Connect with script loading
 async function initializeTonConnect() {
     try {
         console.log("Initializing TON Connect...");
+        await loadTonConnectUIScript(); // Wait for script to load
+
+        if (!window.TONCONNECTUI) {
+            throw new Error("TONCONNECTUI is not defined after script load");
+        }
+
         const tonConnectUIInstance = new TONCONNECTUI.TonConnectUI({
             manifestUrl: 'https://4go.netlify.app/tonconnect-manifest.json',
             uiPreferences: {
@@ -1831,7 +1849,7 @@ async function initializeTonConnect() {
 
         // Restore previous connection
         await tonConnectUIInstance.restoreConnection();
-        tonConnectUI = tonConnectUIInstance;  // Assign to global variable here
+        tonConnectUI = tonConnectUIInstance; // Assign to global variable
         console.log("TON Connect initialized successfully");
 
         // Define UI elements after initialization
@@ -1841,11 +1859,11 @@ async function initializeTonConnect() {
         const warningButtons = document.querySelectorAll('.warning-button');
 
         // Initial UI update
-        await updateWalletUI(tonConnectUI);
+        await updateWalletUI();
 
         // Listen for status changes
         tonConnectUI.onStatusChange((walletInfo) => {
-            updateWalletUI(tonConnectUI);
+            updateWalletUI();
             if (walletInfo?.connectItems?.tonProof) {
                 verifyTonProof(walletInfo.connectItems.tonProof);
             }
@@ -1858,7 +1876,7 @@ async function initializeTonConnect() {
                     connectButton.disabled = true;
                     await tonConnectUI.disconnect();
                     await Storage.setItem('walletAddress', null);
-                    await updateWalletUI(tonConnectUI);
+                    await updateWalletUI();
                 } else {
                     connectButton.disabled = true;
                     connectButton.textContent = 'Connecting...';
@@ -1877,7 +1895,7 @@ async function initializeTonConnect() {
                 document.querySelector('.wallet-section').appendChild(errorMessage);
             } finally {
                 connectButton.disabled = false;
-                await updateWalletUI(tonConnectUI);
+                await updateWalletUI();
             }
         });
 
@@ -1885,15 +1903,22 @@ async function initializeTonConnect() {
         await initApp();
     } catch (error) {
         console.error("Error initializing TON Connect:", error.message);
+        alert("Failed to initialize wallet integration. Please refresh the page.");
     }
 }
 
-async function updateWalletUI(tonConnectUI) {
+// Update wallet UI without requiring tonConnectUI as an argument (uses global)
+async function updateWalletUI() {
     const connectButton = document.querySelector('.connect-button');
     const connectionStatus = document.getElementById('connection-status');
-    const withdrawButtons = document.querySelectorAll('.withdraw-button');
+    const withdrawButtons = document.querySelectorAll('.withdraw-button'); // Re-query here
     const errorMessage = document.querySelector('.error-message') || document.createElement('div');
     errorMessage.className = 'error-message';
+
+    if (!tonConnectUI) {
+        console.log("TON Connect UI not yet initialized, skipping UI update");
+        return;
+    }
 
     connectButton.disabled = false; // Reset button state
     if (tonConnectUI.connected) {
@@ -1919,6 +1944,9 @@ async function updateWalletUI(tonConnectUI) {
     }
     document.querySelector('.wallet-section').appendChild(errorMessage);
 }
+
+// Start initialization
+initializeTonConnect().catch(error => console.error("Initial TON Connect call failed:", error));
 
 // Add verifyTonProof right here
 async function verifyTonProof(tonProof) {
@@ -2127,7 +2155,7 @@ async function initApp() {
             await updateTopSectionUI();
             await updateWalletSectionUI();
             generateReferralLink();
-            // No direct call to updateWalletUI here; it’s handled in initializeTonConnect
+            // Wallet UI is updated in initializeTonConnect, so no need to call updateWalletUI here
         }
     } catch (error) {
         console.error("Error initializing app:", error.message);
