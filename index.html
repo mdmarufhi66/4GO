@@ -1790,10 +1790,9 @@ function loadTonConnectUIScript() {
         }
 
         const attempts = [
-            'https://unpkg.com/@tonconnect/ui@0.0.9/dist/tonconnect-ui.min.js', // Suggested stable version
-            // Optional: Add more fallback URLs if needed
-            // 'https://cdn.jsdelivr.net/npm/@tonconnect/ui@0.0.9/dist/tonconnect-ui.min.js',
-            // Local fallback: '/scripts/tonconnect-ui-0.0.9.min.js' (if you host it)
+            'https://unpkg.com/@tonconnect/ui@2.0.5/dist/tonconnect-ui.min.js', // Known stable version
+            'https://cdn.jsdelivr.net/npm/@tonconnect/ui@2.0.5/dist/tonconnect-ui.min.js' // Fallback CDN
+            // Add '/scripts/tonconnect-ui.min.js' if you host it locally
         ];
 
         let attemptIndex = 0;
@@ -1809,13 +1808,16 @@ function loadTonConnectUIScript() {
             script.async = true;
             script.onload = () => {
                 console.log(`TON Connect UI script loaded from ${attempts[attemptIndex]}`);
-                if (window.TONCONNECTUI) {
-                    resolve();
-                } else {
-                    console.error(`TONCONNECTUI not defined after loading ${attempts[attemptIndex]}`);
-                    attemptIndex++;
-                    tryNext();
-                }
+                setTimeout(() => { // Delay to ensure script execution
+                    if (window.TONCONNECTUI) {
+                        console.log("TONCONNECTUI defined:", window.TONCONNECTUI);
+                        resolve();
+                    } else {
+                        console.error(`TONCONNECTUI not defined after loading ${attempts[attemptIndex]}`);
+                        attemptIndex++;
+                        tryNext();
+                    }
+                }, 100);
             };
             script.onerror = (error) => {
                 console.warn(`Failed to load script from ${attempts[attemptIndex]}: ${error.type}`);
