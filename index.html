@@ -932,11 +932,14 @@
 let app, db, auth, storage, analytics;
 let firebaseInitialized = false;
 async function initializeFirebase(maxRetries = 3) {
-    if (firebaseInitialized) return true;
+    if (firebaseInitialized) {
+        console.log("Firebase already initialized, skipping reinitialization");
+        return true;
+    }
 
-    // Check if Firebase is already loaded globally
-    if (window.firebase && window.firebase.apps?.length > 0) {
-        console.log("Firebase already initialized in global scope, reusing existing instance");
+    // Check if Firebase is already in the global scope and has an app instance
+    if (window.firebase && window.firebase.apps && window.firebase.apps.length > 0) {
+        console.log("Firebase detected in global scope, reusing existing instance");
         app = window.firebase.apps[0];
         db = app.firestore();
         auth = app.auth();
@@ -947,70 +950,33 @@ async function initializeFirebase(maxRetries = 3) {
     }
 
     let attempts = 0;
+    const scriptUrls = [
+        'https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js',
+        'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js',
+        'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js',
+        'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js',
+        'https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics-compat.js'
+    ];
+
     while (attempts < maxRetries && !firebaseInitialized) {
         try {
             console.log(`Attempt ${attempts + 1}/${maxRetries} to initialize Firebase...`);
             validateFirebaseConfig(firebaseConfig);
 
-            const scriptUrls = [
-                'https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js',
-                'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js',
-                'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js',
-                'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js',
-                'https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics-compat.js'
-            ];
-
-            const fallbackUrls = [
-                'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-app-compat.js',
-                'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-auth-compat.js',
-                'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-firestore-compat.js',
-                'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-storage-compat.js',
-                'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-analytics-compat.js'
-            ];
-
-            let scriptsLoaded = false;
-            try {
-                console.log("Loading scripts from primary CDN...");
-                await Promise.all(scriptUrls.map(url => loadScript(url)));
-                scriptsLoaded = true;
-                console.log("Primary CDN scripts loaded successfully");
-            } catch (error) {
-                console.error("Primary CDN failed:", error.message);
-                console.log("Attempting fallback CDN...");
-                await Promise.all(fallbackUrls.map(url => loadScript(url)));
-                scriptsLoaded = true;
-                console.log("Fallback CDN scripts loaded successfully");
-            }
-
-            if (!scriptsLoaded) {
-                throw new Error("Failed to load Firebase scripts from both CDNs");
-            }
-
+            await Promise.all(scriptUrls.map(url => loadScript(url)));
             if (typeof firebase === 'undefined') {
                 throw new Error("Firebase SDK not loaded into global scope");
             }
 
-            console.log("Initializing Firebase app...");
             app = firebase.initializeApp(firebaseConfig);
-            console.log("Firebase app initialized:", app.name);
-
-            console.log("Initializing Firestore...");
             db = firebase.firestore();
-            if (!db) {
-                throw new Error("Firestore initialization failed: db is undefined");
-            }
-            console.log("Firestore initialized:", db);
-
             auth = firebase.auth();
             storage = firebase.storage();
             analytics = firebase.analytics();
 
-            console.log("Verifying Firestore connectivity...");
             await db.collection('test').doc('init').set({
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                test: "Initialization check"
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             }, { merge: true });
-            console.log("Firestore connectivity verified");
 
             firebaseInitialized = true;
             console.log("Firebase fully initialized");
@@ -1020,10 +986,9 @@ async function initializeFirebase(maxRetries = 3) {
             console.error(`Firebase initialization attempt ${attempts} failed:`, error.message);
             if (attempts >= maxRetries) {
                 console.error("Max retries reached. Firebase initialization failed.");
-                firebaseInitialized = false;
                 return false;
             }
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
+            await new Promise(resolve => setTimeout(resolve, 2000));
         }
     }
     return false;
