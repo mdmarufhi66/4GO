@@ -928,94 +928,106 @@
             console.log("Firebase config validated successfully");
         }
 
-        // Initialize Firebase with dynamic loading using compat scripts
-        let app, db, auth, storage, analytics;
-        let firebaseInitialized = false;
-        async function initializeFirebase(maxRetries = 3) {
-            if (firebaseInitialized) return true;
-            let attempts = 0;
+// Initialize Firebase with dynamic loading using compat scripts
+let app, db, auth, storage, analytics;
+let firebaseInitialized = false;
+async function initializeFirebase(maxRetries = 3) {
+    if (firebaseInitialized) return true;
 
-            while (attempts < maxRetries && !firebaseInitialized) {
-                try {
-                    console.log(`Attempt ${attempts + 1}/${maxRetries} to initialize Firebase...`);
-                    validateFirebaseConfig(firebaseConfig);
+    // Check if Firebase is already loaded globally
+    if (window.firebase && window.firebase.apps?.length > 0) {
+        console.log("Firebase already initialized in global scope, reusing existing instance");
+        app = window.firebase.apps[0];
+        db = app.firestore();
+        auth = app.auth();
+        storage = app.storage();
+        analytics = app.analytics();
+        firebaseInitialized = true;
+        return true;
+    }
 
-                    const scriptUrls = [
-                        'https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js',
-                        'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js',
-                        'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js',
-                        'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js',
-                        'https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics-compat.js'
-                    ];
+    let attempts = 0;
+    while (attempts < maxRetries && !firebaseInitialized) {
+        try {
+            console.log(`Attempt ${attempts + 1}/${maxRetries} to initialize Firebase...`);
+            validateFirebaseConfig(firebaseConfig);
 
-                    const fallbackUrls = [
-                        'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-app-compat.js',
-                        'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-auth-compat.js',
-                        'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-firestore-compat.js',
-                        'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-storage-compat.js',
-                        'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-analytics-compat.js'
-                    ];
+            const scriptUrls = [
+                'https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js',
+                'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js',
+                'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js',
+                'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js',
+                'https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics-compat.js'
+            ];
 
-                    let scriptsLoaded = false;
-                    try {
-                        console.log("Loading scripts from primary CDN...");
-                        await Promise.all(scriptUrls.map(url => loadScript(url)));
-                        scriptsLoaded = true;
-                        console.log("Primary CDN scripts loaded successfully");
-                    } catch (error) {
-                        console.error("Primary CDN failed:", error.message);
-                        console.log("Attempting fallback CDN...");
-                        await Promise.all(fallbackUrls.map(url => loadScript(url)));
-                        scriptsLoaded = true;
-                        console.log("Fallback CDN scripts loaded successfully");
-                    }
+            const fallbackUrls = [
+                'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-app-compat.js',
+                'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-auth-compat.js',
+                'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-firestore-compat.js',
+                'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-storage-compat.js',
+                'https://cdn.jsdelivr.net/npm/firebase@10.13.0/lib/firebase-analytics-compat.js'
+            ];
 
-                    if (!scriptsLoaded) {
-                        throw new Error("Failed to load Firebase scripts from both CDNs");
-                    }
-
-                    if (typeof firebase === 'undefined') {
-                        throw new Error("Firebase SDK not loaded into global scope");
-                    }
-
-                    console.log("Initializing Firebase app...");
-                    app = firebase.initializeApp(firebaseConfig);
-                    console.log("Firebase app initialized:", app.name);
-
-                    console.log("Initializing Firestore...");
-                    db = firebase.firestore();
-                    if (!db) {
-                        throw new Error("Firestore initialization failed: db is undefined");
-                    }
-                    console.log("Firestore initialized:", db);
-
-                    auth = firebase.auth();
-                    storage = firebase.storage();
-                    analytics = firebase.analytics();
-
-                    console.log("Verifying Firestore connectivity...");
-                    await db.collection('test').doc('init').set({
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                        test: "Initialization check"
-                    }, { merge: true });
-                    console.log("Firestore connectivity verified");
-
-                    firebaseInitialized = true;
-                    console.log("Firebase fully initialized");
-                    return true;
-                } catch (error) {
-                    attempts++;
-                    console.error(`Firebase initialization attempt ${attempts} failed:`, error.message);
-                    if (attempts >= maxRetries) {
-                        console.error("Max retries reached. Firebase initialization failed.");
-                        firebaseInitialized = false;
-                        return false;
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
-                }
+            let scriptsLoaded = false;
+            try {
+                console.log("Loading scripts from primary CDN...");
+                await Promise.all(scriptUrls.map(url => loadScript(url)));
+                scriptsLoaded = true;
+                console.log("Primary CDN scripts loaded successfully");
+            } catch (error) {
+                console.error("Primary CDN failed:", error.message);
+                console.log("Attempting fallback CDN...");
+                await Promise.all(fallbackUrls.map(url => loadScript(url)));
+                scriptsLoaded = true;
+                console.log("Fallback CDN scripts loaded successfully");
             }
-            return false;
+
+            if (!scriptsLoaded) {
+                throw new Error("Failed to load Firebase scripts from both CDNs");
+            }
+
+            if (typeof firebase === 'undefined') {
+                throw new Error("Firebase SDK not loaded into global scope");
+            }
+
+            console.log("Initializing Firebase app...");
+            app = firebase.initializeApp(firebaseConfig);
+            console.log("Firebase app initialized:", app.name);
+
+            console.log("Initializing Firestore...");
+            db = firebase.firestore();
+            if (!db) {
+                throw new Error("Firestore initialization failed: db is undefined");
+            }
+            console.log("Firestore initialized:", db);
+
+            auth = firebase.auth();
+            storage = firebase.storage();
+            analytics = firebase.analytics();
+
+            console.log("Verifying Firestore connectivity...");
+            await db.collection('test').doc('init').set({
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                test: "Initialization check"
+            }, { merge: true });
+            console.log("Firestore connectivity verified");
+
+            firebaseInitialized = true;
+            console.log("Firebase fully initialized");
+            return true;
+        } catch (error) {
+            attempts++;
+            console.error(`Firebase initialization attempt ${attempts} failed:`, error.message);
+            if (attempts >= maxRetries) {
+                console.error("Max retries reached. Firebase initialization failed.");
+                firebaseInitialized = false;
+                return false;
+            }
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
         }
+    }
+    return false;
+}
 
         // Telegram Web App Setup with error handling
         let telegramUser;
@@ -1803,7 +1815,7 @@ const connectionStatus = document.getElementById('connection-status');
 const withdrawButtons = document.querySelectorAll('.withdraw-button');
 const warningButtons = document.querySelectorAll('.warning-button');
 
-// Function to load script with Promise and fallback
+// Function to load script with Promise and multiple fallbacks
 function loadTonConnectUIScript() {
     return new Promise((resolve, reject) => {
         if (window.TONCONNECTUI) {
@@ -1812,42 +1824,43 @@ function loadTonConnectUIScript() {
             return;
         }
 
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js'; // Specific version
-        script.async = true;
-        script.onload = () => {
-            console.log("TON Connect UI script loaded successfully from unpkg");
-            if (window.TONCONNECTUI) {
-                resolve();
-            } else {
-                console.warn("TONCONNECTUI not defined after unpkg load, trying fallback...");
-                loadFallbackScript(resolve, reject);
-            }
-        };
-        script.onerror = () => {
-            console.warn("Failed to load TON Connect UI script from unpkg, trying fallback...");
-            loadFallbackScript(resolve, reject);
-        };
-        document.head.appendChild(script);
-    });
-}
+        const attempts = [
+            'https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js', // Latest from unpkg
+            'https://cdn.jsdelivr.net/npm/@tonconnect/ui@latest/dist/tonconnect-ui.min.js', // Latest from jsDelivr
+            'https://raw.githubusercontent.com/ton-community/tonconnect/master/packages/ui/dist/tonconnect-ui.min.js' // GitHub raw
+        ];
 
-function loadFallbackScript(resolve, reject) {
-    const fallbackScript = document.createElement('script');
-    fallbackScript.src = 'https://cdn.jsdelivr.net/npm/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js';
-    fallbackScript.async = true;
-    fallbackScript.onload = () => {
-        console.log("TON Connect UI script loaded successfully from jsDelivr");
-        if (window.TONCONNECTUI) {
-            resolve();
-        } else {
-            reject(new Error("TONCONNECTUI not defined after fallback load"));
+        let attemptIndex = 0;
+
+        function tryNext() {
+            if (attemptIndex >= attempts.length) {
+                reject(new Error("Failed to load TON Connect UI script from all sources"));
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = attempts[attemptIndex];
+            script.async = true;
+            script.onload = () => {
+                console.log(`TON Connect UI script loaded successfully from ${attempts[attemptIndex]}`);
+                if (window.TONCONNECTUI) {
+                    resolve();
+                } else {
+                    console.warn(`TONCONNECTUI not defined after loading ${attempts[attemptIndex]}`);
+                    attemptIndex++;
+                    tryNext();
+                }
+            };
+            script.onerror = () => {
+                console.warn(`Failed to load TON Connect UI script from ${attempts[attemptIndex]}`);
+                attemptIndex++;
+                tryNext();
+            };
+            document.head.appendChild(script);
         }
-    };
-    fallbackScript.onerror = () => {
-        reject(new Error("Failed to load TON Connect UI script from both sources"));
-    };
-    document.head.appendChild(fallbackScript);
+
+        tryNext();
+    });
 }
 
 // Initialize TON Connect
@@ -1857,7 +1870,7 @@ async function initializeTonConnect() {
         await loadTonConnectUIScript(); // Wait for script to load
 
         if (!window.TONCONNECTUI) {
-            throw new Error("TONCONNECTUI is not defined after script load");
+            throw new Error("TONCONNECTUI is not defined after script load attempts");
         }
 
         const tonConnectUIInstance = new window.TONCONNECTUI.TonConnectUI({
