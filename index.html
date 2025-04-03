@@ -188,19 +188,24 @@
             border-radius: 50%;
             cursor: pointer;
         }
-        .connect-button {
-            background: linear-gradient(to right, #ff00ff, #ff6666);
-            border: none;
-            color: white;
-            padding: 10px;
-            border-radius: 15px;
-            width: 100%;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        .connect-button.connected {
-            background: linear-gradient(to right, #00ff00, #66ff66);
-        }
+.connect-button {
+    background: linear-gradient(to right, #ff00ff, #ff6666);
+    border: none;
+    color: white;
+    padding: 10px;
+    border-radius: 15px;
+    width: 100%;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.3s ease;
+}
+.connect-button.connected {
+    background: linear-gradient(to right, #00ff00, #66ff66);
+}
+.connect-button:disabled {
+    background: #666;
+    cursor: not-allowed;
+}
         .wallet-status {
             text-align: center;
             margin: 10px 0;
@@ -1789,61 +1794,141 @@
             });
         });
 
-        // TON Wallet Integration
-        const tonConnect = new TonConnect({
-            manifestUrl: 'https://4go.netlify.app//tonconnect-manifest.json'
-        });
+// TON Wallet Integration
+// Load TON Connect UI script dynamically if not already included
+if (!window.TONCONNECTUI) {
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js';
+    script.async = true;
+    document.head.appendChild(script);
+    script.onload = initializeTonConnect;
+} else {
+    initializeTonConnect();
+}
 
-        const connectButton = document.querySelector('.connect-button');
-        const connectionStatus = document.getElementById('connection-status');
-        const withdrawButtons = document.querySelectorAll('.withdraw-button');
-        const warningButtons = document.querySelectorAll('.warning-button');
-
-        async function updateWalletUI() {
-            if (tonConnect.connected) {
-                connectButton.textContent = 'DISCONNECT WALLET';
-                connectButton.classList.add('connected');
-                connectionStatus.textContent = 'Connected';
-                connectionStatus.parentElement.classList.remove('disconnected');
-                connectionStatus.parentElement.classList.add('connected');
-                withdrawButtons.forEach(btn => btn.disabled = false);
-
-                const walletAddress = await Storage.getItem('walletAddress') || 'Not set';
-                console.log("Wallet connected, address:", walletAddress);
-            } else {
-                connectButton.textContent = 'CONNECT TON WALLET';
-                connectButton.classList.remove('connected');
-                connectionStatus.textContent = 'Disconnected';
-                connectionStatus.parentElement.classList.remove('connected');
-                connectionStatus.parentElement.classList.add('disconnected');
-                withdrawButtons.forEach(btn => btn.disabled = true);
-                console.log("Wallet disconnected");
-            }
+async function initializeTonConnect() {
+    const tonConnectUI = new TONCONNECTUI.TonConnectUI({
+        manifestUrl: 'https://4go.netlify.app/tonconnect-manifest.json',
+        uiPreferences: {
+            theme: 'DARK', // Align with app's dark theme
+            borderRadius: 'm'
+        },
+        walletsListConfiguration: {
+            includeWallets: [
+                { appName: 'tonkeeper', name: 'Tonkeeper' },
+                { appName: 'telegram-wallet', name: 'Telegram Wallet' }
+            ]
+        },
+        actionsConfiguration: {
+            twaReturnUrl: 'https://t.me/fourgobot' // Return to Telegram Mini App
         }
+    });
 
-        connectButton.addEventListener('click', async () => {
-            if (tonConnect.connected) {
-                await tonConnect.disconnect();
-                await Storage.setItem('walletAddress', null);
-                updateWalletUI();
-            } else {
-                try {
-                    await tonConnect.connect({ wallets: ['tonkeeper', 'telegram-wallet'] });
-                    const walletInfo = tonConnect.account;
-                    if (walletInfo) {
-                        await Storage.setItem('walletAddress', walletInfo.address);
-                        updateWalletUI();
-                    }
-                } catch (error) {
-                    console.error("Error connecting wallet:", error.message);
-                    alert("Failed to connect wallet: " + error.message);
-                }
-            }
-        });
+    // Restore previous connection
+    await tonConnectUI.restoreConnection();
+    updateWalletUI(tonConnectUI);
 
-        tonConnect.onStatusChange((walletInfo) => {
-            updateWalletUI();
+    // Listen for status changes
+    tonConnectUI.onStatusChange((walletInfo) => {
+        updateWalletUI(tonConnectUI);
+        if (walletInfo?.connectItems?.tonProof) {
+            verifyTonProof(walletInfo.connectItems.tonProof);
+        }
+    });
+
+    return tonConnectUI;
+}
+
+// Define tonConnectUI globally after initialization
+let tonConnectUI;
+initializeTonConnect().then(ui => tonConnectUI = ui);
+
+const connectButton = document.querySelector('.connect-button');
+const connectionStatus = document.getElementById('connection-status');
+const withdrawButtons = document.querySelectorAll('.withdraw-button');
+const warningButtons = document.querySelectorAll('.warning-button');
+
+async function updateWalletUI(tonConnectUI) {
+    const errorMessage = document.querySelector('.error-message') || document.createElement('div');
+    errorMessage.className = 'error-message';
+
+    connectButton.disabled = false; // Reset button state
+    if (tonConnectUI.connected) {
+        connectButton.textContent = 'DISCONNECT WALLET';
+        connectButton.classList.add('connected');
+        connectionStatus.textContent = 'Connected';
+        connectionStatus.parentElement.classList.remove('disconnected');
+        connectionStatus.parentElement.classList.add('connected');
+        withdrawButtons.forEach(btn => btn.disabled = false);
+
+        const walletAddress = await Storage.getItem('walletAddress') || 'Not set';
+        console.log("Wallet connected, address:", walletAddress);
+        errorMessage.style.display = 'none';
+    } else {
+        connectButton.textContent = 'CONNECT TON WALLET';
+        connectButton.classList.remove('connected');
+        connectionStatus.textContent = 'Disconnected';
+        connectionStatus.parentElement.classList.remove('connected');
+        connectionStatus.parentElement.classList.add('disconnected');
+        withdrawButtons.forEach(btn => btn.disabled = true);
+        console.log("Wallet disconnected");
+        errorMessage.style.display = 'none';
+    }
+    document.querySelector('.wallet-section').appendChild(errorMessage);
+}
+
+connectButton.addEventListener('click', async () => {
+    try {
+        if (tonConnectUI.connected) {
+            connectButton.disabled = true;
+            await tonConnectUI.disconnect();
+            await Storage.setItem('walletAddress', null);
+            updateWalletUI(tonConnectUI);
+        } else {
+            connectButton.disabled = true;
+            connectButton.textContent = 'Connecting...';
+            // Request TON Proof for authentication
+            tonConnectUI.setConnectRequestParameters({
+                state: 'ready',
+                value: { tonProof: `4metas-auth-${Date.now()}` }
+            });
+            await tonConnectUI.openModal(); // Opens wallet selection modal
+        }
+    } catch (error) {
+        console.error("Wallet connection error:", error.message);
+        const errorMessage = document.querySelector('.error-message');
+        errorMessage.textContent = `Connection failed: ${error.message}`;
+        errorMessage.style.display = 'block';
+    } finally {
+        connectButton.disabled = false;
+        updateWalletUI(tonConnectUI);
+    }
+});
+
+// Add verifyTonProof right here
+async function verifyTonProof(tonProof) {
+    try {
+        const response = await fetch('/api/verify-ton-proof', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                proof: tonProof.proof,
+                address: tonConnectUI.account.address
+            })
         });
+        const result = await response.json();
+        if (result.verified) {
+            console.log("TON Proof verified successfully");
+            // Optionally store verified status in Firestore
+        } else {
+            throw new Error("TON Proof verification failed");
+        }
+    } catch (error) {
+        console.error("TON Proof error:", error.message);
+        alert("Wallet authentication failed. Please reconnect.");
+        await tonConnectUI.disconnect();
+    }
+}
 
         // Withdrawal Logic
         const withdrawModal = document.getElementById('withdraw-modal');
@@ -1898,7 +1983,7 @@
             }
 
             try {
-                await processWithdrawal(amount, currency);
+                await (amount, currency);
                 withdrawModal.style.display = 'none';
                 await updateUserStatsUI();
                 await updateTransactionHistory();
@@ -1910,51 +1995,73 @@
         });
 
         async function processWithdrawal(amount, currency) {
-            if (!firebaseInitialized || !db) {
-                throw new Error("Firestore not initialized");
-            }
-            if (!tonConnect.connected) {
-                throw new Error("Wallet not connected");
-            }
+    if (!firebaseInitialized || !db) {
+        throw new Error("Firestore not initialized");
+    }
+    if (!tonConnectUI.connected) {
+        throw new Error("Wallet not connected");
+    }
 
-            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-            const fee = currency === 'USDT' ? 0.01 : 0.005;
-            const totalDeduction = amount + fee;
+    const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+    const fee = currency === 'USDT' ? 0.01 : 0.005;
+    const totalDeduction = amount + fee;
 
-            const userDoc = await userDocRef.get();
-            const userData = userDoc.data();
-            const currentBalance = currency === 'USDT' ? userData.usdt : userData.ton;
+    const userDoc = await userDocRef.get();
+    const userData = userDoc.data();
+    const currentBalance = currency === 'USDT' ? userData.usdt : userData.ton;
 
-            if (currentBalance < totalDeduction) {
-                throw new Error("Insufficient balance");
-            }
+    if (currentBalance < totalDeduction) {
+        throw new Error("Insufficient balance");
+    }
 
-            const txId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-            await userDocRef.update({
-                [currency.toLowerCase()]: firebase.firestore.FieldValue.increment(-totalDeduction)
-            });
+    // Simulate transaction
+    const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 60,
+        messages: [{
+            address: await Storage.getItem('walletAddress'),
+            amount: (amount * 1e9).toString(), // Convert to nanoTON or nanoUSDT
+        }]
+    };
 
-            const transaction = {
-                txId,
-                amount,
-                currency,
-                fee,
-                status: 'pending',
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            await db.collection('transactions').doc(telegramUser.id.toString()).collection('history').doc(txId).set(transaction);
-
-            setTimeout(async () => {
-                await db.collection('transactions').doc(telegramUser.id.toString()).collection('history').doc(txId).update({
-                    status: 'completed'
-                });
-                console.log(`Transaction ${txId} completed`);
-            }, 5000);
-
-            analytics.logEvent('withdrawal_initiated', { userId: telegramUser.id, amount, currency });
+    try {
+        const simulation = await tonConnectUI.sendTransaction(transaction, { dryRun: true });
+        console.log("Transaction simulation:", simulation);
+        if (!confirm(`Estimated fee: ${fee} ${currency}. Proceed with withdrawal?`)) {
+            return;
         }
+    } catch (error) {
+        throw new Error("Transaction simulation failed: " + error.message);
+    }
 
+    // Proceed with real transaction
+    const txId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    await userDocRef.update({
+        [currency.toLowerCase()]: firebase.firestore.FieldValue.increment(-totalDeduction)
+    });
+
+    const realTx = await tonConnectUI.sendTransaction(transaction);
+    console.log("Transaction sent:", realTx);
+
+    const transactionData = {
+        txId,
+        amount,
+        currency,
+        fee,
+        status: 'pending',
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    await db.collection('transactions').doc(telegramUser.id.toString())
+        .collection('history').doc(txId).set(transactionData);
+
+    setTimeout(async () => {
+        await db.collection('transactions').doc(telegramUser.id.toString())
+            .collection('history').doc(txId).update({ status: 'completed' });
+        console.log(`Transaction ${txId} completed`);
+    }, 5000);
+
+    analytics.logEvent('withdrawal_initiated', { userId: telegramUser.id, amount, currency });
+}
         async function updateTransactionHistory() {
             if (!firebaseInitialized || !db) {
                 console.error("Firestore not initialized. Cannot update transaction history.");
