@@ -1,3 +1,5 @@
-const tonConnect = new TonConnect({
-    manifestUrl: 'https://4go.netlify.app/tonconnect-manifest.json' // Replace with actual URL
-});
+{
+    "url": "https://4go.netlify.app",
+    "name": "4Metas",
+    "iconUrl": "https://4go.netlify.app/icon.png"
+}
