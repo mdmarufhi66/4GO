@@ -1769,19 +1769,15 @@ async function initializeFirebase(maxRetries = 3) {
                 alert("Referral link copied to clipboard!");
             });
         });
-
 // ====== TON CONNECT IMPLEMENTATION ====== //
 let tonConnectUI;
+const connectButton = document.querySelector('.connect-button');
+const connectionStatus = document.getElementById('connection-status');
 
 // Debug helper
 function debugTONGlobals() {
     console.log("Current TON-related globals:", 
         Object.keys(window).filter(k => k.toLowerCase().includes('ton')));
-}
-
-// Cache buster for development
-function getCacheBustedUrl(url) {
-    return url + '?v=' + (window.tonConnectCacheBuster || Date.now());
 }
 
 // ====== TON CONNECT LOADER ====== //
@@ -1797,39 +1793,50 @@ function loadTonConnectUIScript() {
 
         // Try these CDNs in order
         const attempts = [
-            'https://unpkg.com/@tonconnect/ui@2.1.1/dist/tonconnect-ui.min.js',  // Primary
-            'https://cdn.jsdelivr.net/npm/@tonconnect/ui@2.1.1/dist/tonconnect-ui.min.js',  // Backup
-            'https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js'  // Last resort
+            'https://unpkg.com/@tonconnect/ui@2.2.0/dist/tonconnect-ui.min.js',  // Updated to v2.2.0
+            'https://cdn.jsdelivr.net/npm/@tonconnect/ui@2.2.0/dist/tonconnect-ui.min.js',
+            'https://unpkg.com/@tonconnect/sdk@latest/dist/tonconnect-sdk.min.js'
         ];
 
         let attemptIndex = 0;
 
         function tryNext() {
             if (attemptIndex >= attempts.length) {
-                reject(new Error("Failed to load TON Connect from all sources"));
+                // Final fallback - try loading from jsDelivr with cache busting
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = attempts[1] + '?v=' + Date.now();
+                fallbackScript.onload = () => {
+                    window.TONCONNECTUI = window.TONCONNECTUI || window.TonConnectUI;
+                    if (window.TONCONNECTUI) {
+                        resolve();
+                    } else {
+                        reject(new Error("TONCONNECTUI still not defined after all attempts"));
+                    }
+                };
+                fallbackScript.onerror = () => reject(new Error("Final fallback failed"));
+                document.head.appendChild(fallbackScript);
                 return;
             }
 
             const script = document.createElement('script');
-            script.src = getCacheBustedUrl(attempts[attemptIndex]);
+            script.src = attempts[attemptIndex] + '?v=' + Date.now();
             script.async = true;
             
             script.onload = () => {
                 console.log("Loaded:", attempts[attemptIndex]);
-                // Check for the global variable under different names
                 window.TONCONNECTUI = window.TONCONNECTUI || window.TonConnectUI;
                 
                 if (window.TONCONNECTUI) {
-                    resolve(); // Success!
+                    resolve();
                 } else {
                     attemptIndex++;
-                    tryNext(); // Try next CDN
+                    tryNext();
                 }
             };
 
             script.onerror = () => {
                 attemptIndex++;
-                tryNext(); // Try next CDN
+                tryNext();
             };
 
             document.head.appendChild(script);
@@ -1895,7 +1902,8 @@ async function initializeTonConnect() {
             walletSection.innerHTML = `
                 <div class="wallet-error">
                     <p>⚠️ Wallet connection unavailable</p>
-                    <button onclick="window.location.reload()">Click to Retry</button>
+                    <p>Please try again later or contact support</p>
+                    <button onclick="window.location.reload()">Retry Now</button>
                     <p><small>Error: ${error.message}</small></p>
                 </div>
             `;
@@ -1915,9 +1923,9 @@ async function updateWalletUI() {
     const errorMessage = document.querySelector('.error-message') || document.createElement('div');
     errorMessage.className = 'error-message';
 
-    const connectButton = document.querySelector('.connect-button');
-    const connectionStatus = document.getElementById('connection-status');
+    // Get fresh references to DOM elements
     const withdrawButtons = document.querySelectorAll('.withdraw-button');
+    const warningButtons = document.querySelectorAll('.warning-button');
 
     connectButton.disabled = false;
     if (tonConnectUI.connected) {
@@ -1928,9 +1936,12 @@ async function updateWalletUI() {
         connectionStatus.parentElement.classList.add('connected');
         withdrawButtons.forEach(btn => btn.disabled = false);
 
-        const walletAddress = await Storage.getItem('walletAddress') || 'Not set';
+        const walletAddress = tonConnectUI.account?.address || 'Not set';
         console.log("Wallet connected, address:", walletAddress);
         errorMessage.style.display = 'none';
+        
+        // Store wallet address
+        await Storage.setItem('walletAddress', walletAddress);
     } else {
         connectButton.textContent = 'CONNECT TON WALLET';
         connectButton.classList.remove('connected');
@@ -1941,41 +1952,12 @@ async function updateWalletUI() {
         console.log("Wallet disconnected");
         errorMessage.style.display = 'none';
     }
+    
     document.querySelector('.wallet-section').appendChild(errorMessage);
 }
 
-// Verify TON Proof
-async function verifyTonProof(tonProof) {
-    try {
-        const response = await fetch('/api/verify-ton-proof', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                proof: tonProof.proof,
-                address: tonConnectUI.account.address
-            })
-        });
-        const result = await response.json();
-        if (result.verified) {
-            console.log("TON Proof verified successfully");
-        } else {
-            throw new Error("TON Proof verification failed");
-        }
-    } catch (error) {
-        console.error("TON Proof error:", error.message);
-        alert("Wallet authentication failed. Please reconnect.");
-        await tonConnectUI.disconnect();
-    }
-}
-
-// Initialize TON Connect when app starts
-initializeTonConnect().catch(error => {
-    console.error("TON Connect initialization failed:", error);
-    updateWalletUI();
-});
-
 // Connect button handler
-document.querySelector('.connect-button').addEventListener('click', async () => {
+async function handleConnectClick() {
     try {
         if (!tonConnectUI) {
             await initializeTonConnect();
@@ -1990,9 +1972,22 @@ document.querySelector('.connect-button').addEventListener('click', async () => 
         await updateWalletUI();
     } catch (error) {
         console.error("Wallet connection error:", error);
-        alert(`Connection failed: ${error.message}`);
+        alert(`Connection failed: ${error.message}\nPlease try again.`);
     }
-});
+}
+
+// Initialize TON Connect when app starts
+(async function initTonConnect() {
+    try {
+        await initializeTonConnect();
+        connectButton.addEventListener('click', handleConnectClick);
+        await updateWalletUI();
+    } catch (error) {
+        console.error("Initial TON Connect setup failed:", error);
+        connectButton.addEventListener('click', handleConnectClick);
+        connectButton.textContent = 'RETRY CONNECTION';
+    }
+})();
 // ====== END OF TON CONNECT IMPLEMENTATION ====== //
 
         // Withdrawal Logic
