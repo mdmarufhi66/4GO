@@ -1858,33 +1858,80 @@ async function initializeTonConnect() {
         return tonConnectUI;
     }
 
-    try {
-        if (!window.TONCONNECTUI) {
-            debugLog("TON Connect UI not in window, loading script...");
-            await loadScript('https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js');
-        } else {
-            debugLog("TON Connect UI already loaded in window");
-        }
+    // Use version 2.0.0 as specified
+    const scriptSources = [
+        'https://unpkg.com/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js',
+        'https://cdn.jsdelivr.net/npm/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js'
+    ];
 
-        if (!window.TONCONNECTUI?.TonConnectUI) {
-            throw new Error("TON Connect UI library not properly loaded");
-        }
-
-        tonConnectUI = new window.TONCONNECTUI.TonConnectUI({
-            manifestUrl: 'https://4go.netlify.app/tonconnect-manifest.json', // Using a known working manifest
-            uiPreferences: {
-                theme: 'DARK',
-                borderRadius: 'm'
+    let lastError = null;
+    for (const src of scriptSources) {
+        try {
+            debugLog(`Trying to load TON Connect from ${src}...`);
+            await loadScript(src);
+            
+            // Wait for the global object to be defined
+            debugLog("Waiting for TONCONNECTUI to be available in window...");
+            let retries = 50; // 5 seconds maximum wait time
+            while (retries > 0 && (!window.TONCONNECTUI || !window.TONCONNECTUI.TonConnectUI)) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                retries--;
             }
-        });
-
-        debugLog("TON Connect UI initialized successfully");
-        return tonConnectUI;
-    } catch (error) {
-        debugLog(`TON Connect initialization failed: ${error.message}`);
-        throw error;
+            
+            if (!window.TONCONNECTUI || !window.TONCONNECTUI.TonConnectUI) {
+                throw new Error("TON Connect UI not available after loading");
+            }
+            
+            debugLog("TON Connect UI detected in window");
+            
+            // Create the TON Connect UI instance
+            tonConnectUI = new window.TONCONNECTUI.TonConnectUI({
+                manifestUrl: 'https://tonconnect.github.io/demo-dapp/tonconnect-manifest.json',
+                uiPreferences: { theme: 'DARK', borderRadius: 'm' }
+            });
+            
+            debugLog("TON Connect UI initialized successfully");
+            return tonConnectUI;
+        } catch (error) {
+            lastError = error;
+            debugLog(`Failed with ${src}: ${error.message}`);
+        }
     }
+
+    // If we get here, all attempts failed
+    const errorMsg = `TON Connect initialization failed after all attempts: ${lastError?.message || 'Unknown error'}`;
+    debugLog(errorMsg);
+    throw new Error(errorMsg);
 }
+
+// Alternative approach to load TON Connect 2.0.0
+async function loadTonConnectLibrary() {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js';
+        script.async = true;
+        script.onload = () => {
+            // Check if library is loaded correctly
+            if (window.TONCONNECTUI && window.TONCONNECTUI.TonConnectUI) {
+                debugLog("TON Connect UI library loaded successfully");
+                resolve(window.TONCONNECTUI);
+            } else {
+                // Set a small timeout to allow library to initialize
+                setTimeout(() => {
+                    if (window.TONCONNECTUI && window.TONCONNECTUI.TonConnectUI) {
+                        debugLog("TON Connect UI library loaded after delay");
+                        resolve(window.TONCONNECTUI);
+                    } else {
+                        reject(new Error("TON Connect UI library not available after loading"));
+                    }
+                }, 1000);
+            }
+        };
+        script.onerror = () => reject(new Error("Failed to load TON Connect UI script"));
+        document.head.appendChild(script);
+    });
+}
+
 
 // Update wallet UI
 async function updateWalletUI() {
