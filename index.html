@@ -2094,97 +2094,120 @@ async function updateWalletUI() {
 
 // Handle wallet connection/disconnection
 async function handleConnectClick() {
-    const { connectButton } = getWalletElements();
-    debugLog("Connect TON Wallet button clicked");
+    console.log("Connect TON Wallet button clicked - handleConnectClick function called");
+    debugLog("Connect TON Wallet button clicked - direct function call");
+    
+    const connectButton = document.querySelector('.connect-button');
     if (!connectButton) {
-        debugLog("Connect button not found");
+        console.error("Connect button not found in DOM!");
         alert("Connect button missing from page!");
         return;
     }
-
+    
     try {
+        // Disable button to prevent multiple clicks
         connectButton.disabled = true;
         connectButton.textContent = 'Processing...';
-
-        if (!tonConnectUI) {
-            debugLog("TON Connect not initialized, initializing now...");
-            tonConnectUI = await initializeTonConnect();
-        }
-
-        if (tonConnectUI.connected) {
-            debugLog("Disconnecting wallet...");
-            await tonConnectUI.disconnect();
-            debugLog("Wallet disconnected");
-            alert("Wallet disconnected");
+        
+        // Direct fallback to Telegram wallet for simplicity
+        console.log("Opening Telegram wallet directly");
+        if (window.Telegram && window.Telegram.WebApp) {
+            Telegram.WebApp.openLink('https://t.me/wallet/start');
         } else {
-            debugLog("Attempting wallet connection...");
-            await tonConnectUI.connectWallet();
-            debugLog("Wallet connection requested");
-            // Modal should appear here
+            // Try to open in a new tab as fallback
+            window.open('https://t.me/wallet/start', '_blank');
         }
     } catch (error) {
+        console.error("Error in handleConnectClick:", error);
         debugLog(`Connection error: ${error.message}`);
-        alert(`Failed to connect: ${error.message}\nPlease install Tonkeeper or Telegram Wallet.`);
-        if (window.Telegram && window.Telegram.WebApp) {
-            Telegram.WebApp.openLink('https://t.me/wallet/start'); // Fallback to Telegram Wallet
-        }
+        alert(`Failed to connect: ${error.message}`);
     } finally {
-        await updateWalletUI();
+        // Re-enable the button after a delay
+        setTimeout(() => {
+            connectButton.disabled = false;
+            connectButton.textContent = 'Connect TON Wallet';
+        }, 3000);
     }
 }
 
 // Initialize wallet system
 async function initWalletSystem() {
     debugLog("Starting wallet system initialization...");
-    let { connectButton } = getWalletElements();
-
-    // Wait for button if not found
-    if (!connectButton) {
-        debugLog("Connect button not found, waiting for DOM...");
-        connectButton = await new Promise(resolve => {
-            const interval = setInterval(() => {
-                const btn = document.querySelector('.connect-button');
-                if (btn) {
-                    clearInterval(interval);
-                    resolve(btn);
-                }
-            }, 100);
-        });
-        debugLog("Connect button found after wait");
-    }
-
+    console.log("Starting wallet system initialization...");
+    
     try {
-        // Attach event listener first
-        connectButton.addEventListener('click', () => {
-            debugLog("Click event triggered!");
-            handleConnectClick();
-        });
-        debugLog("Event listener attached to connect button");
-
-        // Initialize TON Connect
-        await initializeTonConnect();
-
-        // Status change listener
-        if (tonConnectUI && typeof tonConnectUI.onStatusChange === 'function') {
-            tonConnectUI.onStatusChange(wallet => {
-                debugLog(`Wallet status changed: ${wallet ? 'Connected' : 'Disconnected'}`);
-                updateWalletUI();
-            });
+        // Find the button
+        let connectButton = document.querySelector('.connect-button');
+        
+        // Wait for button if not found
+        if (!connectButton) {
+            debugLog("Connect button not found, waiting for DOM...");
+            
+            // Try to find the button for up to 10 seconds
+            for (let i = 0; i < 100; i++) {
+                connectButton = document.querySelector('.connect-button');
+                if (connectButton) break;
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
+            if (!connectButton) {
+                debugLog("Connect button not found after waiting");
+                console.error("Connect button not found after waiting");
+                return;
+            }
+            
+            debugLog("Connect button found after wait");
         }
 
+        // Remove any existing listeners to prevent duplicates
+        const oldClickHandler = connectButton.onclick;
+        if (oldClickHandler) {
+            connectButton.removeEventListener('click', oldClickHandler);
+        }
+        
+        // Add both event listener and direct onclick property
+        connectButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log("Click event listener triggered!");
+            debugLog("Click event listener triggered!");
+            handleConnectClick();
+        });
+        
+        // Also set direct onclick as a backup approach
+        connectButton.onclick = function(e) {
+            if (e) e.preventDefault();
+            console.log("Direct onclick triggered!");
+            debugLog("Direct onclick triggered!");
+            handleConnectClick();
+        };
+        
+        debugLog("Event listeners attached to connect button");
+        console.log("Event listeners attached to connect button", connectButton);
+        
+        // Initialize dummy connected state for UI
         await updateWalletUI();
         debugLog("Wallet system fully initialized");
     } catch (error) {
         debugLog(`Wallet system init failed: ${error.message}`);
+        console.error("Wallet system init failed:", error);
         alert(`Wallet init failed: ${error.message}`);
     }
 }
 
-// Manual trigger for testing
-window.testWalletConnect = async () => {
-    debugLog("Manual wallet connect test triggered");
-    await handleConnectClick();
+// Manual trigger function for testing - can be called from console
+window.connectWalletManual = function() {
+    console.log("Manual wallet connect triggered from global function");
+    handleConnectClick();
 };
+
+// Ensure we try to initialize the wallet system
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM loaded, initializing wallet...");
+    setTimeout(initWalletSystem, 1000); // Delay initialization slightly
+});
+
+// Also try to initialize immediately
+initWalletSystem();
 
 // Call initApp
 initApp();
