@@ -1799,10 +1799,11 @@ async function initializeFirebase(maxRetries = 3) {
                 alert("Referral link copied to clipboard!");
             });
         });
-   // ====== TON CONNECT IMPLEMENTATION ====== //
-let tonConnectUI;
+// ====== TON CONNECT IMPLEMENTATION ====== //
 
-// 1. First add this debug helper function
+let tonConnectUI = null;
+
+// Debug logging helper
 function debugLog(message) {
     console.log(message);
     const debugConsole = document.getElementById('debugConsole');
@@ -1812,38 +1813,71 @@ function debugLog(message) {
     }
 }
 
-// 2. Update the wallet elements getter
+// Get wallet-related DOM elements
 function getWalletElements() {
-    return {
+    const elements = {
         connectButton: document.querySelector('.connect-button'),
         connectionStatus: document.getElementById('connection-status'),
         withdrawButtons: document.querySelectorAll('.withdraw-button'),
         warningButtons: document.querySelectorAll('.warning-button'),
         walletSection: document.getElementById('wallet')
     };
+    debugLog(`Wallet elements: connectButton=${!!elements.connectButton}, status=${!!elements.connectionStatus}`);
+    return elements;
 }
 
-// 3. Replace the initialization function
+// Dynamically load a script with retries
+async function loadScript(src, retries = 3, delay = 1000) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            debugLog(`Loading script ${src} (Attempt ${attempt}/${retries})`);
+            const script = document.createElement('script');
+            script.src = src;
+            script.async = true;
+            return new Promise((resolve, reject) => {
+                script.onload = () => {
+                    debugLog(`Script loaded: ${src}`);
+                    resolve();
+                };
+                script.onerror = () => reject(new Error(`Failed to load ${src}`));
+                document.head.appendChild(script);
+            });
+        } catch (error) {
+            debugLog(`Script load failed: ${error.message}`);
+            if (attempt === retries) throw error;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+    }
+}
+
+// Initialize TON Connect
 async function initializeTonConnect() {
+    if (tonConnectUI) {
+        debugLog("TON Connect already initialized");
+        return tonConnectUI;
+    }
+
     try {
-        debugLog("Initializing TON Connect...");
-        
-        // Try to load the TON Connect UI
         if (!window.TONCONNECTUI) {
-            debugLog("Loading TON Connect script...");
-            await loadScript('https://cdn.jsdelivr.net/npm/@tonconnect/ui@latest/dist/tonconnect-ui.min.js');
+            debugLog("TON Connect UI not in window, loading script...");
+            await loadScript('https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js');
+        } else {
+            debugLog("TON Connect UI already loaded in window");
         }
 
-        debugLog("Creating TON Connect instance...");
-        const tonConnectUIInstance = new TONCONNECTUI.TonConnectUI({
-            manifestUrl: 'https://4go.netlify.app/tonconnect-manifest.json',
+        if (!window.TONCONNECTUI.TonConnectUI) {
+            throw new Error("TON Connect UI library not properly loaded");
+        }
+
+        tonConnectUI = new window.TONCONNECTUI.TonConnectUI({
+            manifestUrl: 'https://4go.netlify.app/tonconnect-manifest.json', // Verify this URL works
             uiPreferences: {
                 theme: 'DARK',
                 borderRadius: 'm'
             },
             walletsListConfiguration: {
                 includeWallets: [
-                    { 
+                    {
                         appName: 'tonkeeper',
                         name: 'Tonkeeper',
                         imageUrl: 'https://tonkeeper.com/assets/tonconnect-icon.png',
@@ -1857,94 +1891,151 @@ async function initializeTonConnect() {
                         imageUrl: 'https://wallet.ton.org/assets/tonconnect-icon.png',
                         aboutUrl: 'https://wallet.ton.org',
                         universalLink: 'https://wallet.ton.org/ton-connect',
-                        jsBridgeKey: 'telegramwallet'
+                        jsBridgeKey: 'telegram-wallet'
                     }
                 ]
             }
         });
 
-        debugLog("TON Connect initialized successfully");
-        return tonConnectUIInstance;
+        debugLog("TON Connect UI initialized successfully");
+        return tonConnectUI;
     } catch (error) {
-        debugLog("TON Connect init error: " + error.message);
+        debugLog(`TON Connect initialization failed: ${error.message}`);
         throw error;
     }
 }
 
-// 4. Replace the wallet connection handler
+// Update wallet UI based on connection status
+async function updateWalletUI() {
+    const { connectButton, connectionStatus, withdrawButtons } = getWalletElements();
+    if (!connectButton || !connectionStatus) {
+        debugLog("Wallet UI elements missing");
+        return;
+    }
+
+    try {
+        if (!tonConnectUI) {
+            debugLog("TON Connect not initialized yet");
+            connectButton.textContent = 'Connect TON Wallet';
+            connectButton.disabled = false;
+            connectionStatus.textContent = 'Disconnected';
+            connectionStatus.className = 'wallet-status disconnected';
+            withdrawButtons.forEach(btn => btn.disabled = true);
+            return;
+        }
+
+        const isConnected = tonConnectUI.connected;
+        debugLog(`Wallet connection status: ${isConnected ? 'Connected' : 'Disconnected'}`);
+
+        connectButton.textContent = isConnected ? 'Disconnect Wallet' : 'Connect TON Wallet';
+        connectButton.disabled = false;
+        connectButton.classList.toggle('connected', isConnected);
+        connectionStatus.textContent = isConnected ? 'Connected' : 'Disconnected';
+        connectionStatus.className = `wallet-status ${isConnected ? 'connected' : 'disconnected'}`;
+        withdrawButtons.forEach(btn => btn.disabled = !isConnected);
+
+        if (isConnected) {
+            const walletInfo = tonConnectUI.account;
+            debugLog(`Connected wallet address: ${walletInfo?.address || 'Unknown'}`);
+            await Storage.setItem('walletAddress', walletInfo.address);
+        }
+    } catch (error) {
+        debugLog(`Error updating wallet UI: ${error.message}`);
+        connectButton.textContent = 'Connect TON Wallet';
+        connectButton.disabled = false;
+        connectionStatus.textContent = 'Error';
+        connectionStatus.className = 'wallet-status disconnected';
+    }
+}
+
+// Handle wallet connection/disconnection
 async function handleConnectClick() {
     const { connectButton } = getWalletElements();
-    if (!connectButton) return;
+    if (!connectButton) {
+        debugLog("Connect button not found");
+        return;
+    }
 
     try {
         connectButton.disabled = true;
         connectButton.textContent = 'Processing...';
-        
-        debugLog("Checking TON Connect initialization...");
+        debugLog("Connect button clicked");
+
         if (!tonConnectUI) {
+            debugLog("Initializing TON Connect on first click");
             tonConnectUI = await initializeTonConnect();
         }
 
         if (tonConnectUI.connected) {
             debugLog("Disconnecting wallet...");
             await tonConnectUI.disconnect();
+            debugLog("Wallet disconnected successfully");
             alert("Wallet disconnected");
         } else {
-            debugLog("Opening wallet connection...");
-            
-            // Try to connect with a 5 second timeout
+            debugLog("Attempting to connect wallet...");
             const connectionPromise = tonConnectUI.connectWallet();
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error("Connection timeout")), 5000));
-            
+            // Add a timeout to detect if the modal fails to appear
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Connection modal timeout")), 5000)
+            );
             await Promise.race([connectionPromise, timeoutPromise]);
+            debugLog("Wallet connection initiated");
+            // If we reach here without an error, the modal should have appeared
         }
     } catch (error) {
-        debugLog("Connection error: " + error.message);
-        alert(`Failed to connect: ${error.message}\nPlease ensure you have a TON wallet installed.`);
+        debugLog(`Wallet connection error: ${error.message}`);
+        if (error.message.includes("timeout")) {
+            alert("No wallet response. Please ensure Tonkeeper or Telegram Wallet is installed.");
+            Telegram.WebApp.openLink('https://t.me/wallet/start'); // Fallback to Telegram Wallet
+        } else {
+            alert(`Failed to connect wallet: ${error.message}\nEnsure a TON wallet is installed.`);
+        }
     } finally {
         await updateWalletUI();
+        connectButton.disabled = false;
     }
 }
 
-// 5. Replace the wallet system initialization
+// Initialize wallet system
 async function initWalletSystem() {
+    debugLog("Initializing wallet system...");
+    const { connectButton } = getWalletElements();
+
     try {
-        debugLog("Starting wallet system initialization...");
-        
         // Initialize TON Connect
         tonConnectUI = await initializeTonConnect();
-        
-        // Set up status change listener
+
+        // Listen for status changes
         tonConnectUI.onStatusChange((wallet) => {
-            debugLog(`Wallet status changed: ${wallet ? "Connected" : "Disconnected"}`);
+            debugLog(`Wallet status changed: ${wallet ? 'Connected' : 'Disconnected'}`);
             updateWalletUI();
         });
 
-        // Set up button click handler
-        const { connectButton } = getWalletElements();
+        // Attach click handler
         if (connectButton) {
             connectButton.addEventListener('click', handleConnectClick);
+            debugLog("Connect button event listener attached");
+        } else {
+            debugLog("Connect button not found in DOM");
         }
 
         // Initial UI update
         await updateWalletUI();
-        debugLog("Wallet system ready");
+        debugLog("Wallet system initialized successfully");
     } catch (error) {
-        debugLog("Wallet init failed: " + error.message);
-        
-        // Show error to user
+        debugLog(`Wallet system initialization failed: ${error.message}`);
         const walletSection = document.getElementById('wallet');
         if (walletSection) {
             walletSection.innerHTML += `
-                <div class="error-message">
-                    Wallet system initialization failed. Please refresh the page.
-                    <br><small>${error.message}</small>
+                <div class="error-message" style="display: block;">
+                    Wallet system failed: ${error.message}<br>
+                    Please refresh or check your connection.
                 </div>
             `;
         }
     }
-}     
+}
+
         // Withdrawal Logic
         const withdrawModal = document.getElementById('withdraw-modal');
         const withdrawAmountInput = document.getElementById('withdraw-amount');
@@ -2116,36 +2207,28 @@ async function initWalletSystem() {
     // Initialize Application
         async function initApp() {
     try {
-        // 1. Initialize Firebase first
         const firebaseSuccess = await initializeFirebase();
         if (!firebaseSuccess) {
-            console.error("Firebase initialization failed");
             alert("Failed to connect to database. Some features may not work.");
             return;
         }
 
-        // 2. Load basic user data
         await initializeUserData();
         await handleReferral();
-
-        // 3. Update UI sections
         await updateEarnSectionUI();
         await updateInviteSectionUI();
         await updateTopSectionUI();
-
-        // 4. Initialize Wallet System (NEW)
-        await initWalletSystem();  // ← THIS IS THE CRITICAL ADDITION
-
-        // 5. Final UI updates
+        await initWalletSystem(); // Ensure wallet system is initialized
         await updateWalletSectionUI();
         generateReferralLink();
 
-        console.log("App fully initialized");
+        debugLog("App fully initialized");
     } catch (error) {
-        console.error("App initialization failed:", error);
-        alert("Failed to load app. Please refresh.\nError: " + error.message);
+        debugLog("App initialization failed: " + error.message);
+        alert("Failed to load app: " + error.message);
     }
 }
+
         initApp();
     </script>
 </body>
