@@ -1858,92 +1858,78 @@ async function initializeTonConnect() {
         return tonConnectUI;
     }
 
-    // Use version 2.0.0
-    const scriptSources = [
-        'https://unpkg.com/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js',
-        'https://cdn.jsdelivr.net/npm/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js'
-    ];
-
-    let lastError = null;
-    for (const src of scriptSources) {
-        try {
-            debugLog(`Trying to load TON Connect from ${src}...`);
-            await loadScript(src);
+    try {
+        debugLog("Loading TON Connect script...");
+        await loadScript('https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.js');
+        
+        debugLog("Script loaded, checking for TON Connect UI...");
+        // Wait a moment for the script to initialize
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Check if the library is available
+        if (typeof TonConnectUI === 'undefined') {
+            debugLog("TonConnectUI not found in global scope, trying alternative approach");
             
-            // Check various possible exports - version 2.0.0 might have different global objects
-            debugLog("Checking for TON Connect UI in window namespace...");
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Give time for script to initialize
+            // Try an alternative approach with a module script
+            const moduleScript = document.createElement('script');
+            moduleScript.type = 'module';
+            moduleScript.textContent = `
+                import { TonConnectUI } from 'https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.js';
+                window.TonConnectUIClass = TonConnectUI;
+            `;
+            document.head.appendChild(moduleScript);
             
-            // Log available properties to help debug
-            debugLog("Window properties related to TON: " + 
-                Object.keys(window).filter(key => 
-                    key.toLowerCase().includes('ton') || 
-                    key.toLowerCase().includes('connect')
-                ).join(', '));
-                
-            // Try different potential global objects
-            const TonConnectUIClass = 
-                (window.TONCONNECTUI && window.TONCONNECTUI.TonConnectUI) ||
-                window.TonConnectUI ||
-                window.tonconnect?.ui?.TonConnectUI ||
-                window.TON?.Connect?.UI;
-                
-            if (!TonConnectUIClass) {
-                throw new Error("TON Connect UI class not found in window");
+            // Wait for the module to execute
+            for (let i = 0; i < 20; i++) {
+                if (window.TonConnectUIClass) break;
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
             
-            debugLog("TON Connect UI class found!");
+            if (!window.TonConnectUIClass) {
+                throw new Error("Could not load TonConnectUI as a module");
+            }
             
-            // Create the TON Connect UI instance
-            tonConnectUI = new TonConnectUIClass({
+            tonConnectUI = new window.TonConnectUIClass({
                 manifestUrl: 'https://tonconnect.github.io/demo-dapp/tonconnect-manifest.json',
                 uiPreferences: { theme: 'DARK', borderRadius: 'm' }
             });
-            
-            debugLog("TON Connect UI initialized successfully");
-            return tonConnectUI;
-        } catch (error) {
-            lastError = error;
-            debugLog(`Failed with ${src}: ${error.message}`);
-        }
-    }
-
-    debugLog(`TON Connect initialization failed after all attempts: ${lastError?.message || 'Unknown error'}`);
-    throw new Error(`TON Connect initialization failed: ${lastError?.message || 'Unknown error'}`);
-}
-// Alternative approach using dynamic import
-async function initializeTonConnectWithImport() {
-    debugLog("Attempting to initialize TON Connect with dynamic import...");
-    
-    try {
-        // Add the script to the page
-        const script = document.createElement('script');
-        script.type = 'module';
-        script.textContent = `
-            import { TonConnectUI } from 'https://cdn.jsdelivr.net/npm/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js';
-            window.__tonConnectUIInstance = new TonConnectUI({
+        } else {
+            // Normal approach
+            debugLog("TonConnectUI found in global scope");
+            tonConnectUI = new TonConnectUI({
                 manifestUrl: 'https://tonconnect.github.io/demo-dapp/tonconnect-manifest.json',
                 uiPreferences: { theme: 'DARK', borderRadius: 'm' }
             });
-        `;
-        document.head.appendChild(script);
-        
-        // Wait for the instance to be created
-        let retries = 50;
-        while (retries > 0 && !window.__tonConnectUIInstance) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            retries--;
         }
         
-        if (!window.__tonConnectUIInstance) {
-            throw new Error("Failed to create TON Connect UI instance");
-        }
-        
-        tonConnectUI = window.__tonConnectUIInstance;
-        debugLog("TON Connect UI initialized via import");
+        debugLog("TON Connect UI initialized successfully");
         return tonConnectUI;
     } catch (error) {
-        debugLog(`Import initialization failed: ${error.message}`);
+        debugLog(`TON Connect initialization failed: ${error.message}`);
+        throw error;
+    }
+}
+// Alternative approach using dynamic import
+async function initializeTonConnectSDK() {
+    try {
+        debugLog("Loading TON Connect SDK...");
+        await loadScript('https://unpkg.com/@tonconnect/sdk@latest');
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        if (typeof TonConnect === 'undefined') {
+            throw new Error("TonConnect SDK not found in global scope");
+        }
+        
+        const connector = new TonConnect({
+            manifestUrl: 'https://tonconnect.github.io/demo-dapp/tonconnect-manifest.json'
+        });
+        
+        // Then create your own UI on top of this
+        debugLog("TON Connect SDK initialized successfully");
+        return connector;
+    } catch (error) {
+        debugLog(`TON Connect SDK initialization failed: ${error.message}`);
         throw error;
     }
 }
