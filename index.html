@@ -1997,6 +1997,8 @@ async function handleConnectClick() {
 
 // Initialize wallet system with retry on DOM load
 async function initWalletSystem() {
+	const btn = document.querySelector('.connect-button');
+debugLog(`Post-init button check: ${btn ? 'Found' : 'Not found'}`);
     debugLog("Initializing wallet system...");
     let { connectButton } = getWalletElements();
 
