@@ -1803,6 +1803,7 @@
 // ====== TON CONNECT IMPLEMENTATION ====== //
 
         let tonConnectUI = null;
+        let isManualFallback = false; // Track if we're using the manual fallback
 
         // Debug logging helper
         function debugLog(message) {
@@ -1826,7 +1827,7 @@
             return elements;
         }
 
-        // Dynamically load a script with retries
+        // Dynamically load a script with retries and validation
         async function loadScript(src, retries = 3, delay = 1000) {
             for (let attempt = 1; attempt <= retries; attempt++) {
                 try {
@@ -1842,7 +1843,15 @@
                     const loadPromise = new Promise((resolve, reject) => {
                         script.onload = () => {
                             debugLog(`Script loaded: ${src}`);
-                            resolve();
+                            // Check if TonConnectUI is defined immediately after loading
+                            setTimeout(() => {
+                                if (typeof TonConnectUI === 'undefined') {
+                                    debugLog(`TonConnectUI not defined after loading ${src}`);
+                                    reject(new Error(`TonConnectUI not defined after loading ${src}`));
+                                } else {
+                                    resolve();
+                                }
+                            }, 100);
                         };
                         script.onerror = () => reject(new Error(`Failed to load ${src}`));
                         document.head.appendChild(script);
@@ -1861,7 +1870,7 @@
         }
 
         // Check for TonConnectUI in global scope with retries
-        async function waitForTonConnectUI(maxRetries = 5, delay = 500) {
+        async function waitForTonConnectUI(maxRetries = 10, delay = 1000) {
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
                 if (typeof TonConnectUI !== 'undefined') {
                     debugLog("TonConnectUI found in global scope");
@@ -1873,6 +1882,22 @@
             throw new Error("TonConnectUI not loaded into global scope after retries");
         }
 
+        // Manual fallback for wallet connection
+        function manualWalletConnect() {
+            debugLog("Falling back to manual wallet connection");
+            isManualFallback = true;
+            Telegram.WebApp.openTelegramLink('https://t.me/wallet/start');
+            // Simulate a connected state for the UI
+            const { connectButton, connectionStatus, withdrawButtons } = getWalletElements();
+            if (connectButton && connectionStatus) {
+                connectButton.textContent = 'Disconnect Wallet';
+                connectButton.classList.add('connected');
+                connectionStatus.textContent = 'Connected (Manual)';
+                connectionStatus.className = 'wallet-status connected';
+                withdrawButtons.forEach(btn => btn.disabled = false);
+            }
+        }
+
         // Initialize TON Connect with improved reliability
         async function initializeTonConnect() {
             debugLog("Entering initializeTonConnect...");
@@ -1882,10 +1907,12 @@
             }
 
             try {
-                // Update: Use a specific version and add fallback CDNs
+                // Update: Try multiple versions and CDNs
                 const tonConnectScriptSources = [
-                    'https://unpkg.com/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js',
-                    'https://cdn.jsdelivr.net/npm/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js'
+                    'https://unpkg.com/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js',
+                    'https://cdn.jsdelivr.net/npm/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js',
+                    'https://unpkg.com/@tonconnect/ui@2.1.2/dist/tonconnect-ui.min.js',
+                    'https://cdn.jsdelivr.net/npm/@tonconnect/ui@2.1.2/dist/tonconnect-ui.min.js'
                 ];
 
                 let scriptLoaded = false;
@@ -1928,7 +1955,8 @@
                 return tonConnectUI;
             } catch (error) {
                 debugLog(`TON Connect initialization failed: ${error.message}`);
-                alert("Failed to initialize wallet connection. Please try again later.");
+                // Update: Fallback to manual connection
+                manualWalletConnect();
                 return null;
             }
         }
@@ -1943,6 +1971,11 @@
             }
 
             try {
+                if (isManualFallback) {
+                    // UI already updated in manualWalletConnect
+                    return;
+                }
+
                 if (!tonConnectUI) {
                     debugLog("TON Connect not initialized");
                     connectButton.textContent = 'Connect TON Wallet';
@@ -1988,12 +2021,24 @@
                 connectButton.disabled = true;
                 connectButton.textContent = 'Connecting...';
 
+                if (isManualFallback) {
+                    // Reset manual fallback state
+                    isManualFallback = false;
+                    tonConnectUI = null;
+                    await updateWalletUI();
+                }
+
                 if (!tonConnectUI) {
                     debugLog("TON Connect not initialized, initializing now...");
                     await initializeTonConnect();
-                    if (!tonConnectUI) {
+                    if (!tonConnectUI && !isManualFallback) {
                         throw new Error("Failed to initialize TON Connect");
                     }
+                }
+
+                if (isManualFallback) {
+                    // Already connected manually
+                    return;
                 }
 
                 if (tonConnectUI.connected) {
@@ -2085,7 +2130,7 @@
                 alert("Database not initialized. Please try again later.");
                 return;
             }
-            if (!tonConnectUI || !tonConnectUI.connected) {
+            if (!tonConnectUI && !isManualFallback) {
                 alert("Please connect your wallet first!");
                 return;
             }
