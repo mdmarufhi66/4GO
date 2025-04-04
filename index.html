@@ -1800,7 +1800,7 @@
             });
         });
 
-        // ====== TON CONNECT IMPLEMENTATION ====== //
+// ====== TON CONNECT IMPLEMENTATION ====== //
 
         let tonConnectUI = null;
 
@@ -1860,7 +1860,20 @@
             return false;
         }
 
-        // Initialize TON Connect with simplified approach
+        // Check for TonConnectUI in global scope with retries
+        async function waitForTonConnectUI(maxRetries = 5, delay = 500) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                if (typeof TonConnectUI !== 'undefined') {
+                    debugLog("TonConnectUI found in global scope");
+                    return true;
+                }
+                debugLog(`TonConnectUI not found in global scope (Attempt ${attempt}/${maxRetries})`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+            throw new Error("TonConnectUI not loaded into global scope after retries");
+        }
+
+        // Initialize TON Connect with improved reliability
         async function initializeTonConnect() {
             debugLog("Entering initializeTonConnect...");
             if (tonConnectUI) {
@@ -1869,13 +1882,32 @@
             }
 
             try {
-                // Update: Use the latest TON Connect UI library (v2.x as of April 2024)
-                const tonConnectScript = 'https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js';
-                await loadScript(tonConnectScript);
+                // Update: Use a specific version and add fallback CDNs
+                const tonConnectScriptSources = [
+                    'https://unpkg.com/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js',
+                    'https://cdn.jsdelivr.net/npm/@tonconnect/ui@2.0.0/dist/tonconnect-ui.min.js'
+                ];
 
-                if (typeof TonConnectUI === 'undefined') {
-                    throw new Error("TON Connect UI library not loaded into global scope");
+                let scriptLoaded = false;
+                let lastError = null;
+
+                for (const src of tonConnectScriptSources) {
+                    try {
+                        await loadScript(src);
+                        scriptLoaded = true;
+                        break;
+                    } catch (error) {
+                        debugLog(`Failed to load from ${src}: ${error.message}`);
+                        lastError = error;
+                    }
                 }
+
+                if (!scriptLoaded) {
+                    throw new Error(`Failed to load TON Connect UI script from all sources: ${lastError.message}`);
+                }
+
+                // Update: Wait for TonConnectUI to be available in global scope
+                await waitForTonConnectUI();
 
                 // Update: Initialize TON Connect UI with proper configuration
                 tonConnectUI = new TonConnectUI({
@@ -1981,7 +2013,8 @@
                 await updateWalletUI();
             }
         }
-// Initialize wallet system
+
+        // Initialize wallet system
         async function initWalletSystem() {
             debugLog("Starting wallet system initialization...");
             try {
