@@ -235,7 +235,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.8);
-            display: flex;
+            display: none; /* Hidden by default */
             justify-content: center;
             align-items: center;
             z-index: 2000;
@@ -247,6 +247,7 @@
             color: white;
             width: 80%;
             max-width: 400px;
+            position: relative;
         }
         .modal-content input {
             width: 100%;
@@ -556,6 +557,38 @@
         .tx-status.pending { color: #ffcc00; }
         .tx-status.completed { color: #00ff00; }
         .tx-status.failed { color: #ff0000; }
+
+        /* Styles for the TON Connect modal */
+        #ton-connect-modal .modal-content {
+            text-align: center;
+        }
+        #ton-connect-modal .modal-content h3 {
+            margin-top: 0;
+        }
+        #ton-connect-modal .modal-content .close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        #ton-connect-modal .modal-content .wallet-option-button {
+            background: #330033;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            justify-content: center;
+        }
+        #ton-connect-modal .modal-content .wallet-option-button img {
+            width: 30px;
+            height: 30px;
+        }
     </style>
 </head>
 <body>
@@ -648,6 +681,19 @@
                     <p>Fee: <span id="withdraw-fee">0</span> <span id="fee-currency"></span></p>
                     <button id="confirm-withdraw">Confirm</button>
                     <button id="cancel-withdraw">Cancel</button>
+                </div>
+            </div>
+            <div id="ton-connect-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-button" onclick="document.getElementById('ton-connect-modal').style.display='none';">&times;</span>
+                    <h3>Connect your wallet</h3>
+                    <p>Open Wallet in Telegram or select your wallet to connect</p>
+                    <button class="wallet-option-button" onclick="openTelegramWallet()">
+                        <img src="assets/icons/telegram.svg" alt="Telegram Wallet">
+                        Open Wallet in Telegram
+                    </button>
+                    <br>
+                    <small>Powered by TON Connect</small>
                 </div>
             </div>
         </section>
@@ -999,7 +1045,7 @@ async function initializeFirebase(maxRetries = 3) {
             app = firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
             auth = firebase.auth();
-            storage = firebase.storage();
+            storage = app.storage();
             analytics = firebase.analytics();
 
             await db.collection('test').doc('init').set({
@@ -1869,24 +1915,9 @@ function createManualTonConnectUI() {
         account: null,
 
         connectWallet: async function() {
-            debugLog("Manual connect: Opening TON wallet");
-            // In Telegram WebApp environment, open the wallet directly
-            if (window.Telegram && window.Telegram.WebApp) {
-                Telegram.WebApp.openLink('https://t.me/wallet/start');
-
-                // Set a dummy connected state for demo purposes
-                setTimeout(() => {
-                    this.connected = true;
-                    this.account = { address: "SIMULATED_TON_ADDRESS" };
-
-                    // Manually trigger status change if any listeners exist
-                    if (this._statusChangeCallback) {
-                        this._statusChangeCallback(this.account);
-                    }
-
-                    debugLog("Simulated connection established for demo");
-                }, 2000);
-            }
+            debugLog("Manual connect: Showing TON wallet modal");
+            document.getElementById('ton-connect-modal').style.display = 'flex';
+            // In Telegram WebApp environment, the modal will handle the wallet opening
         },
 
         disconnect: async function() {
@@ -2094,6 +2125,14 @@ async function updateWalletUI() {
     }
 }
 
+// Function to open Telegram Wallet
+function openTelegramWallet() {
+    const botUsername = 'fourgobot'; // Replace with your actual bot username if different
+    const walletLink = `https://t.me/${botUsername}?start=wallet`;
+    Telegram.WebApp.openLink(walletLink);
+    document.getElementById('ton-connect-modal').style.display = 'none'; // Hide the modal after opening
+}
+
 // Handle wallet connection/disconnection
 async function handleConnectClick() {
     console.log("Connect TON Wallet button clicked - handleConnectClick function called");
@@ -2122,8 +2161,8 @@ async function handleConnectClick() {
             await tonConnectUI.disconnect();
             debugLog("Wallet disconnected");
         } else {
-            await tonConnectUI.connectWallet();
-            debugLog("Connect wallet initiated");
+            await tonConnectUI.connectWallet(); // This should now show the modal
+            debugLog("Connect wallet modal initiated");
         }
         // The UI will be updated by the onStatusChange callback
     } catch (error) {
