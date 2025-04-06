@@ -1815,26 +1815,33 @@ async function initializeFirebase(maxRetries = 3) {
 
         // Function to show Monetag In-App Interstitial Ad
         function showMonetagAd() {
-            if (window.show_9180370) {
-                try {
-                    window.show_9180370({
-                        type: 'inApp',
-                        inAppSettings: {
-                            frequency: 2,      // Show 2 ads
-                            capping: 0.1,      // Within 6 minutes (0.1 hours)
-                            interval: 30,      // 30-second interval between ads
-                            timeout: 5,        // 5-second delay before first ad
-                            everyPage: false   // Session persists across page navigation
-                        }
-                    });
-                    console.log("Monetag In-App Interstitial ad triggered");
-                } catch (error) {
-                    console.error("Failed to show Monetag ad:", error);
-                }
-            } else {
-                console.warn("Monetag SDK (show_9180370) not loaded yet");
+    const maxWaitTime = 10000; // 10 seconds
+    const startTime = Date.now();
+    function checkSDK() {
+        if (window.show_9180370) {
+            try {
+                window.show_9180370({
+                    type: 'inApp',
+                    inAppSettings: {
+                        frequency: 2,
+                        capping: 0.1,
+                        interval: 30,
+                        timeout: 5,
+                        everyPage: false
+                    }
+                });
+                console.log("Monetag In-App Interstitial ad triggered");
+            } catch (error) {
+                console.error("Failed to show Monetag ad:", error);
             }
+        } else if (Date.now() - startTime < maxWaitTime) {
+            setTimeout(checkSDK, 500); // Check every 500ms
+        } else {
+            console.warn("Monetag SDK failed to load within 10 seconds");
         }
+    }
+    checkSDK();
+}
 
         // Initialize App with Ad on Launch
         async function initApp() {
