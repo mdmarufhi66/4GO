@@ -1881,12 +1881,12 @@ async function initializeFirebase(maxRetries = 3) {
             throw new Error("TonConnectUI not loaded into global scope after retries");
         }
 
-        // Manual wallet connection
+        // Manual fallback for wallet connection
         function manualWalletConnect() {
-            debugLog("Using manual wallet connection");
+            debugLog("Falling back to manual wallet connection");
             isManualFallback = true;
             Telegram.WebApp.openTelegramLink('https://t.me/wallet/start');
-            // Update UI to reflect connected state
+            // Simulate a connected state for the UI
             const { connectButton, connectionStatus, withdrawButtons } = getWalletElements();
             if (connectButton && connectionStatus) {
                 connectButton.textContent = 'Disconnect Wallet';
@@ -1897,8 +1897,7 @@ async function initializeFirebase(maxRetries = 3) {
             }
         }
 
-        // Initialize TON Connect (commented out for now, using manual connection)
-        /*
+        // Initialize TON Connect with improved reliability
         async function initializeTonConnect() {
             debugLog("Entering initializeTonConnect...");
             if (tonConnectUI) {
@@ -1907,7 +1906,7 @@ async function initializeFirebase(maxRetries = 3) {
             }
 
             try {
-                // Try multiple versions and CDNs
+                // Update: Try multiple versions and CDNs
                 const tonConnectScriptSources = [
                     'https://unpkg.com/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js',
                     'https://cdn.jsdelivr.net/npm/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js',
@@ -1933,10 +1932,10 @@ async function initializeFirebase(maxRetries = 3) {
                     throw new Error(`Failed to load TON Connect UI script from all sources: ${lastError.message}`);
                 }
 
-                // Wait for TonConnectUI to be available in global scope
+                // Update: Wait for TonConnectUI to be available in global scope
                 await waitForTonConnectUI();
 
-                // Initialize TON Connect UI with proper configuration
+                // Update: Initialize TON Connect UI with proper configuration
                 tonConnectUI = new TonConnectUI({
                     manifestUrl: 'https://tonconnect.github.io/demo-dapp/tonconnect-manifest.json',
                     uiPreferences: { 
@@ -1945,7 +1944,7 @@ async function initializeFirebase(maxRetries = 3) {
                     }
                 });
 
-                // Set up status change listener
+                // Update: Set up status change listener
                 tonConnectUI.onStatusChange(wallet => {
                     debugLog(`Wallet status changed: ${wallet ? 'Connected' : 'Disconnected'}`);
                     updateWalletUI();
@@ -1955,12 +1954,11 @@ async function initializeFirebase(maxRetries = 3) {
                 return tonConnectUI;
             } catch (error) {
                 debugLog(`TON Connect initialization failed: ${error.message}`);
-                // Fallback to manual connection
+                // Update: Fallback to manual connection
                 manualWalletConnect();
                 return null;
             }
         }
-        */
 
         // Update wallet UI
         async function updateWalletUI() {
@@ -1977,13 +1975,32 @@ async function initializeFirebase(maxRetries = 3) {
                     return;
                 }
 
-                // Update: Default to disconnected state since we're using manual connection
-                debugLog("TON Connect not initialized (using manual connection)");
-                connectButton.textContent = 'Connect TON Wallet';
+                if (!tonConnectUI) {
+                    debugLog("TON Connect not initialized");
+                    connectButton.textContent = 'Connect TON Wallet';
+                    connectButton.disabled = false;
+                    connectionStatus.textContent = 'Disconnected';
+                    connectionStatus.className = 'wallet-status disconnected';
+                    withdrawButtons.forEach(btn => btn.disabled = true);
+                    return;
+                }
+
+                const isConnected = tonConnectUI.connected;
+                debugLog(`Wallet status: ${isConnected ? 'Connected' : 'Disconnected'}`);
+                connectButton.textContent = isConnected ? 'Disconnect Wallet' : 'Connect TON Wallet';
                 connectButton.disabled = false;
-                connectionStatus.textContent = 'Disconnected';
-                connectionStatus.className = 'wallet-status disconnected';
-                withdrawButtons.forEach(btn => btn.disabled = true);
+                connectButton.classList.toggle('connected', isConnected);
+                connectionStatus.textContent = isConnected ? 'Connected' : 'Disconnected';
+                connectionStatus.className = `wallet-status ${isConnected ? 'connected' : 'disconnected'}`;
+                withdrawButtons.forEach(btn => btn.disabled = !isConnected);
+
+                if (isConnected) {
+                    debugLog(`Connected wallet address: ${tonConnectUI.account?.address || 'Unknown'}`);
+                    // Update: Store wallet address in Firestore
+                    if (tonConnectUI.account?.address) {
+                        await Storage.setItem('walletAddress', tonConnectUI.account.address);
+                    }
+                }
             } catch (error) {
                 debugLog(`Error updating wallet UI: ${error.message}`);
             }
@@ -2004,33 +2021,40 @@ async function initializeFirebase(maxRetries = 3) {
                 connectButton.textContent = 'Connecting...';
 
                 if (isManualFallback) {
-                    // Update: Allow re-triggering the manual connection
-                    debugLog("Re-triggering manual wallet connection");
-                    Telegram.WebApp.openTelegramLink('https://t.me/wallet/start');
-                } else {
-                    // Update: Use manual connection directly
-                    debugLog("Initiating manual wallet connection");
-                    isManualFallback = true;
-                    Telegram.WebApp.openTelegramLink('https://t.me/wallet/start');
-                    // Update UI to reflect connected state
-                    connectButton.textContent = 'Disconnect Wallet';
-                    connectButton.classList.add('connected');
-                    connectButton.disabled = false;
-                    const { connectionStatus, withdrawButtons } = getWalletElements();
-                    if (connectionStatus) {
-                        connectionStatus.textContent = 'Connected (Manual)';
-                        connectionStatus.className = 'wallet-status connected';
+                    // Reset manual fallback state
+                    isManualFallback = false;
+                    tonConnectUI = null;
+                    await updateWalletUI();
+                }
+
+                if (!tonConnectUI) {
+                    debugLog("TON Connect not initialized, initializing now...");
+                    await initializeTonConnect();
+                    if (!tonConnectUI && !isManualFallback) {
+                        throw new Error("Failed to initialize TON Connect");
                     }
-                    withdrawButtons.forEach(btn => btn.disabled = false);
+                }
+
+                if (isManualFallback) {
+                    // Already connected manually
+                    return;
+                }
+
+                if (tonConnectUI.connected) {
+                    // Disconnect wallet
+                    await tonConnectUI.disconnect();
+                    debugLog("Wallet disconnected");
+                } else {
+                    // Connect wallet
+                    await tonConnectUI.connectWallet();
+                    debugLog("Wallet connection initiated");
                 }
             } catch (error) {
                 debugLog(`Connection error: ${error.message}`);
                 alert(`Failed to connect: ${error.message}`);
             } finally {
-                if (!isManualFallback) {
-                    connectButton.disabled = false;
-                    await updateWalletUI();
-                }
+                connectButton.disabled = false;
+                await updateWalletUI();
             }
         }
 
@@ -2045,14 +2069,12 @@ async function initializeFirebase(maxRetries = 3) {
                     throw new Error("Connect button missing from page!");
                 }
 
-                // Update: Skip TON Connect initialization and set up manual connection
-                isManualFallback = false;
+                // Update: Initialize TON Connect and set up the button listener
+                await initializeTonConnect();
                 await updateWalletUI();
 
-                // Remove any existing listeners to avoid duplicates
-                connectButton.removeEventListener('click', handleConnectClick);
                 connectButton.addEventListener('click', handleConnectClick);
-                debugLog("Wallet system initialized successfully - event listener attached");
+                debugLog("Wallet system initialized successfully");
             } catch (error) {
                 debugLog(`Wallet system initialization failed: ${error.message}`);
                 alert("Failed to initialize wallet system: " + error.message);
@@ -2107,7 +2129,7 @@ async function initializeFirebase(maxRetries = 3) {
                 alert("Database not initialized. Please try again later.");
                 return;
             }
-            if (!isManualFallback) {
+            if (!tonConnectUI && !isManualFallback) {
                 alert("Please connect your wallet first!");
                 return;
             }
@@ -2152,7 +2174,7 @@ async function initializeFirebase(maxRetries = 3) {
                     }
 
                     try {
-                        // Simulate a TON transaction (since actual TON transactions require backend)
+                        // Update: Simulate a TON transaction (since actual TON transactions require backend)
                         const transaction = {
                             type: 'Withdrawal',
                             amount: amount,
