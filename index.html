@@ -1739,84 +1739,53 @@ async function initializeFirebase(maxRetries = 3) {
 
         // Earn Section Interactions
         document.addEventListener('click', async (event) => {
-    if (event.target.classList.contains('go-button')) {
-        const taskItem = event.target.closest('.quest-item');
-        if (!taskItem) return;
+            if (event.target.classList.contains('go-button')) {
+                const taskItem = event.target.closest('.quest-item');
+                if (!taskItem) return;
 
-        const questId = taskItem.dataset.questId;
-        const reward = parseInt(event.target.dataset.questReward);
-        const link = event.target.dataset.questLink || 'https://t.me/fourgobot';
+                const questId = taskItem.dataset.questId;
+                const reward = parseInt(event.target.dataset.questReward);
+                const link = event.target.dataset.questLink || 'https://t.me/fourgobot';
 
-        if (!firebaseInitialized || !db) {
-            console.error("Firestore not initialized. Cannot process quest.");
-            alert("Database not initialized. Please try again later.");
-            return;
-        }
+                if (!firebaseInitialized || !db) {
+                    console.error("Firestore not initialized. Cannot process quest.");
+                    alert("Database not initialized. Please try again later.");
+                    return;
+                }
 
-        try {
-            // Ensure user data is initialized
-            await initializeUserData();
+                try {
+                    const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+                    const userDoc = await userDocRef.get();
+                    const userData = userDoc.data();
 
-            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-            const userDoc = await userDocRef.get();
+                    if (userData.claimedQuests.includes(questId)) {
+                        alert("This quest has already been claimed!");
+                        return;
+                    }
 
-            if (!userDoc.exists) {
-                console.error("User data does not exist in Firestore.");
-                alert("User data not found. Please try again later.");
-                return;
+                    Telegram.WebApp.openTelegramLink(link);
+
+                    await userDocRef.update({
+                        gems: userData.gems + reward,
+                        claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId)
+                    });
+
+                    event.target.textContent = 'Claimed';
+                    event.target.classList.remove('go-button');
+                    event.target.classList.add('claimed-button');
+                    event.target.disabled = true;
+                    event.target.style.background = '#ccc';
+                    event.target.style.cursor = 'default';
+
+                    await updateUserStatsUI();
+                    alert(`Quest completed! You earned ${reward} gems.`);
+                    analytics.logEvent('quest_completed', { questId, userId: telegramUser.id, reward });
+                } catch (error) {
+                    console.error("Error completing quest:", error.message);
+                    alert("Failed to complete quest: " + error.message);
+                }
             }
-
-            const userData = userDoc.data();
-            console.log("User data before update:", userData);
-
-            // Ensure claimedQuests exists, default to empty array if undefined
-            const claimedQuests = userData.claimedQuests || [];
-
-            if (claimedQuests.includes(questId)) {
-                alert("This quest has already been claimed!");
-                return;
-            }
-
-            Telegram.WebApp.openTelegramLink(link);
-
-            // Calculate new gems value
-            const currentGems = userData.gems || 0;
-            const newGems = currentGems + reward;
-            console.log(`Updating gems: ${currentGems} + ${reward} = ${newGems}`);
-
-            // Update Firestore
-            await userDocRef.update({
-                gems: newGems,
-                claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId)
-            });
-            console.log("Firestore update completed");
-
-            // Verify the update by fetching the data again
-            const updatedDoc = await userDocRef.get();
-            const updatedData = updatedDoc.data();
-            console.log("User data after update:", updatedData);
-            if (updatedData.gems !== newGems) {
-                console.error("Gems update failed! Expected:", newGems, "Got:", updatedData.gems);
-                alert("Failed to update gems. Please try again.");
-                return;
-            }
-
-            event.target.textContent = 'Claimed';
-            event.target.classList.remove('go-button');
-            event.target.classList.add('claimed-button');
-            event.target.disabled = true;
-            event.target.style.background = '#ccc';
-            event.target.style.cursor = 'default';
-
-            await updateUserStatsUI();
-            alert(`Quest completed! You earned ${reward} gems.`);
-            analytics.logEvent('quest_completed', { questId, userId: telegramUser.id, reward });
-        } catch (error) {
-            console.error("Error completing quest:", error.message);
-            alert("Failed to complete quest: " + error.message);
-        }
-    }
-});
+        });
 
         // Invite Section Interactions
         document.querySelector('.invite-friend').addEventListener('click', () => {
