@@ -1767,6 +1767,7 @@ async function initializeFirebase(maxRetries = 3) {
             }
 
             const userData = userDoc.data();
+            console.log("User data before update:", userData);
 
             // Ensure claimedQuests exists, default to empty array if undefined
             const claimedQuests = userData.claimedQuests || [];
@@ -1778,10 +1779,27 @@ async function initializeFirebase(maxRetries = 3) {
 
             Telegram.WebApp.openTelegramLink(link);
 
+            // Calculate new gems value
+            const currentGems = userData.gems || 0;
+            const newGems = currentGems + reward;
+            console.log(`Updating gems: ${currentGems} + ${reward} = ${newGems}`);
+
+            // Update Firestore
             await userDocRef.update({
-                gems: (userData.gems || 0) + reward,
+                gems: newGems,
                 claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId)
             });
+            console.log("Firestore update completed");
+
+            // Verify the update by fetching the data again
+            const updatedDoc = await userDocRef.get();
+            const updatedData = updatedDoc.data();
+            console.log("User data after update:", updatedData);
+            if (updatedData.gems !== newGems) {
+                console.error("Gems update failed! Expected:", newGems, "Got:", updatedData.gems);
+                alert("Failed to update gems. Please try again.");
+                return;
+            }
 
             event.target.textContent = 'Claimed';
             event.target.classList.remove('go-button');
