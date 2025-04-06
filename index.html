@@ -235,7 +235,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.8);
-            display: none; /* Hidden by default */
+            display: flex;
             justify-content: center;
             align-items: center;
             z-index: 2000;
@@ -247,7 +247,6 @@
             color: white;
             width: 80%;
             max-width: 400px;
-            position: relative;
         }
         .modal-content input {
             width: 100%;
@@ -557,38 +556,6 @@
         .tx-status.pending { color: #ffcc00; }
         .tx-status.completed { color: #00ff00; }
         .tx-status.failed { color: #ff0000; }
-
-        /* Styles for the TON Connect modal */
-        #ton-connect-modal .modal-content {
-            text-align: center;
-        }
-        #ton-connect-modal .modal-content h3 {
-            margin-top: 0;
-        }
-        #ton-connect-modal .modal-content .close-button {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 20px;
-            cursor: pointer;
-        }
-        #ton-connect-modal .modal-content .wallet-option-button {
-            background: #330033;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            margin: 5px;
-            border-radius: 10px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            justify-content: center;
-        }
-        #ton-connect-modal .modal-content .wallet-option-button img {
-            width: 30px;
-            height: 30px;
-        }
     </style>
 </head>
 <body>
@@ -681,19 +648,6 @@
                     <p>Fee: <span id="withdraw-fee">0</span> <span id="fee-currency"></span></p>
                     <button id="confirm-withdraw">Confirm</button>
                     <button id="cancel-withdraw">Cancel</button>
-                </div>
-            </div>
-            <div id="ton-connect-modal" class="modal">
-                <div class="modal-content">
-                    <span class="close-button" onclick="document.getElementById('ton-connect-modal').style.display='none';">&times;</span>
-                    <h3>Connect your wallet</h3>
-                    <p>Open Wallet in Telegram or select your wallet to connect</p>
-                    <button class="wallet-option-button" onclick="openTelegramWallet()">
-                        <img src="assets/icons/telegram.svg" alt="Telegram Wallet">
-                        Open Wallet in Telegram
-                    </button>
-                    <br>
-                    <small>Powered by TON Connect</small>
                 </div>
             </div>
         </section>
@@ -1045,7 +999,7 @@ async function initializeFirebase(maxRetries = 3) {
             app = firebase.initializeApp(firebaseConfig);
             db = firebase.firestore();
             auth = firebase.auth();
-            storage = app.storage();
+            storage = firebase.storage();
             analytics = firebase.analytics();
 
             await db.collection('test').doc('init').set({
@@ -1847,616 +1801,430 @@ async function initializeFirebase(maxRetries = 3) {
 
 // ====== TON CONNECT IMPLEMENTATION ====== //
 
-let tonConnectUI = null;
+        let tonConnectUI = null;
+        let isManualFallback = false; // Track if we're using the manual fallback
 
-// Debug logging helper
-function debugLog(message) {
-    console.log(message);
-    const debugConsole = document.getElementById('debugConsole');
-    if (debugConsole) {
-        debugConsole.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
-        debugConsole.scrollTop = debugConsole.scrollHeight;
-    }
-}
-
-// Get wallet-related DOM elements
-function getWalletElements() {
-    const elements = {
-        connectButton: document.querySelector('.connect-button'),
-        connectionStatus: document.getElementById('connection-status'),
-        withdrawButtons: document.querySelectorAll('.withdraw-button'),
-        walletSection: document.getElementById('wallet')
-    };
-    debugLog(`Wallet elements check: connectButton=${!!elements.connectButton}, status=${!!elements.connectionStatus}`);
-    return elements;
-}
-
-// Dynamically load a script with retries
-async function loadScript(src, retries = 3, delay = 1000) {
-    for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            debugLog(`Loading script ${src} (Attempt ${attempt}/${retries})`);
-            const script = document.createElement('script');
-            script.src = src;
-            script.async = true;
-
-            const timeoutPromise = new Promise((_, reject) => {
-                setTimeout(() => reject(new Error(`Timeout loading ${src}`)), 10000); // 10 second timeout
-            });
-
-            const loadPromise = new Promise((resolve, reject) => {
-                script.onload = () => {
-                    debugLog(`Script loaded: ${src}`);
-                    resolve();
-                };
-                script.onerror = () => reject(new Error(`Failed to load ${src}`));
-                document.head.appendChild(script);
-            });
-
-            // Race the script loading against the timeout
-            await Promise.race([loadPromise, timeoutPromise]);
-            return true;
-        } catch (error) {
-            debugLog(`Script load failed: ${error.message}`);
-            if (attempt === retries) throw error;
-            await new Promise(resolve => setTimeout(resolve, delay));
+        // Debug logging helper
+        function debugLog(message) {
+            console.log(message);
+            const debugConsole = document.getElementById('debugConsole');
+            if (debugConsole) {
+                debugConsole.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
+                debugConsole.scrollTop = debugConsole.scrollHeight;
+            }
         }
-    }
-    return false;
-}
 
-// Create TON Connect UI manually for version 0.0.14
-function createManualTonConnectUI() {
-    debugLog("Creating manual TON Connect UI implementation");
-
-    // Create a simple wrapper with essential functionality
-    return {
-        connected: false,
-        account: null,
-
-        connectWallet: async function() {
-            debugLog("Manual connect: Showing TON wallet modal");
-            document.getElementById('ton-connect-modal').style.display = 'flex';
-            // In Telegram WebApp environment, the modal will handle the wallet opening
-        },
-
-        disconnect: async function() {
-            debugLog("Manual disconnect");
-            this.connected = false;
-            this.account = null;
-
-            // Trigger callback if exists
-            if (this._statusChangeCallback) {
-                this._statusChangeCallback(null);
-            }
-        },
-
-        onStatusChange: function(callback) {
-            debugLog("Setting status change callback");
-            this._statusChangeCallback = callback;
+        // Get wallet-related DOM elements
+        function getWalletElements() {
+            const elements = {
+                connectButton: document.querySelector('.connect-button'),
+                connectionStatus: document.getElementById('connection-status'),
+                withdrawButtons: document.querySelectorAll('.withdraw-button'),
+                walletSection: document.getElementById('wallet')
+            };
+            debugLog(`Wallet elements check: connectButton=${!!elements.connectButton}, status=${!!elements.connectionStatus}`);
+            return elements;
         }
-    };
-}
 
-// Attempt to create TON Connect UI with inline script
-function createInlineScriptTonConnectUI() {
-    debugLog("Creating TON Connect UI with inline script");
-
-    // Add an inline script that will attempt to load the library from a CDN
-    const script = document.createElement('script');
-    script.innerHTML = `
-        // TON Connect fallback loader
-        (async function() {
-            const cdnUrls = [
-                'https://unpkg.com/@tonconnect/ui@0.0.14/dist/tonconnect-ui.min.js',
-                'https://cdn.jsdelivr.net/npm/@tonconnect/ui@0.0.14/dist/tonconnect-ui.min.js',
-                'https://www.unpkg.com/@tonconnect/ui@0.0.14/dist/tonconnect-ui.min.js'
-            ];
-
-            async function attemptLoad(url) {
-                return new Promise((resolve, reject) => {
-                    const scriptTag = document.createElement('script');
-                    scriptTag.src = url;
-                    scriptTag.onload = resolve;
-                    scriptTag.onerror = reject;
-                    document.head.appendChild(scriptTag);
-                });
-            }
-
-            for (const url of cdnUrls) {
+        // Dynamically load a script with retries and validation
+        async function loadScript(src, retries = 3, delay = 1000) {
+            for (let attempt = 1; attempt <= retries; attempt++) {
                 try {
-                    await attemptLoad(url);
-                    console.log('TON Connect loaded from ' + url);
-                    break;
-                } catch (e) {
-                    console.log('Failed to load from ' + url);
-                }
-            }
-
-            // Now try to create the instance
-            if (typeof TonConnectUI !== 'undefined') {
-                try {
-                    window.__tonConnectUI = new TonConnectUI({
-                        manifestUrl: 'https://tonconnect.github.io/demo-dapp/tonconnect-manifest.json',
-                        uiPreferences: { theme: 'DARK', borderRadius: 'm' }
+                    debugLog(`Loading script ${src} (Attempt ${attempt}/${retries})`);
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.async = true;
+                    
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error(`Timeout loading ${src}`)), 10000); // 10 second timeout
                     });
-                    console.log('TON Connect UI created');
-                } catch (e) {
-                    console.error('Error creating TonConnectUI', e);
+                    
+                    const loadPromise = new Promise((resolve, reject) => {
+                        script.onload = () => {
+                            debugLog(`Script loaded: ${src}`);
+                            // Check if TonConnectUI is defined immediately after loading
+                            setTimeout(() => {
+                                if (typeof TonConnectUI === 'undefined') {
+                                    debugLog(`TonConnectUI not defined after loading ${src}`);
+                                    reject(new Error(`TonConnectUI not defined after loading ${src}`));
+                                } else {
+                                    resolve();
+                                }
+                            }, 100);
+                        };
+                        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+                        document.head.appendChild(script);
+                    });
+                    
+                    // Race the script loading against the timeout
+                    await Promise.race([loadPromise, timeoutPromise]);
+                    return true;
+                } catch (error) {
+                    debugLog(`Script load failed: ${error.message}`);
+                    if (attempt === retries) throw error;
+                    await new Promise(resolve => setTimeout(resolve, delay));
                 }
-            } else {
-                console.error('TonConnectUI not defined after loading');
             }
-        })();
-    `;
+            return false;
+        }
 
-    document.head.appendChild(script);
-
-    // Return promise that resolves when instance is available
-    return new Promise((resolve) => {
-        const checkInterval = setInterval(() => {
-            if (window.__tonConnectUI) {
-                clearInterval(checkInterval);
-                debugLog("Inline script created TON Connect UI");
-                resolve(window.__tonConnectUI);
-            }
-        }, 200);
-
-        // Timeout after 5 seconds
-        setTimeout(() => {
-            clearInterval(checkInterval);
-            debugLog("Inline script TON Connect UI creation timed out");
-            resolve(null);
-        }, 5000);
-    });
-}
-
-// Initialize TON Connect with multiple strategies
-async function initializeTonConnect() {
-    debugLog("Entering initializeTonConnect...");
-    if (tonConnectUI) {
-        debugLog("TON Connect already initialized");
-        return tonConnectUI;
-    }
-
-    // Try multiple approaches
-    try {
-        // Strategy 1: Try specific version (0.0.14) from multiple CDNs
-        const cdnSources = [
-            'https://unpkg.com/@tonconnect/ui@0.0.14/dist/tonconnect-ui.min.js',
-            'https://cdn.jsdelivr.net/npm/@tonconnect/ui@0.0.14/dist/tonconnect-ui.min.js',
-            'https://www.unpkg.com/@tonconnect/ui@0.0.14/dist/tonconnect-ui.min.js',
-            'https://esm.sh/@tonconnect/ui@0.0.14'
-        ];
-
-        let scriptLoaded = false;
-        for (const src of cdnSources) {
-            try {
-                debugLog(`Trying to load TON Connect from ${src}`);
-                scriptLoaded = await loadScript(src);
-                if (scriptLoaded) {
-                    debugLog("Script loaded successfully");
-                    break;
+        // Check for TonConnectUI in global scope with retries
+        async function waitForTonConnectUI(maxRetries = 10, delay = 1000) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                if (typeof TonConnectUI !== 'undefined') {
+                    debugLog("TonConnectUI found in global scope");
+                    return true;
                 }
-            } catch (error) {
-                debugLog(`Failed with ${src}: ${error.message}`);
+                debugLog(`TonConnectUI not found in global scope (Attempt ${attempt}/${maxRetries})`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+            throw new Error("TonConnectUI not loaded into global scope after retries");
+        }
+
+        // Manual wallet connection
+        function manualWalletConnect() {
+            debugLog("Using manual wallet connection");
+            isManualFallback = true;
+            Telegram.WebApp.openTelegramLink('https://t.me/wallet/start');
+            // Update UI to reflect connected state
+            const { connectButton, connectionStatus, withdrawButtons } = getWalletElements();
+            if (connectButton && connectionStatus) {
+                connectButton.textContent = 'Disconnect Wallet';
+                connectButton.classList.add('connected');
+                connectionStatus.textContent = 'Connected (Manual)';
+                connectionStatus.className = 'wallet-status connected';
+                withdrawButtons.forEach(btn => btn.disabled = false);
             }
         }
 
-        // Strategy 2: Try inline script approach if CDN loading fails
-        if (!scriptLoaded) {
-            debugLog("All CDN sources failed, trying inline script approach");
-            tonConnectUI = await createInlineScriptTonConnectUI();
-        }
+        // Initialize TON Connect (commented out for now, using manual connection)
+        /*
+        async function initializeTonConnect() {
+            debugLog("Entering initializeTonConnect...");
+            if (tonConnectUI) {
+                debugLog("TON Connect already initialized");
+                return tonConnectUI;
+            }
 
-        // Check if TonConnectUI is defined in the global scope
-        if (!tonConnectUI && typeof TonConnectUI !== 'undefined') {
-            debugLog("TonConnectUI found in global scope");
             try {
+                // Try multiple versions and CDNs
+                const tonConnectScriptSources = [
+                    'https://unpkg.com/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js',
+                    'https://cdn.jsdelivr.net/npm/@tonconnect/ui@1.0.0/dist/tonconnect-ui.min.js',
+                    'https://unpkg.com/@tonconnect/ui@2.1.2/dist/tonconnect-ui.min.js',
+                    'https://cdn.jsdelivr.net/npm/@tonconnect/ui@2.1.2/dist/tonconnect-ui.min.js'
+                ];
+
+                let scriptLoaded = false;
+                let lastError = null;
+
+                for (const src of tonConnectScriptSources) {
+                    try {
+                        await loadScript(src);
+                        scriptLoaded = true;
+                        break;
+                    } catch (error) {
+                        debugLog(`Failed to load from ${src}: ${error.message}`);
+                        lastError = error;
+                    }
+                }
+
+                if (!scriptLoaded) {
+                    throw new Error(`Failed to load TON Connect UI script from all sources: ${lastError.message}`);
+                }
+
+                // Wait for TonConnectUI to be available in global scope
+                await waitForTonConnectUI();
+
+                // Initialize TON Connect UI with proper configuration
                 tonConnectUI = new TonConnectUI({
                     manifestUrl: 'https://tonconnect.github.io/demo-dapp/tonconnect-manifest.json',
-                    uiPreferences: { theme: 'DARK', borderRadius: 'm' }
+                    uiPreferences: { 
+                        theme: 'DARK', 
+                        borderRadius: 'm' 
+                    }
                 });
-                debugLog("TON Connect UI created from global TonConnectUI");
+
+                // Set up status change listener
+                tonConnectUI.onStatusChange(wallet => {
+                    debugLog(`Wallet status changed: ${wallet ? 'Connected' : 'Disconnected'}`);
+                    updateWalletUI();
+                });
+
+                debugLog("TON Connect UI initialized successfully");
+                return tonConnectUI;
             } catch (error) {
-                debugLog(`Error creating TonConnectUI instance: ${error.message}`);
+                debugLog(`TON Connect initialization failed: ${error.message}`);
+                // Fallback to manual connection
+                manualWalletConnect();
+                return null;
             }
         }
+        */
 
-        // Strategy 3: Use window.__tonConnectUI if it exists
-        if (!tonConnectUI && window.__tonConnectUI) {
-            debugLog("Using window.__tonConnectUI");
-            tonConnectUI = window.__tonConnectUI;
-        }
+        // Update wallet UI
+        async function updateWalletUI() {
+            const { connectButton, connectionStatus, withdrawButtons } = getWalletElements();
+            debugLog("Updating wallet UI...");
+            if (!connectButton || !connectionStatus) {
+                debugLog("Wallet UI elements missing");
+                return;
+            }
 
-        // Strategy 4: Fallback to manual implementation
-        if (!tonConnectUI) {
-            debugLog("All strategies failed, falling back to manual implementation");
-            tonConnectUI = createManualTonConnectUI();
-        }
-
-        debugLog("TON Connect UI initialized successfully");
-        return tonConnectUI;
-    } catch (error) {
-        debugLog(`TON Connect initialization failed after all attempts: ${error.message}`);
-        // Final fallback - return manual implementation instead of throwing
-        tonConnectUI = createManualTonConnectUI();
-        return tonConnectUI;
-    }
-}
-
-// Update wallet UI
-async function updateWalletUI() {
-    const { connectButton, connectionStatus, withdrawButtons } = getWalletElements();
-    debugLog("Updating wallet UI...");
-    if (!connectButton || !connectionStatus) {
-        debugLog("Wallet UI elements missing");
-        return;
-    }
-
-    try {
-        if (!tonConnectUI) {
-            debugLog("TON Connect not initialized");
-            connectButton.textContent = 'Connect TON Wallet';
-            connectButton.disabled = false;
-            connectionStatus.textContent = 'Disconnected';
-            connectionStatus.className = 'wallet-status disconnected';
-            withdrawButtons.forEach(btn => btn.disabled = true);
-            return;
-        }
-
-        const isConnected = tonConnectUI.connected;
-        debugLog(`Wallet status: ${isConnected ? 'Connected' : 'Disconnected'}`);
-        connectButton.textContent = isConnected ? 'Disconnect Wallet' : 'Connect TON Wallet';
-        connectButton.disabled = false;
-        connectButton.classList.toggle('connected', isConnected);
-        connectionStatus.textContent = isConnected ? 'Connected' : 'Disconnected';
-        connectionStatus.className = `wallet-status ${isConnected ? 'connected' : 'disconnected'}`;
-        withdrawButtons.forEach(btn => btn.disabled = !isConnected);
-
-        if (isConnected) {
-            debugLog(`Connected wallet address: ${tonConnectUI.account?.address || 'Unknown'}`);
-            await Storage.setItem('walletAddress', tonConnectUI.account.address);
-        } else {
-            await Storage.setItem('walletAddress', null);
-        }
-    } catch (error) {
-        debugLog(`Error updating wallet UI: ${error.message}`);
-    }
-}
-
-// Function to open Telegram Wallet
-function openTelegramWallet() {
-    const botUsername = 'fourgobot'; // Replace with your actual bot username if different
-    const walletLink = `https://t.me/${botUsername}?start=wallet`;
-    Telegram.WebApp.openLink(walletLink);
-    document.getElementById('ton-connect-modal').style.display = 'none'; // Hide the modal after opening
-}
-
-// Handle wallet connection/disconnection
-async function handleConnectClick() {
-    console.log("Connect TON Wallet button clicked - handleConnectClick function called");
-    debugLog("Connect TON Wallet button clicked - direct function call");
-
-    const connectButton = document.querySelector('.connect-button');
-    if (!connectButton) {
-        console.error("Connect button not found in DOM!");
-        alert("Connect button missing from page!");
-        return;
-    }
-
-    try {
-        connectButton.disabled = true;
-        connectButton.textContent = 'Connecting...';
-
-        if (!tonConnectUI) {
-            console.error("TON Connect UI not initialized.");
-            alert("Wallet connection failed: TON Connect not initialized.");
-            connectButton.disabled = false;
-            connectButton.textContent = 'Connect TON Wallet';
-            return;
-        }
-
-        if (tonConnectUI.connected) {
-            await tonConnectUI.disconnect();
-            debugLog("Wallet disconnected");
-        } else {
-            await tonConnectUI.connectWallet(); // This should now show the modal
-            debugLog("Connect wallet modal initiated");
-        }
-        // The UI will be updated by the onStatusChange callback
-    } catch (error) {
-        console.error("Error in handleConnectClick:", error);
-        debugLog(`Connection error: ${error.message}`);
-        alert(`Failed to connect: ${error.message}`);
-        connectButton.disabled = false;
-        connectButton.textContent = 'Connect TON Wallet';
-    }
-}
-
-// Initialize wallet system
-async function initWalletSystem() {
-    debugLog("Starting wallet system initialization...");
-    console.log("Starting wallet system initialization...");
-
-    try {
-        tonConnectUI = await initializeTonConnect();
-        if (tonConnectUI) {
-            debugLog("TON Connect initialized within initWalletSystem");
-            tonConnectUI.onStatusChange(async (account) => {
-                debugLog(`TON Connect status changed: ${account ? 'Connected' : 'Disconnected'}`);
-                await updateWalletUI();
-            });
-            await updateWalletUI(); // Initial UI update
-
-            // Find the button
-            let connectButton = document.querySelector('.connect-button');
-
-            // Wait for button if not found
-            if (!connectButton) {
-                debugLog("Connect button not found, waiting for DOM...");
-
-                // Try to find the button for up to 10 seconds
-                for (let i = 0; i < 100; i++) {
-                    connectButton = document.querySelector('.connect-button');
-                    if (connectButton) break;
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                }
-
-                if (!connectButton) {
-                    debugLog("Connect button not found after waiting");
-                    console.error("Connect button not found after waiting");
+            try {
+                if (isManualFallback) {
+                    // UI already updated in manualWalletConnect
                     return;
                 }
 
-                debugLog("Connect button found after wait");
+                // Update: Default to disconnected state since we're using manual connection
+                debugLog("TON Connect not initialized (using manual connection)");
+                connectButton.textContent = 'Connect TON Wallet';
+                connectButton.disabled = false;
+                connectionStatus.textContent = 'Disconnected';
+                connectionStatus.className = 'wallet-status disconnected';
+                withdrawButtons.forEach(btn => btn.disabled = true);
+            } catch (error) {
+                debugLog(`Error updating wallet UI: ${error.message}`);
+            }
+        }
+
+        // Handle wallet connection/disconnection
+        async function handleConnectClick() {
+            debugLog("Connect TON Wallet button clicked");
+            const { connectButton } = getWalletElements();
+            if (!connectButton) {
+                debugLog("Connect button not found in DOM!");
+                alert("Connect button missing from page!");
+                return;
             }
 
-            // Remove any existing listeners to prevent duplicates
-            const oldClickHandler = connectButton.onclick;
-            if (oldClickHandler) {
-                connectButton.removeEventListener('click', oldClickHandler);
-            }
-
-            // Add the event listener
-            connectButton.addEventListener('click', async (e) => {
-                e.preventDefault();
-                console.log("Connect button clicked!");
-                debugLog("Connect button clicked!");
-                await handleConnectClick();
-            });
-
-            debugLog("Event listeners attached to connect button");
-            console.log("Event listeners attached to connect button", connectButton);
-
-        } else {
-            console.error("Failed to initialize TON Connect UI.");
-            alert("Failed to initialize wallet connection.");
-            const connectButton = document.querySelector('.connect-button');
-            if (connectButton) {
+            try {
                 connectButton.disabled = true;
-                connectButton.textContent = 'Wallet Connection Failed';
+                connectButton.textContent = 'Connecting...';
+
+                if (isManualFallback) {
+                    // Update: Allow re-triggering the manual connection
+                    debugLog("Re-triggering manual wallet connection");
+                    Telegram.WebApp.openTelegramLink('https://t.me/wallet/start');
+                } else {
+                    // Update: Use manual connection directly
+                    debugLog("Initiating manual wallet connection");
+                    isManualFallback = true;
+                    Telegram.WebApp.openTelegramLink('https://t.me/wallet/start');
+                    // Update UI to reflect connected state
+                    connectButton.textContent = 'Disconnect Wallet';
+                    connectButton.classList.add('connected');
+                    connectButton.disabled = false;
+                    const { connectionStatus, withdrawButtons } = getWalletElements();
+                    if (connectionStatus) {
+                        connectionStatus.textContent = 'Connected (Manual)';
+                        connectionStatus.className = 'wallet-status connected';
+                    }
+                    withdrawButtons.forEach(btn => btn.disabled = false);
+                }
+            } catch (error) {
+                debugLog(`Connection error: ${error.message}`);
+                alert(`Failed to connect: ${error.message}`);
+            } finally {
+                if (!isManualFallback) {
+                    connectButton.disabled = false;
+                    await updateWalletUI();
+                }
             }
         }
 
-        debugLog("Wallet system fully initialized");
-    } catch (error) {
-        debugLog(`Wallet system init failed: ${error.message}`);
-        console.error("Wallet system init failed:", error);
-        alert(`Wallet init failed: ${error.message}`);
-    }
-}
+        // Initialize wallet system
+        async function initWalletSystem() {
+            debugLog("Starting wallet system initialization...");
+            try {
+                let connectButton = document.querySelector('.connect-button');
+                
+                if (!connectButton) {
+                    debugLog("Connect button not found in DOM during wallet initialization!");
+                    throw new Error("Connect button missing from page!");
+                }
 
-// Manual trigger function for testing - can be called from console
-window.connectWalletManual = function() {
-    console.log("Manual wallet connect triggered from global function");
-    handleConnectClick();
-};
+                // Update: Skip TON Connect initialization and set up manual connection
+                isManualFallback = false;
+                await updateWalletUI();
 
-// Ensure we try to initialize the wallet system
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM loaded, initializing wallet...");
-    setTimeout(initWalletSystem, 1000); // Delay initialization slightly
-});
-
-// Also try to initialize immediately
-initWalletSystem();
-
-// Call initApp - Assuming this function exists elsewhere in your full code
-// If not, you might need to define it or remove this line
-// initApp();
-
-        // Withdrawal Logic
-        const withdrawModal = document.getElementById('withdraw-modal');
-        const withdrawAmountInput = document.getElementById('withdraw-amount');
-        const availableBalanceSpan = document.getElementById('available-balance');
-        const currencySpan = document.getElementById('currency');
-        const withdrawFeeSpan = document.getElementById('withdraw-fee');
-        const feeCurrencySpan = document.getElementById('fee-currency');
-        const confirmWithdrawButton = document.getElementById('confirm-withdraw');
-        const cancelWithdrawButton = document.getElementById('cancel-withdraw');
-        const warningButtons = document.querySelectorAll('.warning-button');
-        const withdrawButtons = document.querySelectorAll('.withdraw-button');
-
-        withdrawButtons.forEach(button => {
-            button.addEventListener('click', async () => {
-                const card = button.closest('.balance-card');
-                const currency = card.classList.contains('usdt-card') ? 'USDT' : 'TON';
-                const balanceElement = card.querySelector('.balance-info span');
-                const balance = parseFloat(balanceElement.textContent);
-
-                availableBalanceSpan.textContent = balance.toFixed(4);
-                currencySpan.textContent = currency;
-                withdrawFeeSpan.textContent = currency === 'USDT' ? '0.01' : '0.005';
-                feeCurrencySpan.textContent = currency;
-                withdrawAmountInput.value = '';
-
-                withdrawModal.style.display = 'flex';
-            });
-        });
-
-        cancelWithdrawButton.addEventListener('click', () => {
-            withdrawModal.style.display = 'none';
-        });
-
-        confirmWithdrawButton.addEventListener('click', async () => {
-    const amount = parseFloat(withdrawAmountInput.value);
-    const currency = currencySpan.textContent;
-    const availableBalance = parseFloat(availableBalanceSpan.textContent);
-    const fee = parseFloat(withdrawFeeSpan.textContent);
-
-    if (isNaN(amount) || amount <= 0) {
-        alert("Please enter a valid amount.");
-        return;
-    }
-
-    if (amount + fee > availableBalance) {
-        alert(`Insufficient balance. You need ${fee} ${currency} for the fee.`);
-        return;
-    }
-
-    if ((currency === 'USDT' && amount < 1) || (currency === 'TON' && amount < 0.1)) {
-        alert(`Minimum withdrawal is ${currency === 'USDT' ? '1 USDT' : '0.1 TON'}.`);
-        return;
-    }
-
-    try {
-        await processWithdrawal(amount, currency);  // Corrected function call
-        withdrawModal.style.display = 'none';
-        await updateUserStatsUI();
-        await updateTransactionHistory();
-        alert(`Withdrawal of ${amount} ${currency} initiated successfully!`);
-    } catch (error) {
-        console.error("Withdrawal error:", error.message);
-        alert("Withdrawal failed: " + error.message);
-    }
-});
-
-        async function processWithdrawal(amount, currency) {
-    if (!firebaseInitialized || !db) {
-        throw new Error("Firestore not initialized");
-    }
-    if (!tonConnectUI || !tonConnectUI.connected) {
-        throw new Error("Wallet not connected");
-    }
-
-    const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-    const fee = currency === 'USDT' ? 0.01 : 0.005;
-    const totalDeduction = amount + fee;
-
-    const userDoc = await userDocRef.get();
-    const userData = userDoc.data();
-    const currentBalance = currency === 'USDT' ? userData.usdt : userData.ton;
-
-    if (currentBalance < totalDeduction) {
-        throw new Error("Insufficient balance");
-    }
-
-    const walletAddress = await Storage.getItem('walletAddress');
-    if (!walletAddress) {
-        throw new Error("Wallet address not found. Please connect your wallet.");
-    }
-
-    // Simulate transaction
-    const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 60,
-        messages: [{
-            address: walletAddress,
-            amount: (amount * 1e9).toString(), // Convert to nanoTON or nanoUSDT (assuming this is the correct conversion)
-        }]
-    };
-
-    try {
-        const simulation = await tonConnectUI.sendTransaction(transaction, { dryRun: true });
-        console.log("Transaction simulation:", simulation);
-        if (!confirm(`Estimated fee: ${fee} ${currency}. Proceed with withdrawal?`)) {
-            return;
+                // Remove any existing listeners to avoid duplicates
+                connectButton.removeEventListener('click', handleConnectClick);
+                connectButton.addEventListener('click', handleConnectClick);
+                debugLog("Wallet system initialized successfully - event listener attached");
+            } catch (error) {
+                debugLog(`Wallet system initialization failed: ${error.message}`);
+                alert("Failed to initialize wallet system: " + error.message);
+            }
         }
-    } catch (error) {
-        throw new Error("Transaction simulation failed: " + error.message);
-    }
 
-    // Proceed with real transaction
-    const txId = `tx_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-    await userDocRef.update({
-        [currency.toLowerCase()]: firebase.firestore.FieldValue.increment(-totalDeduction)
-    });
-
-    try {
-        const realTx = await tonConnectUI.sendTransaction(transaction);
-        console.log("Transaction sent:", realTx);
-
-        const transactionData = {
-            txId,
-            amount,
-            currency,
-            fee,
-            status: 'pending',
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        };
-
-        await db.collection('transactions').doc(telegramUser.id.toString())
-            .collection('history').doc(txId).set(transactionData);
-
-        setTimeout(async () => {
-            await db.collection('transactions').doc(telegramUser.id.toString())
-                .collection('history').doc(txId).update({ status: 'completed' });
-            console.log(`Transaction ${txId} completed`);
-        }, 5000);
-
-        analytics.logEvent('withdrawal_initiated', { userId: telegramUser.id, amount, currency });
-
-    } catch (error) {
-        await db.collection('transactions').doc(telegramUser.id.toString())
-            .collection('history').doc(txId).set({
-                txId,
-                amount,
-                currency,
-                fee,
-                status: 'failed',
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                error: error.message
-            });
-        throw new Error("Failed to send transaction: " + error.message);
-    }
-}
+        // Update transaction history UI
         async function updateTransactionHistory() {
             if (!firebaseInitialized || !db) {
                 console.error("Firestore not initialized. Cannot update transaction history.");
                 return;
             }
             try {
-                const txSnapshot = await db.collection('transactions')
+                const transactionsSnapshot = await db.collection('transactions')
                     .doc(telegramUser.id.toString())
                     .collection('history')
                     .orderBy('timestamp', 'desc')
                     .limit(10)
                     .get();
 
-                const txList = document.getElementById('transaction-list');
-                txList.innerHTML = txSnapshot.empty ? '<li>No transactions yet</li>' : txSnapshot.docs.map(doc => {
-                    const tx = doc.data();
-                    return `
-                        <li>
-                            ${tx.amount} ${tx.currency} - Fee: ${tx.fee} -
-                            <span class="tx-status ${tx.status}">${tx.status}</span> -
-                            ${tx.timestamp.toDate().toLocaleString()}
-                        </li>
-                    `;
-                }).join('');
+                const transactionList = document.getElementById('transaction-list');
+                if (transactionsSnapshot.empty) {
+                    transactionList.innerHTML = '<li>No transactions yet</li>';
+                    return;
+                }
+
+                const transactions = [];
+                transactionsSnapshot.forEach(doc => {
+                    transactions.push(doc.data());
+                });
+
+                transactionList.innerHTML = transactions.map(tx => `
+                    <li>
+                        ${tx.type} - ${tx.amount} ${tx.currency} 
+                        <span class="tx-status ${tx.status}">${tx.status}</span>
+                        <br><small>${new Date(tx.timestamp.toDate()).toLocaleString()}</small>
+                    </li>
+                `).join('');
             } catch (error) {
                 console.error("Error updating transaction history:", error.message);
             }
         }
 
-        warningButtons.forEach(button => {
+        // Process withdrawal
+        async function processWithdrawal(currency) {
+            if (!telegramUser) {
+                alert("User not authenticated. Please try again.");
+                return;
+            }
+            if (!firebaseInitialized || !db) {
+                console.error("Firestore not initialized. Cannot process withdrawal.");
+                alert("Database not initialized. Please try again later.");
+                return;
+            }
+            if (!isManualFallback) {
+                alert("Please connect your wallet first!");
+                return;
+            }
+
+            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+            try {
+                const userDoc = await userDocRef.get();
+                const userData = userDoc.data();
+                const balance = userData[currency.toLowerCase()] || 0;
+
+                if (balance <= 0) {
+                    alert(`No ${currency} balance to withdraw!`);
+                    return;
+                }
+
+                const modal = document.getElementById('withdraw-modal');
+                const amountInput = document.getElementById('withdraw-amount');
+                const availableBalance = document.getElementById('available-balance');
+                const currencySpan = document.getElementById('currency');
+                const feeSpan = document.getElementById('withdraw-fee');
+                const feeCurrencySpan = document.getElementById('fee-currency');
+
+                availableBalance.textContent = balance.toFixed(4);
+                currencySpan.textContent = currency;
+                feeSpan.textContent = '0.01'; // Example fee
+                feeCurrencySpan.textContent = currency;
+                amountInput.value = '';
+                modal.style.display = 'flex';
+
+                document.getElementById('confirm-withdraw').onclick = async () => {
+                    const amount = parseFloat(amountInput.value);
+                    const fee = 0.01; // Example fee
+
+                    if (isNaN(amount) || amount <= 0) {
+                        alert("Please enter a valid amount!");
+                        return;
+                    }
+
+                    if (amount + fee > balance) {
+                        alert(`Insufficient balance! You need ${amount + fee} ${currency} including fees.`);
+                        return;
+                    }
+
+                    try {
+                        // Simulate a TON transaction (since actual TON transactions require backend)
+                        const transaction = {
+                            type: 'Withdrawal',
+                            amount: amount,
+                            currency: currency,
+                            status: 'pending',
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+
+                        await db.collection('transactions')
+                            .doc(telegramUser.id.toString())
+                            .collection('history')
+                            .add(transaction);
+
+                        await userDocRef.update({
+                            [currency.toLowerCase()]: userData[currency.toLowerCase()] - (amount + fee)
+                        });
+
+                        await updateUserStatsUI();
+                        await updateTransactionHistory();
+                        modal.style.display = 'none';
+                        alert(`Withdrawal of ${amount} ${currency} initiated! Fee: ${fee} ${currency}`);
+                        analytics.logEvent('withdrawal_initiated', { userId: telegramUser.id, amount, currency });
+                    } catch (error) {
+                        console.error("Error processing withdrawal:", error.message);
+                        alert("Failed to process withdrawal: " + error.message);
+                    }
+                };
+
+                document.getElementById('cancel-withdraw').onclick = () => {
+                    modal.style.display = 'none';
+                };
+            } catch (error) {
+                console.error("Error preparing withdrawal:", error.message);
+                alert("Failed to prepare withdrawal: " + error.message);
+            }
+        }
+
+        // Set up withdraw buttons
+        document.querySelectorAll('.withdraw-button').forEach(button => {
             button.addEventListener('click', () => {
                 const currency = button.closest('.balance-card').classList.contains('usdt-card') ? 'USDT' : 'TON';
-                alert(`Note:\n- Minimum withdrawal: ${currency === 'USDT' ? '1 USDT' : '0.1 TON'}\n- Fee: ${currency === 'USDT' ? '0.01 USDT' : '0.005 TON'}\n- Ensure your wallet is connected.`);
+                processWithdrawal(currency);
             });
         });
 
+        // Initialize everything
+        async function initializeApp() {
+            try {
+                console.log("Starting app initialization...");
+                const firebaseSuccess = await initializeFirebase();
+                if (!firebaseSuccess) {
+                    throw new Error("Firebase initialization failed");
+                }
 
+                await initializeUserData();
+                await handleReferral();
+                await updateUserStatsUI();
+                await updateEarnSectionUI();
+                await updateInviteSectionUI();
+                await updateTopSectionUI();
+                await updateWalletSectionUI();
+                await initWalletSystem();
+                generateReferralLink();
+                console.log("App initialized successfully");
+            } catch (error) {
+                console.error("App initialization failed:", error.message);
+                alert("Failed to initialize app: " + error.message);
+            }
+        }
+
+        // Start the app
+        initializeApp();
     </script>
 </body>
 </html>
