@@ -147,6 +147,14 @@
             background: #ccc;
             cursor: default;
         }
+        .quest-item .progress {
+    font-size: 12px;
+    color: #ccc;
+    margin-left: 10px;
+}
+.claim-button.active {
+    background: linear-gradient(to right, #00ff00, #66ff66);
+}
         .wallet-section h2 {
             font-size: 18px;
             margin: 10px 0;
@@ -1300,157 +1308,180 @@ async function initializeFirebase(maxRetries = 3) {
 
         // Fetch and Update Earn Section (Quests) with Enhanced Debugging
         async function updateEarnSectionUI() {
-            try {
-                if (!firebaseInitialized || !db) {
-                    console.log("[DEBUG] Firebase not initialized, attempting to initialize...");
-                    const success = await initializeFirebase();
-                    if (!success) {
-                        throw new Error("Failed to initialize Firebase after retries");
-                    }
-                    console.log("[DEBUG] Firebase initialized successfully");
-                }
-
-                let userData;
-                if (telegramUser && firebaseInitialized && db) {
-                    const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
-                    userData = userDoc.data();
-                }
-
-                console.log("[DEBUG] Starting daily quests fetch...");
-                const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({
-                    source: 'server'
-                });
-
-                console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
-                console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
-
-                const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
-                const dailyQuests = dailyQuestsRaw.tasks || [];
-                console.log("[DEBUG] Parsed daily quests:", dailyQuests);
-
-                const validatedDailyQuests = dailyQuests.map(quest => ({
-                    id: quest.id || Math.random().toString(36).substring(7),
-                    title: quest.title || "Untitled Quest",
-                    icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
-                    reward: Number(quest.reward) || 0,
-                    action: quest.action || 'GO',
-                    link: quest.link || ''
-                }));
-                console.log("[DEBUG] Validated daily quests:", validatedDailyQuests);
-
-                const dailyQuestList = document.getElementById('daily-quest-list');
-                const dailyQuestCount = document.getElementById('daily-quest-count');
-
-                if (!dailyQuestList || !dailyQuestCount) {
-                    throw new Error("Required DOM elements not found for daily quests");
-                }
-
-                dailyQuestCount.textContent = validatedDailyQuests.length;
-
-                dailyQuestList.innerHTML = validatedDailyQuests.length === 0 ? `
-                    <li class="no-quests">
-                        <p>No daily quests available</p>
-                    </li>
-                ` : validatedDailyQuests.map(quest => {
-                    const isClaimed = userData?.claimedQuests?.includes(quest.id);
-                    const buttonText = isClaimed ? 'Claimed' : quest.action;
-                    const buttonClass = isClaimed ? 'claimed-button' : 'go-button';
-                    const buttonStyle = isClaimed ? 'background: #ccc; cursor: default;' : 'background: linear-gradient(to right, #ff00ff, #ff6666);';
-                    return `
-                        <li class="quest-item" data-quest-id="${quest.id}">
-                            <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
-                            <span>${quest.title}</span>
-                            <div class="quest-reward">
-                                <img src="assets/icons/gem.png" alt="Gem">
-                                <span>+${quest.reward}</span>
-                                <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
-                            </div>
-                        </li>
-                    `;
-                }).join('');
-
-                console.log("[DEBUG] Starting basic quests fetch...");
-                const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({
-                    source: 'server'
-                });
-
-                console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
-                console.log("[DEBUG] Basic snapshot data:", basicQuestsSnapshot.data());
-
-                const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
-                const basicQuests = basicQuestsRaw.tasks || [];
-                console.log("[DEBUG] Parsed basic quests:", basicQuests);
-
-                const validatedBasicQuests = basicQuests.map(quest => ({
-                    id: quest.id || Math.random().toString(36).substring(7),
-                    title: quest.title || "Untitled Quest",
-                    icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
-                    reward: Number(quest.reward) || 0,
-                    action: quest.action || 'GO',
-                    link: quest.link || ''
-                }));
-                console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
-
-                const basicQuestList = document.getElementById('basic-quest-list');
-                const basicQuestCount = document.getElementById('basic-quest-count');
-
-                if (!basicQuestList || !basicQuestCount) {
-                    throw new Error("Required DOM elements not found for basic quests");
-                }
-
-                basicQuestCount.textContent = validatedBasicQuests.length;
-
-                basicQuestList.innerHTML = validatedBasicQuests.length === 0 ? `
-                    <li class="no-quests">
-                        <p>No basic quests available</p>
-                    </li>
-                ` : validatedBasicQuests.map(quest => {
-                    const isClaimed = userData?.claimedQuests?.includes(quest.id);
-                    const buttonText = isClaimed ? 'Claimed' : quest.action;
-                    const buttonClass = isClaimed ? 'claimed-button' : 'go-button';
-                    const buttonStyle = isClaimed ? 'background: #ccc; cursor: default;' : 'background: linear-gradient(to right, #ff00ff, #ff6666);';
-                    return `
-                        <li class="quest-item" data-quest-id="${quest.id}">
-                            <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
-                            <span>${quest.title}</span>
-                            <div class="quest-reward">
-                                <img src="assets/icons/gem.png" alt="Gem">
-                                <span>+${quest.reward}</span>
-                                <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
-                            </div>
-                        </li>
-                    `;
-                }).join('');
-
-                console.log("[DEBUG] Earn section UI update completed successfully");
-
-            } catch (error) {
-                console.error("[ERROR] Failed to update earn section UI:", {
-                    message: error.message,
-                    stack: error.stack
-                });
-
-                const dailyQuestList = document.getElementById('daily-quest-list');
-                const basicQuestList = document.getElementById('basic-quest-list');
-
-                if (dailyQuestList) {
-                    dailyQuestList.innerHTML = `
-                        <li class="error">
-                            <p>Failed to load daily quests: ${error.message}</p>
-                        </li>
-                    `;
-                }
-
-                if (basicQuestList) {
-                    basicQuestList.innerHTML = `
-                        <li class="error">
-                            <p>Failed to load basic quests: ${error.message}</p>
-                        </li>
-                    `;
-                }
+    try {
+        if (!firebaseInitialized || !db) {
+            console.log("[DEBUG] Firebase not initialized, attempting to initialize...");
+            const success = await initializeFirebase();
+            if (!success) {
+                throw new Error("Failed to initialize Firebase after retries");
             }
+            console.log("[DEBUG] Firebase initialized successfully");
         }
 
+        let userData;
+        if (telegramUser && firebaseInitialized && db) {
+            const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
+            userData = userDoc.data() || {};
+            userData.adProgress = userData.adProgress || {}; // Ensure adProgress exists
+        }
+
+        // Daily Quests (unchanged)
+        console.log("[DEBUG] Starting daily quests fetch...");
+        const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({
+            source: 'server'
+        });
+
+        console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
+        console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
+
+        const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
+        const dailyQuests = dailyQuestsRaw.tasks || [];
+        console.log("[DEBUG] Parsed daily quests:", dailyQuests);
+
+        const validatedDailyQuests = dailyQuests.map(quest => ({
+            id: quest.id || Math.random().toString(36).substring(7),
+            title: quest.title || "Untitled Quest",
+            icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
+            reward: Number(quest.reward) || 0,
+            action: quest.action || 'GO',
+            link: quest.link || ''
+        }));
+        console.log("[DEBUG] Validated daily quests:", validatedDailyQuests);
+
+        const dailyQuestList = document.getElementById('daily-quest-list');
+        const dailyQuestCount = document.getElementById('daily-quest-count');
+
+        if (!dailyQuestList || !dailyQuestCount) {
+            throw new Error("Required DOM elements not found for daily quests");
+        }
+
+        dailyQuestCount.textContent = validatedDailyQuests.length;
+
+        dailyQuestList.innerHTML = validatedDailyQuests.length === 0 ? `
+            <li class="no-quests">
+                <p>No daily quests available</p>
+            </li>
+        ` : validatedDailyQuests.map(quest => {
+            const isClaimed = userData?.claimedQuests?.includes(quest.id);
+            const buttonText = isClaimed ? 'Claimed' : quest.action;
+            const buttonClass = isClaimed ? 'claimed-button' : 'go-button';
+            const buttonStyle = isClaimed ? 'background: #ccc; cursor: default;' : 'background: linear-gradient(to right, #ff00ff, #ff6666);';
+            return `
+                <li class="quest-item" data-quest-id="${quest.id}">
+                    <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
+                    <span>${quest.title}</span>
+                    <div class="quest-reward">
+                        <img src="assets/icons/gem.png" alt="Gem">
+                        <span>+${quest.reward}</span>
+                        <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
+                    </div>
+                </li>
+            `;
+        }).join('');
+
+        // Basic Quests (updated for ad tasks)
+        console.log("[DEBUG] Starting basic quests fetch...");
+        const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({
+            source: 'server'
+        });
+
+        console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
+        console.log("[DEBUG] Basic snapshot data:", basicQuestsSnapshot.data());
+
+        const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
+        const basicQuests = basicQuestsRaw.tasks || [];
+        console.log("[DEBUG] Parsed basic quests:", basicQuests);
+
+        // Add support for ad-specific fields
+        const validatedBasicQuests = basicQuests.map(quest => ({
+            id: quest.id || Math.random().toString(36).substring(7),
+            title: quest.title || "Untitled Quest",
+            icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
+            reward: Number(quest.reward) || 0,
+            action: quest.action || 'GO',
+            link: quest.link || '',
+            type: quest.type || 'default', // Add type to identify ad quests
+            adLimit: quest.adLimit || 0,   // Add adLimit for ad quests
+            adType: quest.adType || ''     // Add adType for ad quests
+        }));
+        console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
+
+        const basicQuestList = document.getElementById('basic-quest-list');
+        const basicQuestCount = document.getElementById('basic-quest-count');
+
+        if (!basicQuestList || !basicQuestCount) {
+            throw new Error("Required DOM elements not found for basic quests");
+        }
+
+        basicQuestCount.textContent = validatedBasicQuests.length;
+
+        // Update the rendering logic to handle ad quests
+        basicQuestList.innerHTML = validatedBasicQuests.length === 0 ? `
+            <li class="no-quests">
+                <p>No basic quests available</p>
+            </li>
+        ` : validatedBasicQuests.map(quest => {
+            const adProgress = userData.adProgress[quest.id] || { watched: 0, claimed: false };
+            const isCompleted = quest.type === 'ads' && adProgress.watched >= quest.adLimit;
+            const isClaimed = adProgress.claimed || userData.claimedQuests?.includes(quest.id);
+            let buttonText, buttonClass, buttonStyle;
+
+            if (isClaimed) {
+                buttonText = 'Claimed';
+                buttonClass = 'claimed-button';
+                buttonStyle = 'background: #ccc; cursor: default;';
+            } else if (isCompleted) {
+                buttonText = 'Claim';
+                buttonClass = 'claim-button active';
+                buttonStyle = 'background: linear-gradient(to right, #00ff00, #66ff66);';
+            } else {
+                buttonText = quest.action;
+                buttonClass = 'go-button';
+                buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);';
+            }
+
+            return `
+                <li class="quest-item" data-quest-id="${quest.id}" data-quest-type="${quest.type}" data-ad-limit="${quest.adLimit}" data-ad-type="${quest.adType}">
+                    <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
+                    <span>${quest.title}</span>
+                    <div class="quest-reward">
+                        <img src="assets/icons/gem.png" alt="Gem">
+                        <span>+${quest.reward}</span>
+                        ${quest.type === 'ads' ? `<span class="progress">${adProgress.watched}/${quest.adLimit}</span>` : ''}
+                        <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
+                    </div>
+                </li>
+            `;
+        }).join('');
+
+        console.log("[DEBUG] Earn section UI update completed successfully");
+
+    } catch (error) {
+        console.error("[ERROR] Failed to update earn section UI:", {
+            message: error.message,
+            stack: error.stack
+        });
+
+        const dailyQuestList = document.getElementById('daily-quest-list');
+        const basicQuestList = document.getElementById('basic-quest-list');
+
+        if (dailyQuestList) {
+            dailyQuestList.innerHTML = `
+                <li class="error">
+                    <p>Failed to load daily quests: ${error.message}</p>
+                </li>
+            `;
+        }
+
+        if (basicQuestList) {
+            basicQuestList.innerHTML = `
+                <li class="error">
+                    <p>Failed to load basic quests: ${error.message}</p>
+                </li>
+            `;
+        }
+    }
+}
         // Referral System
         function generateReferralLink() {
             if (!telegramUser) return;
@@ -1740,24 +1771,94 @@ async function initializeFirebase(maxRetries = 3) {
 
         // Earn Section Interactions
         document.addEventListener('click', async (event) => {
-    if (event.target.classList.contains('go-button')) {
-        const taskItem = event.target.closest('.quest-item');
-        if (!taskItem) return;
+    const button = event.target;
+    const taskItem = button.closest('.quest-item');
+    if (!taskItem) return;
 
-        const questId = taskItem.dataset.questId;
-        const reward = parseInt(event.target.dataset.questReward);
-        const link = event.target.dataset.questLink || 'https://t.me/fourgobot';
+    const questId = taskItem.dataset.questId;
+    const reward = parseInt(button.dataset.questReward);
+    const link = button.dataset.questLink || 'https://t.me/fourgobot';
+    const questType = taskItem.dataset.questType;
+    const adLimit = parseInt(taskItem.dataset.adLimit) || 0;
+    const adType = taskItem.dataset.adType;
 
-        if (!firebaseInitialized || !db) {
-            console.error("Firestore not initialized. Cannot process quest.");
-            alert("Database not initialized. Please try again later.");
+    if (!firebaseInitialized || !db) {
+        alert("Database not initialized. Please try again later.");
+        return;
+    }
+
+    const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+    const userDoc = await userDocRef.get();
+    const userData = userDoc.data() || {};
+    userData.adProgress = userData.adProgress || {};
+
+    if (button.classList.contains('go-button') && questType === 'ads') {
+        // Handle ad-based quest
+        const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false };
+        if (adProgress.watched >= adLimit) {
+            alert("Ad limit reached for this task!");
             return;
         }
 
         try {
-            // Ensure user data is initialized
-            await initializeUserData();
+            await showAd(adType);
+            adProgress.watched += 1;
 
+            await userDocRef.set({
+                adProgress: {
+                    [questId]: { watched: adProgress.watched, claimed: adProgress.claimed }
+                }
+            }, { merge: true });
+
+            if (adProgress.watched >= adLimit) {
+                button.textContent = 'Claim';
+                button.classList.remove('go-button');
+                button.classList.add('claim-button', 'active');
+                button.style.background = 'linear-gradient(to right, #00ff00, #66ff66)';
+            }
+            taskItem.querySelector('.progress').textContent = `${adProgress.watched}/${adLimit}`;
+            alert("Ad watched successfully!");
+        } catch (error) {
+            console.error("Ad display error:", error.message);
+            alert("Failed to display ad: " + error.message);
+        }
+    } else if (button.classList.contains('claim-button') && questType === 'ads') {
+        // Handle claiming the reward
+        const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false };
+        if (adProgress.watched < adLimit) {
+            alert("You need to watch all ads to claim this reward!");
+            return;
+        }
+        if (adProgress.claimed || userData.claimedQuests?.includes(questId)) {
+            alert("This reward has already been claimed!");
+            return;
+        }
+
+        try {
+            await userDocRef.update({
+                gems: (userData.gems || 0) + reward,
+                claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId),
+                [`adProgress.${questId}.claimed`]: true
+            });
+
+            button.textContent = 'Claimed';
+            button.classList.remove('claim-button', 'active');
+            button.classList.add('claimed-button');
+            button.disabled = true;
+            button.style.background = '#ccc';
+            button.style.cursor = 'default';
+
+            await updateUserStatsUI();
+            alert(`Reward claimed! You earned ${reward} gems.`);
+            analytics.logEvent('ads_quest_completed', { questId, userId: telegramUser.id, reward });
+        } catch (error) {
+            console.error("Error claiming ad reward:", error.message);
+            alert("Failed to claim reward: " + error.message);
+        }
+    } else if (button.classList.contains('go-button')) {
+        // Handle non-ad quests (original logic)
+        try {
+            await initializeUserData();
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
             const userDoc = await userDocRef.get();
 
@@ -1768,8 +1869,6 @@ async function initializeFirebase(maxRetries = 3) {
             }
 
             const userData = userDoc.data();
-
-            // Ensure claimedQuests exists, default to empty array if undefined
             const claimedQuests = userData.claimedQuests || [];
 
             if (claimedQuests.includes(questId)) {
@@ -1784,12 +1883,12 @@ async function initializeFirebase(maxRetries = 3) {
                 claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId)
             });
 
-            event.target.textContent = 'Claimed';
-            event.target.classList.remove('go-button');
-            event.target.classList.add('claimed-button');
-            event.target.disabled = true;
-            event.target.style.background = '#ccc';
-            event.target.style.cursor = 'default';
+            button.textContent = 'Claimed';
+            button.classList.remove('go-button');
+            button.classList.add('claimed-button');
+            button.disabled = true;
+            button.style.background = '#ccc';
+            button.style.cursor = 'default';
 
             await updateUserStatsUI();
             alert(`Quest completed! You earned ${reward} gems.`);
@@ -1814,33 +1913,52 @@ async function initializeFirebase(maxRetries = 3) {
         });
 
         // Function to show Monetag In-App Interstitial Ad
-        function showMonetagAd() {
-    const maxWaitTime = 10000; // 10 seconds
-    const startTime = Date.now();
-    function checkSDK() {
-        if (window.show_9180370) {
-            try {
-                window.show_9180370({
-                    type: 'inApp',
-                    inAppSettings: {
-                        frequency: 2,
-                        capping: 0.1,
-                        interval: 30,
-                        timeout: 5,
-                        everyPage: false
+        function showAd(adType) {
+    return new Promise((resolve, reject) => {
+        const maxWaitTime = 10000; // 10 seconds
+        const startTime = Date.now();
+
+        function checkSDK() {
+            if (window.show_9180370) {
+                try {
+                    switch (adType) {
+                        case 'rewarded_popup':
+                            show_9180370('pop').then(() => {
+                                console.log("Rewarded popup ad completed");
+                                resolve();
+                            }).catch(e => reject(new Error("Rewarded popup failed: " + e.message)));
+                            break;
+                        case 'inApp':
+                            show_9180370({
+                                type: 'inApp',
+                                inAppSettings: {
+                                    frequency: 2,
+                                    capping: 0.1,
+                                    interval: 30,
+                                    timeout: 5,
+                                    everyPage: false
+                                }
+                            }).then(() => {
+                                console.log("In-app interstitial ad completed");
+                                resolve();
+                            }).catch(e => reject(new Error("In-app interstitial failed: " + e.message)));
+                            break;
+                        default:
+                            reject(new Error("Unknown ad type: " + adType));
                     }
-                });
-                console.log("Monetag In-App Interstitial ad triggered");
-            } catch (error) {
-                console.error("Failed to show Monetag ad:", error);
+                } catch (error) {
+                    console.error("Failed to show Monetag ad:", error);
+                    reject(error);
+                }
+            } else if (Date.now() - startTime < maxWaitTime) {
+                setTimeout(checkSDK, 500); // Check every 500ms
+            } else {
+                console.warn("Monetag SDK failed to load within 10 seconds");
+                reject(new Error("Monetag SDK failed to load within 10 seconds"));
             }
-        } else if (Date.now() - startTime < maxWaitTime) {
-            setTimeout(checkSDK, 500); // Check every 500ms
-        } else {
-            console.warn("Monetag SDK failed to load within 10 seconds");
         }
-    }
-    checkSDK();
+        checkSDK();
+    });
 }
 
         // Initialize App with Ad on Launch
@@ -2344,9 +2462,10 @@ async function initializeFirebase(maxRetries = 3) {
                 await handleReferral();
                 generateReferralLink();
 
-                // Show Monetag ad when bot opens
-                showMonetagAd();
-
+// Show Monetag ad when bot opens
+showAd('inApp').catch(error => {
+    console.error("Failed to show initial ad:", error.message);
+});
                 // Continue with wallet and UI setup
                 tonConnectUI = await initializeTonConnect();
                 await initWalletSystem();
