@@ -1769,12 +1769,13 @@ async function initializeFirebase(maxRetries = 3) {
 
         updateChest();
 
-        // Earn Section Interactions
-        document.addEventListener('click', async (event) => {
+// Earn Section Interactions
+document.addEventListener('click', async (event) => {
     const button = event.target;
     const taskItem = button.closest('.quest-item');
     if (!taskItem) return;
 
+    // Extract quest details from the task item and button
     const questId = taskItem.dataset.questId;
     const reward = parseInt(button.dataset.questReward);
     const link = button.dataset.questLink || 'https://t.me/fourgobot';
@@ -1782,65 +1783,90 @@ async function initializeFirebase(maxRetries = 3) {
     const adLimit = parseInt(taskItem.dataset.adLimit) || 0;
     const adType = taskItem.dataset.adType;
 
+    // Ensure Firebase is initialized
     if (!firebaseInitialized || !db) {
         alert("Database not initialized. Please try again later.");
         return;
     }
 
+    // Get the user's data from Firestore
     const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
     const userDoc = await userDocRef.get();
     const userData = userDoc.data() || {};
     userData.adProgress = userData.adProgress || {};
 
+    // Handle ad-based quest (GO button)
     if (button.classList.contains('go-button') && questType === 'ads') {
-        // Handle ad-based quest
+        // Get the user's ad progress for this quest
         const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false };
+        
+        // Check if the ad limit has been reached
         if (adProgress.watched >= adLimit) {
             alert("Ad limit reached for this task!");
             return;
         }
 
         try {
+            // Attempt to show the ad
             await showAd(adType);
             adProgress.watched += 1;
 
+            // Update the user's ad progress in Firestore
             await userDocRef.set({
                 adProgress: {
                     [questId]: { watched: adProgress.watched, claimed: adProgress.claimed }
                 }
             }, { merge: true });
 
+            // If the ad limit is reached, update the button to "Claim"
             if (adProgress.watched >= adLimit) {
                 button.textContent = 'Claim';
                 button.classList.remove('go-button');
                 button.classList.add('claim-button', 'active');
                 button.style.background = 'linear-gradient(to right, #00ff00, #66ff66)';
             }
+
+            // Update the progress UI (e.g., "1/25")
             taskItem.querySelector('.progress').textContent = `${adProgress.watched}/${adLimit}`;
             alert("Ad watched successfully!");
         } catch (error) {
+            // Log the error for debugging
             console.error("Ad display error:", error.message);
-            alert("Failed to display ad: " + error.message);
+
+            // Step 4: Handle the "Ad is not ready" error with a user-friendly message
+            if (error.message.includes("Ad is not ready")) {
+                alert("No ads are available right now. Please try again later.");
+            } else {
+                // For other errors, show the default message
+                alert("Failed to display ad: " + error.message);
+            }
         }
-    } else if (button.classList.contains('claim-button') && questType === 'ads') {
-        // Handle claiming the reward
+    } 
+    // Handle ad-based quest (Claim button)
+    else if (button.classList.contains('claim-button') && questType === 'ads') {
         const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false };
+        
+        // Check if the user has watched enough ads to claim the reward
         if (adProgress.watched < adLimit) {
             alert("You need to watch all ads to claim this reward!");
             return;
         }
+        
+        // Check if the reward has already been claimed
         if (adProgress.claimed || userData.claimedQuests?.includes(questId)) {
             alert("This reward has already been claimed!");
             return;
         }
 
         try {
+            // Update the user's gems and mark the quest as claimed
             await userDocRef.update({
                 gems: (userData.gems || 0) + reward,
                 claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId),
                 [`adProgress.${questId}.claimed`]: true
             });
 
+            // Update the button to "Claimed" state
             button.textContent = 'Claimed';
             button.classList.remove('claim-button', 'active');
             button.classList.add('claimed-button');
@@ -1848,6 +1874,7 @@ async function initializeFirebase(maxRetries = 3) {
             button.style.background = '#ccc';
             button.style.cursor = 'default';
 
+            // Update the UI with the new gem count
             await updateUserStatsUI();
             alert(`Reward claimed! You earned ${reward} gems.`);
             analytics.logEvent('ads_quest_completed', { questId, userId: telegramUser.id, reward });
@@ -1855,9 +1882,11 @@ async function initializeFirebase(maxRetries = 3) {
             console.error("Error claiming ad reward:", error.message);
             alert("Failed to claim reward: " + error.message);
         }
-    } else if (button.classList.contains('go-button')) {
-        // Handle non-ad quests (original logic)
+    } 
+    // Handle non-ad quests (GO button)
+    else if (button.classList.contains('go-button')) {
         try {
+            // Ensure user data is initialized
             await initializeUserData();
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
             const userDoc = await userDocRef.get();
@@ -1871,18 +1900,22 @@ async function initializeFirebase(maxRetries = 3) {
             const userData = userDoc.data();
             const claimedQuests = userData.claimedQuests || [];
 
+            // Check if the quest has already been claimed
             if (claimedQuests.includes(questId)) {
                 alert("This quest has already been claimed!");
                 return;
             }
 
+            // Open the Telegram link for the quest
             Telegram.WebApp.openTelegramLink(link);
 
+            // Update the user's gems and mark the quest as claimed
             await userDocRef.update({
                 gems: (userData.gems || 0) + reward,
                 claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId)
             });
 
+            // Update the button to "Claimed" state
             button.textContent = 'Claimed';
             button.classList.remove('go-button');
             button.classList.add('claimed-button');
@@ -1890,6 +1923,7 @@ async function initializeFirebase(maxRetries = 3) {
             button.style.background = '#ccc';
             button.style.cursor = 'default';
 
+            // Update the UI with the new gem count
             await updateUserStatsUI();
             alert(`Quest completed! You earned ${reward} gems.`);
             analytics.logEvent('quest_completed', { questId, userId: telegramUser.id, reward });
@@ -1899,6 +1933,7 @@ async function initializeFirebase(maxRetries = 3) {
         }
     }
 });
+
         // Invite Section Interactions
         document.querySelector('.invite-friend').addEventListener('click', () => {
             const link = document.querySelector('.invite-friend').dataset.link;
@@ -1912,27 +1947,6 @@ async function initializeFirebase(maxRetries = 3) {
             });
         });
 
-// Create a sandboxed iframe for ad display
-function createAdIframe() {
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.top = '0';
-    iframe.style.left = '0';
-    iframe.style.width = '100%';
-    iframe.style.height = '100%';
-    iframe.style.border = 'none';
-    iframe.style.zIndex = '9999';
-    iframe.sandbox = 'allow-scripts allow-same-origin'; // Restrict iframe permissions
-    document.body.appendChild(iframe);
-    return iframe;
-}
-
-// Remove the iframe after ad completion or failure
-function removeAdIframe(iframe) {
-    if (iframe && iframe.parentNode) {
-        iframe.parentNode.removeChild(iframe);
-    }
-}
 
 // Function to show Monetag In-App Interstitial Ad
 function showAd(adType) {
@@ -1940,7 +1954,7 @@ function showAd(adType) {
         const maxWaitTime = 10000; // 10 seconds
         const startTime = Date.now();
 
-        console.log(`[DEBUG] Attempting to show ad of type: ${adType}`);
+        console.log("[DEBUG] Attempting to show ad of type: " + adType);
 
         function checkSDK() {
             if (window.show_9180370) {
@@ -1948,40 +1962,14 @@ function showAd(adType) {
                 try {
                     switch (adType) {
                         case 'rewarded_popup':
-                            console.log("[DEBUG] Triggering 'rewarded_popup' ad in iframe...");
-                            // Create a sandboxed iframe
-                            const iframe = createAdIframe();
-                            // Load the Monetag SDK script inside the iframe
-                            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                            const script = iframeDoc.createElement('script');
-                            script.src = '//whephiwums.com/sdk.js';
-                            script.setAttribute('data-zone', '9180370');
-                            script.setAttribute('data-sdk', 'show_9180370');
-                            iframeDoc.body.appendChild(script);
-
-                            // Wait for the SDK to load inside the iframe
-                            const iframeStartTime = Date.now();
-                            function checkIframeSDK() {
-                                if (iframe.contentWindow.show_9180370) {
-                                    console.log("[DEBUG] Monetag SDK loaded in iframe, showing ad...");
-                                    iframe.contentWindow.show_9180370('pop').then(() => {
-                                        console.log("[DEBUG] Rewarded popup ad completed successfully in iframe");
-                                        removeAdIframe(iframe);
-                                        resolve();
-                                    }).catch(e => {
-                                        console.error("[DEBUG] Rewarded popup failed in iframe:", e.message);
-                                        removeAdIframe(iframe);
-                                        reject(new Error("Rewarded popup failed: " + e.message));
-                                    });
-                                } else if (Date.now() - iframeStartTime < maxWaitTime) {
-                                    setTimeout(checkIframeSDK, 500);
-                                } else {
-                                    console.warn("[DEBUG] Monetag SDK failed to load in iframe within 10 seconds");
-                                    removeAdIframe(iframe);
-                                    reject(new Error("Monetag SDK failed to load in iframe within 10 seconds"));
-                                }
-                            }
-                            checkIframeSDK();
+                            console.log("[DEBUG] Triggering 'rewarded_popup' ad...");
+                            show_9180370('pop').then(() => {
+                                console.log("[DEBUG] Rewarded popup ad completed successfully");
+                                resolve();
+                            }).catch(e => {
+                                console.error("[DEBUG] Rewarded popup failed:", e.message);
+                                reject(new Error("Rewarded popup failed: " + e.message));
+                            });
                             break;
                         case 'inApp':
                             console.log("[DEBUG] Triggering 'inApp' interstitial ad...");
