@@ -1402,7 +1402,7 @@ async function initializeFirebase(maxRetries = 3) {
             link: quest.link || '',
             type: quest.type || 'default', // Add type to identify ad quests
             adLimit: quest.adLimit || 0,   // Add adLimit for ad quests
-            adType: quest.adType || ''     // Add adType for ad quests
+            adType: quest.adType || 'rewarded_interstitial' // Default to rewarded_interstitial if not specified
         }));
         console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
 
@@ -1781,7 +1781,7 @@ document.addEventListener('click', async (event) => {
     const link = button.dataset.questLink || 'https://t.me/fourgobot';
     const questType = taskItem.dataset.questType;
     const adLimit = parseInt(taskItem.dataset.adLimit) || 0;
-    const adType = taskItem.dataset.adType;
+    const adType = taskItem.dataset.adType || 'rewarded_interstitial'; // Default to rewarded_interstitial
 
     // Ensure Firebase is initialized
     if (!firebaseInitialized || !db) {
@@ -1807,7 +1807,7 @@ document.addEventListener('click', async (event) => {
         }
 
         try {
-            // Attempt to show the ad
+            // Show the ad based on the adType
             await showAd(adType);
             adProgress.watched += 1;
 
@@ -1829,11 +1829,12 @@ document.addEventListener('click', async (event) => {
             // Update the progress UI (e.g., "1/25")
             taskItem.querySelector('.progress').textContent = `${adProgress.watched}/${adLimit}`;
             alert("Ad watched successfully!");
+            analytics.logEvent('ad_watched', { questId, userId: telegramUser.id, adType });
         } catch (error) {
             // Log the error for debugging
             console.error("Ad display error:", error.message);
 
-            // Step 4: Handle the "Ad is not ready" error with a user-friendly message
+            // Handle the "Ad is not ready" error with a user-friendly message
             if (error.message.includes("Ad is not ready")) {
                 alert("No ads are available right now. Please try again later.");
             } else {
@@ -1948,48 +1949,61 @@ document.addEventListener('click', async (event) => {
         });
 
 
-// Function to show Monetag In-App Interstitial Ad
+// Function to show Monetag Ads with support for multiple ad types
 function showAd(adType) {
     return new Promise((resolve, reject) => {
-        const maxWaitTime = 10000; // 10 seconds
+        const maxWaitTime = 10000; // 10 seconds timeout
         const startTime = Date.now();
 
-        console.log("[DEBUG] Attempting to show ad of type: " + adType);
+        console.log(`[DEBUG] Attempting to show ad of type: ${adType}`);
 
         function checkSDK() {
             if (window.show_9180370) {
                 console.log("[DEBUG] Monetag SDK loaded, triggering ad...");
                 try {
                     switch (adType) {
-                        case 'rewarded_popup':
-                            console.log("[DEBUG] Triggering 'rewarded_popup' ad...");
-                            show_9180370('pop').then(() => {
-                                console.log("[DEBUG] Rewarded popup ad completed successfully");
+                        case 'rewarded_interstitial':
+                            console.log("[DEBUG] Triggering Rewarded Interstitial ad...");
+                            show_9180370().then(() => {
+                                console.log("[DEBUG] Rewarded Interstitial ad completed successfully");
                                 resolve();
                             }).catch(e => {
-                                console.error("[DEBUG] Rewarded popup failed:", e.message);
-                                reject(new Error("Rewarded popup failed: " + e.message));
+                                console.error("[DEBUG] Rewarded Interstitial failed:", e.message);
+                                reject(new Error("Rewarded Interstitial failed: " + e.message));
                             });
                             break;
+
+                        case 'rewarded_popup':
+                            console.log("[DEBUG] Triggering Rewarded Popup ad...");
+                            show_9180370('pop').then(() => {
+                                console.log("[DEBUG] Rewarded Popup ad completed successfully");
+                                resolve();
+                            }).catch(e => {
+                                console.error("[DEBUG] Rewarded Popup failed:", e.message);
+                                reject(new Error("Rewarded Popup failed: " + e.message));
+                            });
+                            break;
+
                         case 'inApp':
-                            console.log("[DEBUG] Triggering 'inApp' interstitial ad...");
+                            console.log("[DEBUG] Triggering In-App Interstitial ad...");
                             show_9180370({
                                 type: 'inApp',
                                 inAppSettings: {
-                                    frequency: 2,
-                                    capping: 0.1,
-                                    interval: 30,
-                                    timeout: 5,
-                                    everyPage: false
+                                    frequency: 2,      // Show 2 ads
+                                    capping: 0.1,      // Within 6 minutes (0.1 hours)
+                                    interval: 30,      // 30-second interval between ads
+                                    timeout: 5,        // 5-second delay before first ad
+                                    everyPage: false   // Session persists across page navigation
                                 }
                             }).then(() => {
-                                console.log("[DEBUG] In-app interstitial ad completed successfully");
+                                console.log("[DEBUG] In-app Interstitial ad completed successfully");
                                 resolve();
                             }).catch(e => {
-                                console.error("[DEBUG] In-app interstitial failed:", e.message);
-                                reject(new Error("In-app interstitial failed: " + e.message));
+                                console.error("[DEBUG] In-app Interstitial failed:", e.message);
+                                reject(new Error("In-app Interstitial failed: " + e.message));
                             });
                             break;
+
                         default:
                             console.error("[DEBUG] Unknown ad type:", adType);
                             reject(new Error("Unknown ad type: " + adType));
