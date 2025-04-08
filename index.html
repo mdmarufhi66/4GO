@@ -1797,6 +1797,7 @@ document.addEventListener('click', async (event) => {
 
     // Handle ad-based quest (GO button)
     if (button.classList.contains('go-button') && questType === 'ads') {
+        console.log("[DEBUG] Handling ad-based quest:", { questId, adType, adLimit });
         // Get the user's ad progress for this quest
         const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false };
         
@@ -1808,7 +1809,9 @@ document.addEventListener('click', async (event) => {
 
         try {
             // Show the ad based on the adType
+            console.log("[DEBUG] Calling showAd for adType:", adType);
             await showAd(adType);
+            console.log("[DEBUG] Ad displayed successfully, updating progress...");
             adProgress.watched += 1;
 
             // Update the user's ad progress in Firestore
@@ -1886,6 +1889,7 @@ document.addEventListener('click', async (event) => {
     } 
     // Handle non-ad quests (GO button)
     else if (button.classList.contains('go-button')) {
+        console.log("[DEBUG] Handling non-ad quest:", { questId, link });
         try {
             // Ensure user data is initialized
             await initializeUserData();
@@ -1908,6 +1912,7 @@ document.addEventListener('click', async (event) => {
             }
 
             // Open the Telegram link for the quest
+            console.log("[DEBUG] Redirecting to link:", link);
             Telegram.WebApp.openTelegramLink(link);
 
             // Update the user's gems and mark the quest as claimed
@@ -1952,7 +1957,7 @@ document.addEventListener('click', async (event) => {
 // Function to show Monetag Ads with support for multiple ad types
 function showAd(adType) {
     return new Promise((resolve, reject) => {
-        const maxWaitTime = 10000; // 10 seconds timeout
+        const maxWaitTime = 15000; // Increased to 15 seconds to give more time for ad loading
         const startTime = Date.now();
 
         console.log(`[DEBUG] Attempting to show ad of type: ${adType}`);
@@ -1986,22 +1991,31 @@ function showAd(adType) {
 
                         case 'inApp':
                             console.log("[DEBUG] Triggering In-App Interstitial ad...");
-                            show_9180370({
+                            // Ensure the ad is actually shown before resolving
+                            const adPromise = show_9180370({
                                 type: 'inApp',
                                 inAppSettings: {
-                                    frequency: 2,      // Show 2 ads
+                                    frequency: 1,      // Show 1 ad to test
                                     capping: 0.1,      // Within 6 minutes (0.1 hours)
-                                    interval: 30,      // 30-second interval between ads
-                                    timeout: 5,        // 5-second delay before first ad
+                                    interval: 0,       // No interval for testing
+                                    timeout: 3,        // 3-second delay before first ad
                                     everyPage: false   // Session persists across page navigation
                                 }
-                            }).then(() => {
-                                console.log("[DEBUG] In-app Interstitial ad completed successfully");
-                                resolve();
-                            }).catch(e => {
-                                console.error("[DEBUG] In-app Interstitial failed:", e.message);
-                                reject(new Error("In-app Interstitial failed: " + e.message));
                             });
+
+                            if (adPromise && typeof adPromise.then === 'function') {
+                                adPromise.then(() => {
+                                    console.log("[DEBUG] In-app Interstitial ad completed successfully");
+                                    resolve();
+                                }).catch(e => {
+                                    console.error("[DEBUG] In-app Interstitial failed:", e.message);
+                                    reject(new Error("In-app Interstitial failed: " + e.message));
+                                });
+                            } else {
+                                // If the ad doesn't return a promise, assume it failed
+                                console.error("[DEBUG] In-app Interstitial did not return a promise");
+                                reject(new Error("In-app Interstitial failed: No promise returned"));
+                            }
                             break;
 
                         default:
@@ -2016,8 +2030,8 @@ function showAd(adType) {
                 console.log("[DEBUG] Monetag SDK not loaded yet, retrying in 500ms...");
                 setTimeout(checkSDK, 500); // Check every 500ms
             } else {
-                console.warn("[DEBUG] Monetag SDK failed to load within 10 seconds");
-                reject(new Error("Monetag SDK failed to load within 10 seconds"));
+                console.warn("[DEBUG] Monetag SDK failed to load within 15 seconds");
+                reject(new Error("Monetag SDK failed to load within 15 seconds"));
             }
         }
         checkSDK();
