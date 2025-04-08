@@ -1957,7 +1957,7 @@ document.addEventListener('click', async (event) => {
 // Function to show Monetag Ads with support for multiple ad types
 function showAd(adType) {
     return new Promise((resolve, reject) => {
-        const maxWaitTime = 15000; // Increased to 15 seconds to give more time for ad loading
+        const maxWaitTime = 15000; // 15 seconds timeout
         const startTime = Date.now();
 
         console.log(`[DEBUG] Attempting to show ad of type: ${adType}`);
@@ -1991,15 +1991,14 @@ function showAd(adType) {
 
                         case 'inApp':
                             console.log("[DEBUG] Triggering In-App Interstitial ad...");
-                            // Ensure the ad is actually shown before resolving
                             const adPromise = show_9180370({
                                 type: 'inApp',
                                 inAppSettings: {
-                                    frequency: 1,      // Show 1 ad to test
-                                    capping: 0.1,      // Within 6 minutes (0.1 hours)
-                                    interval: 0,       // No interval for testing
-                                    timeout: 3,        // 3-second delay before first ad
-                                    everyPage: false   // Session persists across page navigation
+                                    frequency: 1,
+                                    capping: 0.1,
+                                    interval: 0,
+                                    timeout: 3,
+                                    everyPage: false
                                 }
                             });
 
@@ -2012,7 +2011,6 @@ function showAd(adType) {
                                     reject(new Error("In-app Interstitial failed: " + e.message));
                                 });
                             } else {
-                                // If the ad doesn't return a promise, assume it failed
                                 console.error("[DEBUG] In-app Interstitial did not return a promise");
                                 reject(new Error("In-app Interstitial failed: No promise returned"));
                             }
@@ -2028,10 +2026,17 @@ function showAd(adType) {
                 }
             } else if (Date.now() - startTime < maxWaitTime) {
                 console.log("[DEBUG] Monetag SDK not loaded yet, retrying in 500ms...");
-                setTimeout(checkSDK, 500); // Check every 500ms
+                setTimeout(checkSDK, 500);
             } else {
-                console.warn("[DEBUG] Monetag SDK failed to load within 15 seconds");
-                reject(new Error("Monetag SDK failed to load within 15 seconds"));
+                console.warn("[DEBUG] Monetag SDK failed to load within 15 seconds, falling back to simulated ad...");
+                // Fallback: Simulate an ad experience
+                setTimeout(() => {
+                    alert("Simulated ad: Please wait 5 seconds to continue...");
+                    setTimeout(() => {
+                        console.log("[DEBUG] Simulated ad completed");
+                        resolve();
+                    }, 5000); // Simulate a 5-second ad
+                }, 1000);
             }
         }
         checkSDK();
