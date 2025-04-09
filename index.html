@@ -1327,13 +1327,9 @@ async function initializeFirebase(maxRetries = 3) {
 
         // Daily Quests (unchanged)
         console.log("[DEBUG] Starting daily quests fetch...");
-        const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({
-            source: 'server'
-        });
-
+        const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({ source: 'server' });
         console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
         console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
-
         const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
         const dailyQuests = dailyQuestsRaw.tasks || [];
         console.log("[DEBUG] Parsed daily quests:", dailyQuests);
@@ -1350,11 +1346,9 @@ async function initializeFirebase(maxRetries = 3) {
 
         const dailyQuestList = document.getElementById('daily-quest-list');
         const dailyQuestCount = document.getElementById('daily-quest-count');
-
         if (!dailyQuestList || !dailyQuestCount) {
             throw new Error("Required DOM elements not found for daily quests");
         }
-
         dailyQuestCount.textContent = validatedDailyQuests.length;
 
         dailyQuestList.innerHTML = validatedDailyQuests.length === 0 ? `
@@ -1379,20 +1373,15 @@ async function initializeFirebase(maxRetries = 3) {
             `;
         }).join('');
 
-        // Basic Quests (updated for ad tasks)
+        // Basic Quests (updated with reset and cooldown logic)
         console.log("[DEBUG] Starting basic quests fetch...");
-        const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({
-            source: 'server'
-        });
-
+        const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
         console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
         console.log("[DEBUG] Basic snapshot data:", basicQuestsSnapshot.data());
-
         const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
         const basicQuests = basicQuestsRaw.tasks || [];
         console.log("[DEBUG] Parsed basic quests:", basicQuests);
 
-        // Add support for ad-specific fields
         const validatedBasicQuests = basicQuests.map(quest => ({
             id: quest.id || Math.random().toString(36).substring(7),
             title: quest.title || "Untitled Quest",
@@ -1400,34 +1389,57 @@ async function initializeFirebase(maxRetries = 3) {
             reward: Number(quest.reward) || 0,
             action: quest.action || 'GO',
             link: quest.link || '',
-            type: quest.type || 'default', // Add type to identify ad quests
-            adLimit: quest.adLimit || 0,   // Add adLimit for ad quests
-            adType: quest.adType || 'rewarded_interstitial' // Default to rewarded_interstitial if not specified
+            type: quest.type || 'default',
+            adLimit: quest.adLimit || 0,
+            adType: quest.adType || 'rewarded_interstitial'
         }));
         console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
 
         const basicQuestList = document.getElementById('basic-quest-list');
         const basicQuestCount = document.getElementById('basic-quest-count');
-
         if (!basicQuestList || !basicQuestCount) {
             throw new Error("Required DOM elements not found for basic quests");
         }
-
         basicQuestCount.textContent = validatedBasicQuests.length;
 
-        // Update the rendering logic to handle ad quests
+        // Current time for cooldown check
+        const currentTime = new Date();
+
         basicQuestList.innerHTML = validatedBasicQuests.length === 0 ? `
             <li class="no-quests">
                 <p>No basic quests available</p>
             </li>
         ` : validatedBasicQuests.map(quest => {
-            const adProgress = userData.adProgress[quest.id] || { watched: 0, claimed: false };
+            const adProgress = userData.adProgress[quest.id] || { watched: 0, claimed: false, lastClaimed: null };
             const isCompleted = quest.type === 'ads' && adProgress.watched >= quest.adLimit;
             const isClaimed = adProgress.claimed || userData.claimedQuests?.includes(quest.id);
             let buttonText, buttonClass, buttonStyle;
 
-            if (isClaimed) {
-                buttonText = 'Claimed';
+            // Check cooldown (1 hour = 3600000 milliseconds)
+            const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed) : null;
+            const timeSinceLastClaim = lastClaimedTime ? currentTime - lastClaimedTime : Infinity;
+            const cooldownPeriod = 3600000; // 1 hour in milliseconds
+            const isCooldownOver = timeSinceLastClaim >= cooldownPeriod;
+
+            // Reset logic: If claimed and cooldown is over, reset the task
+            if (isClaimed && quest.type === 'ads' && isCooldownOver) {
+                console.log(`[DEBUG] Resetting ad quest ${quest.id} as cooldown is over`);
+                db.collection('userData').doc(telegramUser.id.toString()).update({
+                    [`adProgress.${quest.id}`]: { watched: 0, claimed: false, lastClaimed: null }
+                }).then(() => {
+                    console.log(`[DEBUG] Quest ${quest.id} reset in Firestore`);
+                }).catch(error => {
+                    console.error(`[ERROR] Failed to reset quest ${quest.id}:`, error.message);
+                });
+                // Update local adProgress to reflect reset immediately
+                adProgress.watched = 0;
+                adProgress.claimed = false;
+                adProgress.lastClaimed = null;
+            }
+
+            if (isClaimed && !isCooldownOver) {
+                const timeLeft = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 60000); // Minutes left
+                buttonText = `Wait ${timeLeft}m`;
                 buttonClass = 'claimed-button';
                 buttonStyle = 'background: #ccc; cursor: default;';
             } else if (isCompleted) {
@@ -1448,7 +1460,7 @@ async function initializeFirebase(maxRetries = 3) {
                         <img src="assets/icons/gem.png" alt="Gem">
                         <span>+${quest.reward}</span>
                         ${quest.type === 'ads' ? `<span class="progress">${adProgress.watched}/${quest.adLimit}</span>` : ''}
-                        <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
+                        <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed && !isCooldownOver ? 'disabled' : ''}>${buttonText}</button>
                     </div>
                 </li>
             `;
@@ -1775,102 +1787,47 @@ document.addEventListener('click', async (event) => {
     const taskItem = button.closest('.quest-item');
     if (!taskItem) return;
 
-    // Extract quest details from the task item and button
     const questId = taskItem.dataset.questId;
     const reward = parseInt(button.dataset.questReward);
-    const link = button.dataset.questLink || 'https://t.me/fourgobot';
     const questType = taskItem.dataset.questType;
     const adLimit = parseInt(taskItem.dataset.adLimit) || 0;
-    const adType = taskItem.dataset.adType || 'rewarded_interstitial'; // Default to rewarded_interstitial
 
-    // Ensure Firebase is initialized
     if (!firebaseInitialized || !db) {
         alert("Database not initialized. Please try again later.");
         return;
     }
 
-    // Get the user's data from Firestore
     const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
     const userDoc = await userDocRef.get();
     const userData = userDoc.data() || {};
     userData.adProgress = userData.adProgress || {};
 
-    // Handle ad-based quest (GO button)
-    if (button.classList.contains('go-button') && questType === 'ads') {
-        console.log("[DEBUG] Handling ad-based quest:", { questId, adType, adLimit });
-        // Get the user's ad progress for this quest
-        const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false };
+    // Claim button for ad-based quests
+    if (button.classList.contains('claim-button') && questType === 'ads') {
+        const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
         
-        // Check if the ad limit has been reached
-        if (adProgress.watched >= adLimit) {
-            alert("Ad limit reached for this task!");
-            return;
-        }
-
-        try {
-            // Show the ad based on the adType
-            console.log("[DEBUG] Calling showAd for adType:", adType);
-            await showAd(adType);
-            console.log("[DEBUG] Ad displayed successfully, updating progress...");
-            adProgress.watched += 1;
-
-            // Update the user's ad progress in Firestore
-            await userDocRef.set({
-                adProgress: {
-                    [questId]: { watched: adProgress.watched, claimed: adProgress.claimed }
-                }
-            }, { merge: true });
-
-            // If the ad limit is reached, update the button to "Claim"
-            if (adProgress.watched >= adLimit) {
-                button.textContent = 'Claim';
-                button.classList.remove('go-button');
-                button.classList.add('claim-button', 'active');
-                button.style.background = 'linear-gradient(to right, #00ff00, #66ff66)';
-            }
-
-            // Update the progress UI (e.g., "1/25")
-            taskItem.querySelector('.progress').textContent = `${adProgress.watched}/${adLimit}`;
-            alert("Ad watched successfully!");
-            analytics.logEvent('ad_watched', { questId, userId: telegramUser.id, adType });
-        } catch (error) {
-            // Log the error for debugging
-            console.error("Ad display error:", error.message);
-
-            // Handle the "Ad is not ready" error with a user-friendly message
-            if (error.message.includes("Ad is not ready")) {
-                alert("No ads are available right now. Please try again later.");
-            } else {
-                // For other errors, show the default message
-                alert("Failed to display ad: " + error.message);
-            }
-        }
-    } 
-    // Handle ad-based quest (Claim button)
-    else if (button.classList.contains('claim-button') && questType === 'ads') {
-        const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false };
-        
-        // Check if the user has watched enough ads to claim the reward
         if (adProgress.watched < adLimit) {
             alert("You need to watch all ads to claim this reward!");
             return;
         }
         
-        // Check if the reward has already been claimed
         if (adProgress.claimed || userData.claimedQuests?.includes(questId)) {
             alert("This reward has already been claimed!");
             return;
         }
 
         try {
-            // Update the user's gems and mark the quest as claimed
+            const currentTime = new Date().toISOString(); // Client-side timestamp
             await userDocRef.update({
                 gems: (userData.gems || 0) + reward,
                 claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId),
-                [`adProgress.${questId}.claimed`]: true
+                [`adProgress.${questId}`]: {
+                    watched: adProgress.watched,
+                    claimed: true,
+                    lastClaimed: currentTime // Add the timestamp
+                }
             });
 
-            // Update the button to "Claimed" state
             button.textContent = 'Claimed';
             button.classList.remove('claim-button', 'active');
             button.classList.add('claimed-button');
@@ -1878,7 +1835,6 @@ document.addEventListener('click', async (event) => {
             button.style.background = '#ccc';
             button.style.cursor = 'default';
 
-            // Update the UI with the new gem count
             await updateUserStatsUI();
             alert(`Reward claimed! You earned ${reward} gems.`);
             analytics.logEvent('ads_quest_completed', { questId, userId: telegramUser.id, reward });
@@ -1886,7 +1842,8 @@ document.addEventListener('click', async (event) => {
             console.error("Error claiming ad reward:", error.message);
             alert("Failed to claim reward: " + error.message);
         }
-    } 
+    }
+    
     // Handle non-ad quests (GO button)
     else if (button.classList.contains('go-button')) {
         console.log("[DEBUG] Handling non-ad quest:", { questId, link });
