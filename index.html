@@ -1791,6 +1791,8 @@ document.addEventListener('click', async (event) => {
     const reward = parseInt(button.dataset.questReward);
     const questType = taskItem.dataset.questType;
     const adLimit = parseInt(taskItem.dataset.adLimit) || 0;
+    const adType = taskItem.dataset.adType || 'rewarded_interstitial'; // Default ad type
+    const link = button.dataset.questLink;
 
     if (!firebaseInitialized || !db) {
         alert("Database not initialized. Please try again later.");
@@ -1836,49 +1838,70 @@ document.addEventListener('click', async (event) => {
             button.style.cursor = 'default';
 
             await updateUserStatsUI();
+            await updateEarnSectionUI(); // Refresh UI after claiming
             alert(`Reward claimed! You earned ${reward} gems.`);
             analytics.logEvent('ads_quest_completed', { questId, userId: telegramUser.id, reward });
         } catch (error) {
-            console.error("Error claiming ad reward:", error.message);
+            console.error("[ERROR] Error claiming ad reward:", error.message);
             alert("Failed to claim reward: " + error.message);
         }
     }
-    
-    // Handle non-ad quests (GO button)
-    else if (button.classList.contains('go-button')) {
-        console.log("[DEBUG] Handling non-ad quest:", { questId, link });
+    // GO button for ad-based quests
+    else if (button.classList.contains('go-button') && questType === 'ads') {
+        console.log("[DEBUG] Handling ad quest:", { questId, adType });
         try {
-            // Ensure user data is initialized
-            await initializeUserData();
-            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-            const userDoc = await userDocRef.get();
-
-            if (!userDoc.exists) {
-                console.error("User data does not exist in Firestore.");
-                alert("User data not found. Please try again later.");
+            const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
+            if (adProgress.watched >= adLimit) {
+                alert("You’ve watched all required ads. Claim your reward!");
                 return;
             }
 
+            console.log("[DEBUG] Showing ad for quest:", questId);
+            await showAd(adType); // Trigger the ad
+            const newWatched = adProgress.watched + 1;
+
+            await userDocRef.update({
+                [`adProgress.${questId}`]: {
+                    watched: newWatched,
+                    claimed: adProgress.claimed,
+                    lastClaimed: adProgress.lastClaimed
+                }
+            });
+
+            console.log("[DEBUG] Ad watched, progress updated:", newWatched);
+            await updateEarnSectionUI(); // Refresh UI to reflect new progress
+            if (newWatched >= adLimit) {
+                alert("All ads watched! You can now claim your reward.");
+            } else {
+                alert(`Ad watched! Progress: ${newWatched}/${adLimit}`);
+            }
+        } catch (error) {
+            console.error("[ERROR] Failed to show ad or update progress:", error.message);
+            alert("Failed to show ad: " + error.message);
+        }
+    }
+    // GO button for non-ad quests
+    else if (button.classList.contains('go-button')) {
+        console.log("[DEBUG] Handling non-ad quest:", { questId, link });
+        try {
+            await initializeUserData();
+            const userDoc = await userDocRef.get();
             const userData = userDoc.data();
             const claimedQuests = userData.claimedQuests || [];
 
-            // Check if the quest has already been claimed
             if (claimedQuests.includes(questId)) {
                 alert("This quest has already been claimed!");
                 return;
             }
 
-            // Open the Telegram link for the quest
             console.log("[DEBUG] Redirecting to link:", link);
             Telegram.WebApp.openTelegramLink(link);
 
-            // Update the user's gems and mark the quest as claimed
             await userDocRef.update({
                 gems: (userData.gems || 0) + reward,
                 claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId)
             });
 
-            // Update the button to "Claimed" state
             button.textContent = 'Claimed';
             button.classList.remove('go-button');
             button.classList.add('claimed-button');
@@ -1886,12 +1909,12 @@ document.addEventListener('click', async (event) => {
             button.style.background = '#ccc';
             button.style.cursor = 'default';
 
-            // Update the UI with the new gem count
             await updateUserStatsUI();
+            await updateEarnSectionUI(); // Refresh UI after completion
             alert(`Quest completed! You earned ${reward} gems.`);
             analytics.logEvent('quest_completed', { questId, userId: telegramUser.id, reward });
         } catch (error) {
-            console.error("Error completing quest:", error.message);
+            console.error("[ERROR] Error completing quest:", error.message);
             alert("Failed to complete quest: " + error.message);
         }
     }
@@ -1923,32 +1946,19 @@ function showAd(adType) {
             if (window.show_9180370) {
                 console.log("[DEBUG] Monetag SDK loaded, triggering ad...");
                 try {
+                    let adPromise;
                     switch (adType) {
                         case 'rewarded_interstitial':
                             console.log("[DEBUG] Triggering Rewarded Interstitial ad...");
-                            show_9180370().then(() => {
-                                console.log("[DEBUG] Rewarded Interstitial ad completed successfully");
-                                resolve();
-                            }).catch(e => {
-                                console.error("[DEBUG] Rewarded Interstitial failed:", e.message);
-                                reject(new Error("Rewarded Interstitial failed: " + e.message));
-                            });
+                            adPromise = window.show_9180370(); // Default call for interstitial
                             break;
-
                         case 'rewarded_popup':
                             console.log("[DEBUG] Triggering Rewarded Popup ad...");
-                            show_9180370('pop').then(() => {
-                                console.log("[DEBUG] Rewarded Popup ad completed successfully");
-                                resolve();
-                            }).catch(e => {
-                                console.error("[DEBUG] Rewarded Popup failed:", e.message);
-                                reject(new Error("Rewarded Popup failed: " + e.message));
-                            });
+                            adPromise = window.show_9180370('pop');
                             break;
-
                         case 'inApp':
                             console.log("[DEBUG] Triggering In-App Interstitial ad...");
-                            const adPromise = show_9180370({
+                            adPromise = window.show_9180370({
                                 type: 'inApp',
                                 inAppSettings: {
                                     frequency: 1,
@@ -1958,41 +1968,40 @@ function showAd(adType) {
                                     everyPage: false
                                 }
                             });
-
-                            if (adPromise && typeof adPromise.then === 'function') {
-                                adPromise.then(() => {
-                                    console.log("[DEBUG] In-app Interstitial ad completed successfully");
-                                    resolve();
-                                }).catch(e => {
-                                    console.error("[DEBUG] In-app Interstitial failed:", e.message);
-                                    reject(new Error("In-app Interstitial failed: " + e.message));
-                                });
-                            } else {
-                                console.error("[DEBUG] In-app Interstitial did not return a promise");
-                                reject(new Error("In-app Interstitial failed: No promise returned"));
-                            }
                             break;
-
                         default:
                             console.error("[DEBUG] Unknown ad type:", adType);
                             reject(new Error("Unknown ad type: " + adType));
+                            return;
+                    }
+
+                    if (adPromise && typeof adPromise.then === 'function') {
+                        adPromise.then(() => {
+                            console.log(`[DEBUG] ${adType} ad completed successfully`);
+                            resolve();
+                        }).catch(e => {
+                            console.error(`[DEBUG] ${adType} ad failed:`, e.message);
+                            reject(new Error(`${adType} ad failed: ${e.message}`));
+                        });
+                    } else {
+                        console.log(`[DEBUG] ${adType} ad triggered, assuming completion`);
+                        setTimeout(resolve, 1000); // Small delay to simulate ad
                     }
                 } catch (error) {
-                    console.error("[DEBUG] Failed to show Monetag ad:", error.message);
+                    console.error("[DEBUG] Failed to trigger Monetag ad:", error.message);
                     reject(error);
                 }
             } else if (Date.now() - startTime < maxWaitTime) {
                 console.log("[DEBUG] Monetag SDK not loaded yet, retrying in 500ms...");
                 setTimeout(checkSDK, 500);
             } else {
-                console.warn("[DEBUG] Monetag SDK failed to load within 15 seconds, falling back to simulated ad...");
-                // Fallback: Simulate an ad experience
+                console.warn("[DEBUG] Monetag SDK failed to load within 15 seconds, simulating ad...");
                 setTimeout(() => {
-                    alert("Simulated ad: Please wait 5 seconds to continue...");
+                    alert("Simulated ad: Please wait 5 seconds...");
                     setTimeout(() => {
                         console.log("[DEBUG] Simulated ad completed");
                         resolve();
-                    }, 5000); // Simulate a 5-second ad
+                    }, 5000);
                 }, 1000);
             }
         }
