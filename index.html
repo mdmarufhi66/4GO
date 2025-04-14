@@ -5,8 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4Metas Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Monetag Ad Script (already present, ensuring it matches your zone) -->
-    <script src='//whephiwums.com/sdk.js' data-zone='9180370' data-sdk='show_9180370'></script>
+<script>
+    window.monetagSettings = {
+        zone: '9180370',
+        autoDisplay: false, // Prevent auto-display
+        disableOnLoad: true // Disable ads on page load
+    };
+</script>
+<script src='//whephiwums.com/sdk.js' data-zone='9180370' data-sdk='show_9180370'></script>
     <style>
         /* Updated body structure */
         body {
@@ -1820,7 +1826,10 @@ document.addEventListener('click', async (event) => {
     if (questType === 'ad_only' && button.classList.contains('go-button')) {
         console.log("[DEBUG] Handling ad-only quest:", { questId, adType });
         try {
-            await showAd(adType); // Trigger In-App Interstitial
+            const adResult = await showAd(adType);
+            if (!adResult.displayed) {
+                throw new Error("Ad was not displayed");
+            }
             console.log("[DEBUG] Ad-only quest ad displayed");
             alert("Ad watched successfully!");
             analytics.logEvent('ad_only_quest_viewed', { questId, userId: telegramUser.id, adType });
@@ -1874,7 +1883,10 @@ document.addEventListener('click', async (event) => {
                 alert("You’ve watched all required ads. Claim your reward!");
                 return;
             }
-            await showAd(adType);
+            const adResult = await showAd(adType);
+            if (!adResult.displayed) {
+                throw new Error("Ad was not displayed");
+            }
             const newWatched = adProgress.watched + 1;
             await userDocRef.update({
                 [`adProgress.${questId}`]: {
@@ -1892,7 +1904,7 @@ document.addEventListener('click', async (event) => {
             analytics.logEvent('ads_quest_viewed', { questId, userId: telegramUser.id });
         } catch (error) {
             console.error("[ERROR] Failed to show ad or update progress:", error.message);
-            alert("Failed to show ad: " + error.message);
+            alert(`Failed to show ad: ${error.message}`);
         }
     } else if (button.classList.contains('go-button')) {
         console.log("[DEBUG] Handling non-ad quest:", { questId, link });
@@ -1944,68 +1956,41 @@ document.addEventListener('click', async (event) => {
 // Function to show Monetag Ads with support for multiple ad types
 
 function showAd(adType) {
+    console.log(`[DEBUG] Attempting to show ad type: ${adType}, caller: ${(new Error()).stack}`);
     return new Promise((resolve, reject) => {
-        const maxWaitTime = 15000; // 15 seconds timeout
+        const maxWaitTime = 15000;
         const startTime = Date.now();
-
-        console.log(`[DEBUG] Attempting to show ad of type: ${adType}, stack: ${(new Error()).stack}`);
-
         function checkSDK() {
             if (window.show_9180370) {
-                console.log("[DEBUG] Monetag SDK loaded, triggering ad...");
+                console.log(`[DEBUG] Monetag SDK found for ${adType}`);
                 try {
-                    let adPromise;
-                    switch (adType) {
-                        case 'rewarded_interstitial':
-                            console.log("[DEBUG] Triggering Rewarded Interstitial ad...");
-                            adPromise = window.show_9180370();
-                            break;
-                        case 'rewarded_popup':
-                            console.log("[DEBUG] Triggering Rewarded Popup ad...");
-                            adPromise = window.show_9180370('pop');
-                            break;
-                        case 'inApp':
-                            console.log("[DEBUG] Triggering In-App Interstitial ad...");
-                            adPromise = window.show_9180370({
-                                type: 'inApp',
-                                inAppSettings: {
-                                    frequency: 1,
-                                    capping: 0.1,
-                                    interval: 30,
-                                    timeout: 3,
-                                    everyPage: false,
-                                    autoDisplay: false // Prevent auto-display
-                                }
-                            });
-                            break;
-                        default:
-                            console.error("[DEBUG] Unknown ad type:", adType);
-                            reject(new Error("Unknown ad type: " + adType));
-                            return;
-                    }
-
-                    if (adPromise && typeof adPromise.then === 'function') {
-                        adPromise.then(() => {
-                            console.log(`[DEBUG] ${adType} ad completed successfully`);
-                            resolve();
-                        }).catch(e => {
-                            console.error(`[DEBUG] ${adType} ad failed:`, e.message);
-                            reject(new Error(`${adType} ad failed: ${e.message}`));
-                        });
-                    } else {
-                        console.error("[DEBUG] Invalid ad promise for type:", adType);
-                        reject(new Error("Invalid ad promise returned by Monetag SDK"));
-                    }
+                    let adPromise = window.show_9180370(adType === 'inApp' ? {
+                        type: 'inApp',
+                        inAppSettings: {
+                            frequency: 1,
+                            capping: 0.1,
+                            interval: 30,
+                            timeout: 3,
+                            everyPage: false,
+                            autoDisplay: false
+                        }
+                    } : undefined);
+                    adPromise.then(() => {
+                        console.log(`[DEBUG] Ad ${adType} displayed successfully`);
+                        resolve();
+                    }).catch(e => {
+                        console.error(`[DEBUG] Ad ${adType} failed: ${e.message}`);
+                        reject(e);
+                    });
                 } catch (error) {
-                    console.error("[DEBUG] Failed to trigger Monetag ad:", error.message);
+                    console.error(`[DEBUG] Ad trigger error: ${error.message}`);
                     reject(error);
                 }
             } else if (Date.now() - startTime < maxWaitTime) {
-                console.log("[DEBUG] Monetag SDK not loaded yet, retrying in 500ms...");
                 setTimeout(checkSDK, 500);
             } else {
-                console.error("[DEBUG] Monetag SDK failed to load within 15 seconds");
-                reject(new Error("Ad service unavailable: Monetag SDK failed to load"));
+                console.error("[DEBUG] Monetag SDK timeout");
+                reject(new Error("Ad service unavailable"));
             }
         }
         checkSDK();
@@ -2489,6 +2474,7 @@ function showAd(adType) {
         generateReferralLink();
         tonConnectUI = await initializeTonConnect();
         await initWalletSystem();
+        console.log("[DEBUG] App initialized without auto ads");
     } catch (error) {
         console.error("App initialization failed:", error);
         alert("Failed to initialize app. Please refresh and try again.");
