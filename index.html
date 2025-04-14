@@ -1827,8 +1827,8 @@ document.addEventListener('click', async (event) => {
         console.log("[DEBUG] Handling ad-only quest:", { questId, adType });
         try {
             const adResult = await showAd(adType);
-            if (!adResult.displayed) {
-                throw new Error("Ad was not displayed");
+            if (!adResult || !adResult.displayed) {
+                throw new Error("Ad was not displayed properly");
             }
             console.log("[DEBUG] Ad-only quest ad displayed");
             alert("Ad watched successfully!");
@@ -1884,8 +1884,8 @@ document.addEventListener('click', async (event) => {
                 return;
             }
             const adResult = await showAd(adType);
-            if (!adResult.displayed) {
-                throw new Error("Ad was not displayed");
+            if (!adResult || !adResult.displayed) {
+                throw new Error("Ad was not displayed properly");
             }
             const newWatched = adProgress.watched + 1;
             await userDocRef.update({
@@ -1953,18 +1953,49 @@ document.addEventListener('click', async (event) => {
         });
 
 
-// Function to show Monetag Ads with support for multiple ad types
+// Global flag to prevent overlapping ads
+let adInProgress = false;
+let monetagLoaded = false;
 
-function showAd(adType) {
-    console.log(`[DEBUG] Attempting to show ad type: ${adType}, caller: ${(new Error()).stack}`);
+// Load Monetag SDK on demand
+function loadMonetagSDK() {
+    if (monetagLoaded) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = '//whephiwums.com/sdk.js';
+        script.setAttribute('data-zone', '9180370');
+        script.setAttribute('data-sdk', 'show_9180370');
+        script.onload = () => {
+            monetagLoaded = true;
+            console.log("[DEBUG] Monetag SDK loaded dynamically");
+            resolve();
+        };
+        script.onerror = () => reject(new Error("Failed to load Monetag SDK"));
+        document.head.appendChild(script);
+    });
+}
+
+// Updated showAd function
+async function showAd(adType) {
+    if (adInProgress) {
+        console.log("[DEBUG] Ad already in progress, skipping");
+        throw new Error("Another ad is currently being displayed");
+    }
+    adInProgress = true;
+    try {
+        await loadMonetagSDK();
+    } catch (error) {
+        console.error("[DEBUG] Failed to load Monetag SDK:", error.message);
+        throw new Error("Ad service unavailable");
+    }
     return new Promise((resolve, reject) => {
         const maxWaitTime = 15000;
         const startTime = Date.now();
+        console.log(`[DEBUG] Initiating ad: ${adType}, stack: ${(new Error()).stack}`);
         function checkSDK() {
             if (window.show_9180370) {
-                console.log(`[DEBUG] Monetag SDK found for ${adType}`);
                 try {
-                    let adPromise = window.show_9180370(adType === 'inApp' ? {
+                    const adPromise = window.show_9180370(adType === 'inApp' ? {
                         type: 'inApp',
                         inAppSettings: {
                             frequency: 1,
@@ -1975,15 +2006,18 @@ function showAd(adType) {
                             autoDisplay: false
                         }
                     } : undefined);
-                    adPromise.then(() => {
-                        console.log(`[DEBUG] Ad ${adType} displayed successfully`);
-                        resolve();
+                    if (!adPromise || typeof adPromise.then !== 'function') {
+                        throw new Error("Invalid ad promise");
+                    }
+                    adPromise.then(result => {
+                        console.log(`[DEBUG] Ad ${adType} completed, result:`, result);
+                        resolve({ displayed: true, result: result || "No additional result" });
                     }).catch(e => {
-                        console.error(`[DEBUG] Ad ${adType} failed: ${e.message}`);
-                        reject(e);
+                        console.error(`[DEBUG] Ad error: ${e.message}`);
+                        reject(new Error(`Ad failed: ${e.message}`));
                     });
                 } catch (error) {
-                    console.error(`[DEBUG] Ad trigger error: ${error.message}`);
+                    console.error(`[DEBUG] Ad trigger failed: ${error.message}`);
                     reject(error);
                 }
             } else if (Date.now() - startTime < maxWaitTime) {
@@ -1994,6 +2028,8 @@ function showAd(adType) {
             }
         }
         checkSDK();
+    }).finally(() => {
+        adInProgress = false;
     });
 }
 
