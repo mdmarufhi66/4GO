@@ -1307,7 +1307,7 @@ async function initializeFirebase(maxRetries = 3) {
         }
 
         // Fetch and Update Earn Section (Quests) with Enhanced Debugging
-        async function updateEarnSectionUI() {
+ async function updateEarnSectionUI() {
     try {
         if (!firebaseInitialized || !db) {
             console.log("[DEBUG] Firebase not initialized, attempting to initialize...");
@@ -1318,11 +1318,11 @@ async function initializeFirebase(maxRetries = 3) {
             console.log("[DEBUG] Firebase initialized successfully");
         }
 
-        let userData;
+        let userData = {};
         if (telegramUser && firebaseInitialized && db) {
             const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
             userData = userDoc.data() || {};
-            userData.adProgress = userData.adProgress || {}; // Ensure adProgress exists
+            userData.adProgress = userData.adProgress || {};
         }
 
         // Daily Quests (unchanged)
@@ -1373,7 +1373,7 @@ async function initializeFirebase(maxRetries = 3) {
             `;
         }).join('');
 
-        // Basic Quests (updated with reset and cooldown logic)
+        // Basic Quests
         console.log("[DEBUG] Starting basic quests fetch...");
         const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
         console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
@@ -1402,7 +1402,6 @@ async function initializeFirebase(maxRetries = 3) {
         }
         basicQuestCount.textContent = validatedBasicQuests.length;
 
-        // Current time for cooldown check
         const currentTime = new Date();
 
         basicQuestList.innerHTML = validatedBasicQuests.length === 0 ? `
@@ -1410,18 +1409,33 @@ async function initializeFirebase(maxRetries = 3) {
                 <p>No basic quests available</p>
             </li>
         ` : validatedBasicQuests.map(quest => {
+            if (quest.type === 'ad_only') {
+                // Ad-only quest: No reward, no progress, always available
+                const buttonText = quest.action;
+                const buttonClass = 'go-button';
+                const buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);';
+                return `
+                    <li class="quest-item" data-quest-id="${quest.id}" data-quest-type="${quest.type}" data-ad-type="${quest.adType}">
+                        <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
+                        <span>${quest.title}</span>
+                        <div class="quest-reward">
+                            <button class="${buttonClass}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" data-ad-type="${quest.adType}" style="${buttonStyle}">${buttonText}</button>
+                        </div>
+                    </li>
+                `;
+            }
+
+            // Existing logic for other quest types
             const adProgress = userData.adProgress[quest.id] || { watched: 0, claimed: false, lastClaimed: null };
             const isCompleted = quest.type === 'ads' && adProgress.watched >= quest.adLimit;
             const isClaimed = adProgress.claimed || userData.claimedQuests?.includes(quest.id);
             let buttonText, buttonClass, buttonStyle;
 
-            // Check cooldown (1 hour = 3600000 milliseconds)
             const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed) : null;
             const timeSinceLastClaim = lastClaimedTime ? currentTime - lastClaimedTime : Infinity;
             const cooldownPeriod = 3600000; // 1 hour in milliseconds
             const isCooldownOver = timeSinceLastClaim >= cooldownPeriod;
 
-            // Reset logic: If claimed and cooldown is over, reset the task
             if (isClaimed && quest.type === 'ads' && isCooldownOver) {
                 console.log(`[DEBUG] Resetting ad quest ${quest.id} as cooldown is over`);
                 db.collection('userData').doc(telegramUser.id.toString()).update({
@@ -1431,14 +1445,13 @@ async function initializeFirebase(maxRetries = 3) {
                 }).catch(error => {
                     console.error(`[ERROR] Failed to reset quest ${quest.id}:`, error.message);
                 });
-                // Update local adProgress to reflect reset immediately
                 adProgress.watched = 0;
                 adProgress.claimed = false;
                 adProgress.lastClaimed = null;
             }
 
             if (isClaimed && !isCooldownOver) {
-                const timeLeft = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 60000); // Minutes left
+                const timeLeft = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 60000);
                 buttonText = `Wait ${timeLeft}m`;
                 buttonClass = 'claimed-button';
                 buttonStyle = 'background: #ccc; cursor: default;';
@@ -1788,10 +1801,10 @@ document.addEventListener('click', async (event) => {
     if (!taskItem) return;
 
     const questId = taskItem.dataset.questId;
-    const reward = parseInt(button.dataset.questReward);
+    const reward = parseInt(button.dataset.questReward) || 0;
     const questType = taskItem.dataset.questType;
     const adLimit = parseInt(taskItem.dataset.adLimit) || 0;
-    const adType = taskItem.dataset.adType || 'rewarded_interstitial'; // Default ad type
+    const adType = taskItem.dataset.adType || 'rewarded_interstitial';
     const link = button.dataset.questLink;
 
     if (!firebaseInitialized || !db) {
@@ -1804,50 +1817,56 @@ document.addEventListener('click', async (event) => {
     const userData = userDoc.data() || {};
     userData.adProgress = userData.adProgress || {};
 
-    // Claim button for ad-based quests
+    if (questType === 'ad_only' && button.classList.contains('go-button')) {
+        console.log("[DEBUG] Handling ad-only quest:", { questId, adType });
+        try {
+            await showAd(adType); // Trigger In-App Interstitial
+            console.log("[DEBUG] Ad-only quest ad displayed");
+            alert("Ad watched successfully!");
+            analytics.logEvent('ad_only_quest_viewed', { questId, userId: telegramUser.id, adType });
+        } catch (error) {
+            console.error("[ERROR] Failed to show ad for ad-only quest:", error.message);
+            alert("Failed to show ad: " + error.message);
+        }
+        return;
+    }
+
     if (button.classList.contains('claim-button') && questType === 'ads') {
         const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
-        
         if (adProgress.watched < adLimit) {
             alert("You need to watch all ads to claim this reward!");
             return;
         }
-        
         if (adProgress.claimed || userData.claimedQuests?.includes(questId)) {
             alert("This reward has already been claimed!");
             return;
         }
-
         try {
-            const currentTime = new Date().toISOString(); // Client-side timestamp
+            const currentTime = new Date().toISOString();
             await userDocRef.update({
                 gems: (userData.gems || 0) + reward,
                 claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId),
                 [`adProgress.${questId}`]: {
                     watched: adProgress.watched,
                     claimed: true,
-                    lastClaimed: currentTime // Add the timestamp
+                    lastClaimed: currentTime
                 }
             });
-
             button.textContent = 'Claimed';
             button.classList.remove('claim-button', 'active');
             button.classList.add('claimed-button');
             button.disabled = true;
             button.style.background = '#ccc';
             button.style.cursor = 'default';
-
             await updateUserStatsUI();
-            await updateEarnSectionUI(); // Refresh UI after claiming
+            await updateEarnSectionUI();
             alert(`Reward claimed! You earned ${reward} gems.`);
             analytics.logEvent('ads_quest_completed', { questId, userId: telegramUser.id, reward });
         } catch (error) {
             console.error("[ERROR] Error claiming ad reward:", error.message);
             alert("Failed to claim reward: " + error.message);
         }
-    }
-    // GO button for ad-based quests
-    else if (button.classList.contains('go-button') && questType === 'ads') {
+    } else if (button.classList.contains('go-button') && questType === 'ads') {
         console.log("[DEBUG] Handling ad quest:", { questId, adType });
         try {
             const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
@@ -1855,11 +1874,8 @@ document.addEventListener('click', async (event) => {
                 alert("You’ve watched all required ads. Claim your reward!");
                 return;
             }
-
-            console.log("[DEBUG] Showing ad for quest:", questId);
-            await showAd(adType); // Trigger the ad
+            await showAd(adType);
             const newWatched = adProgress.watched + 1;
-
             await userDocRef.update({
                 [`adProgress.${questId}`]: {
                     watched: newWatched,
@@ -1867,50 +1883,41 @@ document.addEventListener('click', async (event) => {
                     lastClaimed: adProgress.lastClaimed
                 }
             });
-
-            console.log("[DEBUG] Ad watched, progress updated:", newWatched);
-            await updateEarnSectionUI(); // Refresh UI to reflect new progress
+            await updateEarnSectionUI();
             if (newWatched >= adLimit) {
                 alert("All ads watched! You can now claim your reward.");
             } else {
                 alert(`Ad watched! Progress: ${newWatched}/${adLimit}`);
             }
+            analytics.logEvent('ads_quest_viewed', { questId, userId: telegramUser.id });
         } catch (error) {
             console.error("[ERROR] Failed to show ad or update progress:", error.message);
             alert("Failed to show ad: " + error.message);
         }
-    }
-    // GO button for non-ad quests
-    else if (button.classList.contains('go-button')) {
+    } else if (button.classList.contains('go-button')) {
         console.log("[DEBUG] Handling non-ad quest:", { questId, link });
         try {
             await initializeUserData();
             const userDoc = await userDocRef.get();
             const userData = userDoc.data();
             const claimedQuests = userData.claimedQuests || [];
-
             if (claimedQuests.includes(questId)) {
                 alert("This quest has already been claimed!");
                 return;
             }
-
-            console.log("[DEBUG] Redirecting to link:", link);
             Telegram.WebApp.openTelegramLink(link);
-
             await userDocRef.update({
                 gems: (userData.gems || 0) + reward,
                 claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId)
             });
-
             button.textContent = 'Claimed';
             button.classList.remove('go-button');
             button.classList.add('claimed-button');
             button.disabled = true;
             button.style.background = '#ccc';
             button.style.cursor = 'default';
-
             await updateUserStatsUI();
-            await updateEarnSectionUI(); // Refresh UI after completion
+            await updateEarnSectionUI();
             alert(`Quest completed! You earned ${reward} gems.`);
             analytics.logEvent('quest_completed', { questId, userId: telegramUser.id, reward });
         } catch (error) {
@@ -2011,24 +2018,20 @@ function showAd(adType) {
 
         // Initialize App with Ad on Launch
         async function initApp() {
-            try {
-                console.log("Initializing app...");
-                await initializeFirebase();
-                await initializeUserData();
-                await handleReferral();
-                generateReferralLink();
-
-                // Show Monetag ad when bot opens
-                showMonetagAd();
-
-                // Continue with wallet and UI setup
-                tonConnectUI = await initializeTonConnect();
-                await initWalletSystem();
-            } catch (error) {
-                console.error("App initialization failed:", error);
-                alert("Failed to initialize app. Please refresh and try again.");
-            }
-        }
+    try {
+        console.log("Initializing app...");
+        await initializeFirebase();
+        await initializeUserData();
+        await handleReferral();
+        generateReferralLink();
+        // Removed: showAd('inApp').catch(error => console.error("Initial ad failed:", error.message));
+        tonConnectUI = await initializeTonConnect();
+        await initWalletSystem();
+    } catch (error) {
+        console.error("App initialization failed:", error);
+        alert("Failed to initialize app. Please refresh and try again.");
+    }
+}
 
         // Call initApp when the page loads
         document.addEventListener('DOMContentLoaded', () => {
