@@ -2011,24 +2011,20 @@ function showAd(adType) {
 
         // Initialize App with Ad on Launch
         async function initApp() {
-            try {
-                console.log("Initializing app...");
-                await initializeFirebase();
-                await initializeUserData();
-                await handleReferral();
-                generateReferralLink();
-
-                // Show Monetag ad when bot opens
-                showMonetagAd();
-
-                // Continue with wallet and UI setup
-                tonConnectUI = await initializeTonConnect();
-                await initWalletSystem();
-            } catch (error) {
-                console.error("App initialization failed:", error);
-                alert("Failed to initialize app. Please refresh and try again.");
-            }
-        }
+    try {
+        console.log("Initializing app...");
+        await initializeFirebase();
+        await initializeUserData();
+        await handleReferral();
+        generateReferralLink();
+        // Removed showAd('inApp') to prevent interstitial ad on bot launch
+        tonConnectUI = await initializeTonConnect();
+        await initWalletSystem();
+    } catch (error) {
+        console.error("App initialization failed:", error);
+        alert("Failed to initialize app. Please refresh and try again.");
+    }
+}
 
         // Call initApp when the page loads
         document.addEventListener('DOMContentLoaded', () => {
