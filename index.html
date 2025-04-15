@@ -1935,84 +1935,107 @@
 
         // --- Ad Logic ---
         function showAd(adType) {
-             debugLog(`[AD] Attempting to show ad of type: ${adType}`);
+            debugLog(`[AD] Attempting to show ad of type: ${adType}`);
             return new Promise((resolve, reject) => {
-                const maxWaitTime = 15000; // 15 seconds timeout for SDK load/ad response
-                const startTime = Date.now();
-                let adShown = false; // Flag to prevent multiple resolves/rejects
+                const maxWaitTime = 20000; // Increased timeout slightly to 20 seconds
 
-                // Check if the Monetag SDK function exists
+                // Check if SDK function exists
                 if (typeof window.show_9180370 !== 'function') {
                     console.warn("[AD WARN] Monetag SDK function 'show_9180370' not found. Simulating ad success after delay.");
                     debugLog("[AD WARN] Monetag SDK function not found. Simulating success.");
-                     // Simulate a delay for the ad
                     setTimeout(() => {
-                        if (!adShown) {
-                            debugLog("[AD] Simulated ad finished.");
-                            resolve();
-                        }
-                    }, 3000); // 3 second simulation
+                        debugLog("[AD] Simulated ad finished.");
+                        resolve(); // Simulate success
+                    }, 3000);
                     return;
                 }
 
-                // Timeout logic
+                let adPromise = null; // Variable to hold the promise returned by the SDK
+                let adTriggered = false; // Flag to track if an ad call was made
+                let requiresPromiseHandling = false; // Flag for types expected to return a promise
+
+                // --- Timeout Logic ---
+                // We set a timeout that will reject the promise if the ad takes too long
+                // or if the SDK doesn't resolve/reject properly.
                 const timeoutId = setTimeout(() => {
-                    if (!adShown) {
-                        adShown = true; // Prevent late resolve/reject
-                        console.warn(`[AD WARN] Ad timed out after ${maxWaitTime / 1000}s.`);
-                        debugLog(`[AD WARN] Ad timed out: ${adType}`);
-                        // Decide whether to reject or resolve on timeout. Rejecting seems safer.
-                        reject(new Error(`Ad timed out (${adType})`));
-                    }
+                    console.warn(`[AD WARN] Ad timed out after ${maxWaitTime / 1000}s (${adType}). Rejecting.`);
+                    debugLog(`[AD WARN] Ad timed out: ${adType}`);
+                    // Ensure rejection happens only once
+                    reject(new Error(`Ad timed out or failed to close (${adType})`));
                 }, maxWaitTime);
+
+                // Function to clear the timeout and potentially resolve/reject
+                const cleanup = (success, error = null) => {
+                    clearTimeout(timeoutId); // Always clear the timeout
+                    if (success) {
+                        resolve();
+                    } else {
+                        reject(error || new Error(`Ad failed or was closed early (${adType})`));
+                    }
+                };
 
                 try {
                     debugLog(`[AD] Calling Monetag SDK for ad type: ${adType}`);
-                    let adPromise;
 
-                    // --- Triggering Monetag Ads ---
-                    // Note: The exact behavior and return value of show_9180370
-                    // might vary or not return a standard Promise.
-                    // This structure tries to handle common patterns.
+                    // --- Trigger Ad Based on Type ---
+                    if (adType === 'rewarded_popup') {
+                        // show_9180370('pop') returns a promise
+                        adPromise = window.show_9180370('pop');
+                        adTriggered = true;
+                        requiresPromiseHandling = true;
+                    } else if (adType === 'rewarded_interstitial') {
+                        // show_9180370() returns a promise
+                        adPromise = window.show_9180370();
+                        adTriggered = true;
+                        requiresPromiseHandling = true;
+                    } else if (adType === 'inApp') {
+                        // show_9180370({ type: 'inApp' }) - Assuming no reliable promise return
+                        window.show_9180370({ type: 'inApp' });
+                        adTriggered = true;
+                        requiresPromiseHandling = false; // Assume no promise to handle here
+                        // For inApp, we might need to rely on the timeout or assume success earlier.
+                        // Let's resolve heuristically after a short delay, assuming the user saw it.
+                        // Adjust this timing or logic if the SDK provides specific callbacks for inApp.
+                        debugLog("[AD] InApp ad triggered. Resolving heuristically after short delay.");
+                        setTimeout(() => cleanup(true), 1500); // Resolve after 1.5s assuming display worked
 
-                    // Example: Assuming it *might* return a promise or use callbacks.
-                    // Add specific listeners if the SDK documentation provides them.
-                    // For now, we rely on triggering and assuming success/failure based on errors.
-
-                    if (adType === 'rewarded_interstitial' || adType === 'rewarded_popup' || adType === 'inApp') {
-                        // Call the SDK function. Adjust parameters based on actual SDK usage if needed.
-                        window.show_9180370(); // Basic call, assuming it handles the type internally or via zone settings
                     } else {
-                        throw new Error("Unsupported ad type specified: " + adType);
+                        // Handle unknown or default ad type
+                        console.warn(`[AD WARN] Unsupported or default adType: ${adType}. Falling back to standard interstitial.`);
+                        adPromise = window.show_9180370(); // Fallback
+                        adTriggered = true;
+                        requiresPromiseHandling = true;
                     }
 
-                    // --- Handling Completion (Heuristic Approach) ---
-                    // Since we don't know if it returns a Promise or uses callbacks,
-                    // we'll resolve after a short delay, assuming the ad showed
-                    // if no immediate error occurred. This is NOT foolproof.
-                    // If the SDK DOES return a promise, use .then/.catch instead.
-
-                     // Simulate success after a brief moment, assuming the call itself worked
-                    setTimeout(() => {
-                        if (!adShown) {
-                            adShown = true;
-                            clearTimeout(timeoutId); // Cancel timeout
-                            debugLog(`[AD] Ad call initiated for ${adType}, assuming success (heuristic).`);
-                            resolve();
-                        }
-                    }, 1000); // Resolve after 1 sec if no errors/timeout
+                    // --- Handle Promise (if applicable) ---
+                    if (requiresPromiseHandling && adPromise && typeof adPromise.then === 'function') {
+                        debugLog(`[AD] SDK returned a Promise for type ${adType}. Waiting for resolution...`);
+                        adPromise.then(() => {
+                            debugLog(`[AD] SDK Promise resolved successfully for type: ${adType}. Ad likely watched/closed.`);
+                            cleanup(true); // Resolve the outer promise on success
+                        }).catch(e => {
+                            console.error(`[AD ERROR] SDK Promise rejected for type ${adType}:`, e);
+                            debugLog(`[AD ERROR] SDK Promise rejected for ${adType}: ${e?.message || e}`);
+                            cleanup(false, new Error(`Ad failed or was closed early (${adType})`)); // Reject the outer promise on failure
+                        });
+                    } else if (adTriggered && !requiresPromiseHandling) {
+                         // This block is mainly for 'inApp' or future types without promises
+                         debugLog(`[AD] Ad type ${adType} triggered, no standard promise handling needed or done heuristically.`);
+                    } else if (adTriggered) {
+                         // Safety net if adPromise wasn't a promise but was expected to be
+                         console.warn(`[AD WARN] SDK call for ${adType} was triggered but did not return a standard promise. Relying on timeout.`);
+                         // The timeout will handle rejection if needed.
+                    }
 
                 } catch (error) {
-                     if (!adShown) {
-                         adShown = true;
-                         clearTimeout(timeoutId); // Cancel timeout
-                         console.error("[AD ERROR] Failed to trigger Monetag ad:", error);
-                         debugLog(`[AD ERROR] Failed to trigger ad ${adType}: ${error.message}`);
-                         reject(error); // Reject the promise if the call fails
-                     }
+                    // Catch immediate errors from calling show_9180370 itself
+                    console.error("[AD ERROR] Failed to trigger Monetag ad:", error);
+                    debugLog(`[AD ERROR] Failed to trigger ad ${adType}: ${error.message}`);
+                    cleanup(false, error); // Reject the outer promise if the call fails immediately
                 }
             });
         }
+
 
 
         // --- Referral System ---
