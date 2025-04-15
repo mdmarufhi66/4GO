@@ -1306,8 +1306,7 @@ async function initializeFirebase(maxRetries = 3) {
             }
         }
 
-        // Fetch and Update Earn Section (Quests) with Enhanced Debugging
-        async function updateEarnSectionUI() {
+async function updateEarnSectionUI() {
     try {
         if (!firebaseInitialized || !db) {
             console.log("[DEBUG] Firebase not initialized, attempting to initialize...");
@@ -1320,9 +1319,23 @@ async function initializeFirebase(maxRetries = 3) {
 
         let userData;
         if (telegramUser && firebaseInitialized && db) {
-            const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
+            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+            const userDoc = await userDocRef.get();
             userData = userDoc.data() || {};
-            userData.adProgress = userData.adProgress || {}; // Ensure adProgress exists
+            userData.adProgress = userData.adProgress || {};
+
+            // Initialize adProgress for ad-based quests
+            const basicQuestsSnapshot = await db.collection('quests').doc('basic').get();
+            const basicQuests = basicQuestsSnapshot.exists ? (basicQuestsSnapshot.data().tasks || []) : [];
+            for (const quest of basicQuests.filter(q => q.type === 'ads')) {
+                if (!userData.adProgress[quest.id]) {
+                    userData.adProgress[quest.id] = { watched: 0, claimed: false, lastClaimed: null };
+                    await userDocRef.update({
+                        [`adProgress.${quest.id}`]: { watched: 0, claimed: false, lastClaimed: null }
+                    });
+                    console.log(`[DEBUG] Initialized adProgress for quest ${quest.id}`);
+                }
+            }
         }
 
         // Daily Quests (unchanged)
@@ -1373,7 +1386,7 @@ async function initializeFirebase(maxRetries = 3) {
             `;
         }).join('');
 
-        // Basic Quests (updated with reset and cooldown logic)
+        // Basic Quests
         console.log("[DEBUG] Starting basic quests fetch...");
         const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
         console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
@@ -1390,7 +1403,7 @@ async function initializeFirebase(maxRetries = 3) {
             action: quest.action || 'GO',
             link: quest.link || '',
             type: quest.type || 'default',
-            adLimit: quest.adLimit || 0,
+            adLimit: quest.type === 'ads' ? Math.max(1, Number(quest.adLimit) || 1) : 0, // Ensure adLimit >= 1
             adType: quest.adType || 'rewarded_interstitial'
         }));
         console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
@@ -1404,6 +1417,7 @@ async function initializeFirebase(maxRetries = 3) {
 
         // Current time for cooldown check
         const currentTime = new Date();
+        const cooldownPeriod = 3600000; // 1 hour
 
         basicQuestList.innerHTML = validatedBasicQuests.length === 0 ? `
             <li class="no-quests">
@@ -1415,13 +1429,12 @@ async function initializeFirebase(maxRetries = 3) {
             const isClaimed = adProgress.claimed || userData.claimedQuests?.includes(quest.id);
             let buttonText, buttonClass, buttonStyle;
 
-            // Check cooldown (1 hour = 3600000 milliseconds)
+            // Check cooldown
             const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed) : null;
             const timeSinceLastClaim = lastClaimedTime ? currentTime - lastClaimedTime : Infinity;
-            const cooldownPeriod = 3600000; // 1 hour in milliseconds
             const isCooldownOver = timeSinceLastClaim >= cooldownPeriod;
 
-            // Reset logic: If claimed and cooldown is over, reset the task
+            // Reset logic
             if (isClaimed && quest.type === 'ads' && isCooldownOver) {
                 console.log(`[DEBUG] Resetting ad quest ${quest.id} as cooldown is over`);
                 db.collection('userData').doc(telegramUser.id.toString()).update({
@@ -1431,18 +1444,18 @@ async function initializeFirebase(maxRetries = 3) {
                 }).catch(error => {
                     console.error(`[ERROR] Failed to reset quest ${quest.id}:`, error.message);
                 });
-                // Update local adProgress to reflect reset immediately
+                // Update local adProgress
                 adProgress.watched = 0;
                 adProgress.claimed = false;
                 adProgress.lastClaimed = null;
             }
 
             if (isClaimed && !isCooldownOver) {
-                const timeLeft = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 60000); // Minutes left
+                const timeLeft = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 60000);
                 buttonText = `Wait ${timeLeft}m`;
                 buttonClass = 'claimed-button';
                 buttonStyle = 'background: #ccc; cursor: default;';
-            } else if (isCompleted) {
+            } else if (isCompleted && !isClaimed) {
                 buttonText = 'Claim';
                 buttonClass = 'claim-button active';
                 buttonStyle = 'background: linear-gradient(to right, #00ff00, #66ff66);';
@@ -1451,6 +1464,8 @@ async function initializeFirebase(maxRetries = 3) {
                 buttonClass = 'go-button';
                 buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);';
             }
+
+            console.log(`[DEBUG] Quest ${quest.id}:`, { adLimit: quest.adLimit, adProgress, isCompleted, isClaimed, buttonText });
 
             return `
                 <li class="quest-item" data-quest-id="${quest.id}" data-quest-type="${quest.type}" data-ad-limit="${quest.adLimit}" data-ad-type="${quest.adType}">
