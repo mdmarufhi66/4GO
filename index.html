@@ -1409,7 +1409,7 @@ async function updateEarnSectionUI() {
             console.warn("[DEBUG] telegramUser or Firebase not available, skipping adProgress initialization");
         }
 
-        // Daily Quests (unchanged logic, added error handling)
+        // Daily Quests
         console.log("[DEBUG] Starting daily quests fetch...");
         let dailyQuests = [];
         try {
@@ -1417,9 +1417,23 @@ async function updateEarnSectionUI() {
             console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
             console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
             const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
-            dailyQuests = dailyQuestsRaw.tasks || [];
+            // Handle case sensitivity for 'tasks'
+            if (dailyQuestsRaw.tasks) {
+                dailyQuests = dailyQuestsRaw.tasks || [];
+            } else if (dailyQuestsRaw.Tasks) {
+                dailyQuests = dailyQuestsRaw.Tasks || [];
+                console.warn("[DEBUG] Found 'Tasks' field (uppercase) in daily quests, expected 'tasks'");
+            } else {
+                console.warn("[DEBUG] No 'tasks' or 'Tasks' field found in daily quests document");
+                dailyQuests = [];
+            }
+            // If document doesn't exist, create it with an empty tasks array (optional)
+            if (!dailyQuestsSnapshot.exists && firebaseInitialized && db) {
+                await db.collection('quests').doc('daily').set({ tasks: [] });
+                console.log("[DEBUG] Created empty daily quests document");
+            }
         } catch (error) {
-            console.warn("[DEBUG] Failed to fetch daily quests:", error.message);
+            console.warn("[DEBUG] Failed to fetch daily quests:", error.message, error.code);
         }
         console.log("[DEBUG] Parsed daily quests:", dailyQuests);
 
@@ -1437,7 +1451,7 @@ async function updateEarnSectionUI() {
         const dailyQuestCount = document.getElementById('daily-quest-count');
         if (!dailyQuestList || !dailyQuestCount) {
             console.error("[ERROR] Daily quest DOM elements not found");
-            return; // Exit early but don't throw to avoid breaking section switching
+            return;
         }
         dailyQuestCount.textContent = validatedDailyQuests.length;
 
@@ -1463,7 +1477,7 @@ async function updateEarnSectionUI() {
             `;
         }).join('');
 
-        // Basic Quests (unchanged logic, fixed adLimit parsing, added error handling)
+        // Basic Quests
         console.log("[DEBUG] Starting basic quests fetch...");
         let basicQuests = [];
         try {
@@ -1471,9 +1485,23 @@ async function updateEarnSectionUI() {
             console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
             console.log("[DEBUG] Basic snapshot data:", basicQuestsSnapshot.data());
             const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
-            basicQuests = basicQuestsRaw.tasks || [];
+            // Handle case sensitivity for 'tasks'
+            if (basicQuestsRaw.tasks) {
+                basicQuests = basicQuestsRaw.tasks || [];
+            } else if (basicQuestsRaw.Tasks) {
+                basicQuests = basicQuestsRaw.Tasks || [];
+                console.warn("[DEBUG] Found 'Tasks' field (uppercase) in basic quests, expected 'tasks'");
+            } else {
+                console.warn("[DEBUG] No 'tasks' or 'Tasks' field found in basic quests document");
+                basicQuests = [];
+            }
+            // If document doesn't exist, create it with an empty tasks array (optional)
+            if (!basicQuestsSnapshot.exists && firebaseInitialized && db) {
+                await db.collection('quests').doc('basic').set({ tasks: [] });
+                console.log("[DEBUG] Created empty basic quests document");
+            }
         } catch (error) {
-            console.warn("[DEBUG] Failed to fetch basic quests:", error.message);
+            console.warn("[DEBUG] Failed to fetch basic quests:", error.message, error.code);
         }
         console.log("[DEBUG] Parsed basic quests:", basicQuests);
 
@@ -1506,7 +1534,7 @@ async function updateEarnSectionUI() {
         const basicQuestCount = document.getElementById('basic-quest-count');
         if (!basicQuestList || !basicQuestCount) {
             console.error("[ERROR] Basic quest DOM elements not found");
-            return; // Exit early but don't throw
+            return;
         }
         basicQuestCount.textContent = validatedBasicQuests.length;
 
