@@ -1318,11 +1318,11 @@ async function updateEarnSectionUI() {
             console.log("[DEBUG] Firebase initialized successfully");
         }
 
-        let userData;
-        if (telegramUser && firebaseInitialized && db) {
+        let userData = {};
+        if (telegramUser && telegramUser.id && firebaseInitialized && db) {
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
             const userDoc = await userDocRef.get();
-            userData = userDoc.data() || {};
+            userData = userDoc.exists ? userDoc.data() : {};
             userData.adProgress = userData.adProgress || {};
 
             // Initialize adProgress for ad-based quests
@@ -1337,9 +1337,11 @@ async function updateEarnSectionUI() {
                     console.log(`[DEBUG] Initialized adProgress for quest ${quest.id}`);
                 }
             }
+        } else {
+            console.warn("[DEBUG] telegramUser or Firebase not available, skipping adProgress initialization");
         }
 
-        // Daily Quests (unchanged)
+        // Daily Quests
         console.log("[DEBUG] Starting daily quests fetch...");
         const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({ source: 'server' });
         console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
@@ -1361,7 +1363,8 @@ async function updateEarnSectionUI() {
         const dailyQuestList = document.getElementById('daily-quest-list');
         const dailyQuestCount = document.getElementById('daily-quest-count');
         if (!dailyQuestList || !dailyQuestCount) {
-            throw new Error("Required DOM elements not found for daily quests");
+            console.error("[ERROR] Daily quest DOM elements not found");
+            return; // Exit early but don't throw to avoid breaking section switching
         }
         dailyQuestCount.textContent = validatedDailyQuests.length;
 
@@ -1397,7 +1400,6 @@ async function updateEarnSectionUI() {
         console.log("[DEBUG] Parsed basic quests:", basicQuests);
 
         const validatedBasicQuests = basicQuests.map(quest => {
-            // Check for adLimit with case-insensitive fallback
             let rawAdLimit = quest.adLimit !== undefined ? quest.adLimit : quest.adlimit;
             let adLimitValue = Number(rawAdLimit);
             if (isNaN(adLimitValue) || adLimitValue <= 0) {
@@ -1425,11 +1427,11 @@ async function updateEarnSectionUI() {
         const basicQuestList = document.getElementById('basic-quest-list');
         const basicQuestCount = document.getElementById('basic-quest-count');
         if (!basicQuestList || !basicQuestCount) {
-            throw new Error("Required DOM elements not found for basic quests");
+            console.error("[ERROR] Basic quest DOM elements not found");
+            return; // Exit early but don't throw
         }
         basicQuestCount.textContent = validatedBasicQuests.length;
 
-        // Current time for cooldown check
         const currentTime = new Date();
         const cooldownPeriod = 3600000; // 1 hour
 
@@ -1438,27 +1440,26 @@ async function updateEarnSectionUI() {
                 <p>No basic quests available</p>
             </li>
         ` : validatedBasicQuests.map(quest => {
-            const adProgress = userData.adProgress[quest.id] || { watched: 0, claimed: false, lastClaimed: null };
+            const adProgress = userData.adProgress && userData.adProgress[quest.id] ? userData.adProgress[quest.id] : { watched: 0, claimed: false, lastClaimed: null };
             const isCompleted = quest.type === 'ads' && adProgress.watched >= quest.adLimit;
-            const isClaimed = adProgress.claimed || userData.claimedQuests?.includes(quest.id);
+            const isClaimed = adProgress.claimed || (userData.claimedQuests && userData.claimedQuests.includes(quest.id));
             let buttonText, buttonClass, buttonStyle;
 
-            // Check cooldown
             const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed) : null;
             const timeSinceLastClaim = lastClaimedTime ? currentTime - lastClaimedTime : Infinity;
             const isCooldownOver = timeSinceLastClaim >= cooldownPeriod;
 
-            // Reset logic
             if (isClaimed && quest.type === 'ads' && isCooldownOver) {
                 console.log(`[DEBUG] Resetting ad quest ${quest.id} as cooldown is over`);
-                db.collection('userData').doc(telegramUser.id.toString()).update({
-                    [`adProgress.${quest.id}`]: { watched: 0, claimed: false, lastClaimed: null }
-                }).then(() => {
-                    console.log(`[DEBUG] Quest ${quest.id} reset in Firestore`);
-                }).catch(error => {
-                    console.error(`[ERROR] Failed to reset quest ${quest.id}:`, error.message);
-                });
-                // Update local adProgress
+                if (telegramUser && telegramUser.id) {
+                    db.collection('userData').doc(telegramUser.id.toString()).update({
+                        [`adProgress.${quest.id}`]: { watched: 0, claimed: false, lastClaimed: null }
+                    }).then(() => {
+                        console.log(`[DEBUG] Quest ${quest.id} reset in Firestore`);
+                    }).catch(error => {
+                        console.error(`[ERROR] Failed to reset quest ${quest.id}:`, error.message);
+                    });
+                }
                 adProgress.watched = 0;
                 adProgress.claimed = false;
                 adProgress.lastClaimed = null;
@@ -1503,6 +1504,7 @@ async function updateEarnSectionUI() {
             stack: error.stack
         });
 
+        // Fallback UI to prevent breaking section switching
         const dailyQuestList = document.getElementById('daily-quest-list');
         const basicQuestList = document.getElementById('basic-quest-list');
 
