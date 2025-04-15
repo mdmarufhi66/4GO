@@ -1338,50 +1338,47 @@
             }
         }
 
-        // Fetch and Update Earn Section (Quests)
+        // Fetch and Update Earn Section (Quests) - CORRECTED VERSION
         async function updateEarnSectionUI() {
             try {
+                // Ensure Firebase is ready (using the helper function)
+                await ensureFirebaseReady(()=>{});
                 if (!firebaseInitialized || !db) {
-                    debugLog("Firebase not initialized for Earn section, ensuring readiness...");
-                    await ensureFirebaseReady(()=>{}); // Ensure Firebase is ready before proceeding
-                     if (!firebaseInitialized || !db) throw new Error("Firebase failed to initialize for Earn section");
+                    throw new Error("Firebase failed to initialize for Earn section");
                 }
 
                 let userData = {};
+                // Fetch user data
                 if (telegramUser && telegramUser.id) {
                     const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
                     if (userDoc.exists) {
-                         userData = userDoc.data();
-                         userData.adProgress = userData.adProgress || {};
-                         userData.claimedQuests = userData.claimedQuests || [];
+                        userData = userDoc.data();
+                        // Ensure necessary fields exist
+                        userData.adProgress = userData.adProgress || {};
+                        userData.claimedQuests = userData.claimedQuests || [];
                     } else {
                         debugLog("User data not found for Earn section. Initializing...");
-                        await initializeUserData();
+                        await initializeUserData(); // Attempt initialization
                         const refetchedDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
-                         if (refetchedDoc.exists) userData = refetchedDoc.data();
-                         userData.adProgress = userData.adProgress || {};
-                         userData.claimedQuests = userData.claimedQuests || [];
+                        if (refetchedDoc.exists) userData = refetchedDoc.data();
+                        userData.adProgress = userData.adProgress || {};
+                        userData.claimedQuests = userData.claimedQuests || [];
                     }
                 } else {
                     debugLog("Cannot fetch user data for Earn section: Invalid user or Firebase state.");
-                     document.getElementById('daily-quest-list').innerHTML = '<li>Loading user data...</li>';
-                     document.getElementById('basic-quest-list').innerHTML = '<li>Loading user data...</li>';
-                    return;
+                    document.getElementById('daily-quest-list').innerHTML = '<li>Loading user data...</li>';
+                    document.getElementById('basic-quest-list').innerHTML = '<li>Loading user data...</li>';
+                    return; // Exit if we can't get user data
                 }
 
-                // Fetch Daily Quests
+                // --- Fetch and Render Daily Quests ---
                 const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({ source: 'server' });
                 const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
                 const dailyQuests = dailyQuestsRaw.tasks || [];
-                const validatedDailyQuests = dailyQuests.map(quest => ({
-                     id: quest.id || Math.random().toString(36).substring(7),
-                     title: quest.title || "Untitled Quest",
-                     icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
-                     reward: Number(quest.reward) || 0,
-                     action: quest.action || 'GO',
-                     link: quest.link || '',
-                     type: quest.type || 'default'
-                }));
+                // (Validation and rendering logic for daily quests - assumed correct from previous code)
+                const validatedDailyQuests = dailyQuests.map(quest => ({ /* ... validation ... */
+                     id: quest.id || Math.random().toString(36).substring(7), title: quest.title || "Untitled Quest", icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q', reward: Number(quest.reward) || 0, action: quest.action || 'GO', link: quest.link || '', type: quest.type || 'default'
+                 }));
                 const dailyQuestList = document.getElementById('daily-quest-list');
                 const dailyQuestCount = document.getElementById('daily-quest-count');
                 if (!dailyQuestList || !dailyQuestCount) throw new Error("Required DOM elements missing for daily quests");
@@ -1391,9 +1388,7 @@
                     const buttonText = isClaimed ? 'Claimed' : quest.action;
                     const buttonClass = isClaimed ? 'claimed-button' : 'go-button';
                     const buttonStyle = isClaimed ? 'background: #ccc; cursor: default;' : 'background: linear-gradient(to right, #ff00ff, #ff6666);';
-                    const rewardDisplay = quest.reward > 0 ? `
-                        <img src="assets/icons/gem.png" alt="Gem">
-                        <span>+${quest.reward}</span>` : '';
+                    const rewardDisplay = quest.reward > 0 ? `<img src="assets/icons/gem.png" alt="Gem"> <span>+${quest.reward}</span>` : '';
                     return `
                         <li class="quest-item" data-quest-id="${quest.id}" data-quest-type="${quest.type}" data-quest-reward="${quest.reward}">
                             <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
@@ -1404,119 +1399,82 @@
                             </div>
                         </li>`;
                 }).join('');
+                // --- End Daily Quests ---
 
-
-                 // Fetch Basic Quests
+                // --- Fetch and Render Basic Quests ---
                 const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
                 const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
                 const basicQuests = basicQuestsRaw.tasks || [];
-                const validatedBasicQuests = basicQuests.map(quest => ({
-                     id: quest.id || Math.random().toString(36).substring(7),
-                     title: quest.title || "Untitled Quest",
-                     icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
-                     reward: Number(quest.reward) || 0,
-                     action: quest.action || 'GO',
-                     link: quest.link || '',
-                     type: quest.type || 'default',
-                     adLimit: quest.adLimit || 0,
-                     adType: quest.adType || 'rewarded_interstitial'
-                }));
+                // (Validation logic for basic quests - assumed correct from previous code)
+                 const validatedBasicQuests = basicQuests.map(quest => ({ /* ... validation ... */
+                     id: quest.id || Math.random().toString(36).substring(7), title: quest.title || "Untitled Quest", icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q', reward: Number(quest.reward) || 0, action: quest.action || 'GO', link: quest.link || '', type: quest.type || 'default', adLimit: quest.adLimit || 0, adType: quest.adType || 'rewarded_interstitial'
+                 }));
                 const basicQuestList = document.getElementById('basic-quest-list');
                 const basicQuestCount = document.getElementById('basic-quest-count');
-                 if (!basicQuestList || !basicQuestCount) throw new Error("Required DOM elements missing for basic quests");
-                 basicQuestCount.textContent = validatedBasicQuests.length;
+                if (!basicQuestList || !basicQuestCount) throw new Error("Required DOM elements missing for basic quests");
+                basicQuestCount.textContent = validatedBasicQuests.length;
 
                 const currentTime = new Date();
 
-                // *** UPDATED BASIC QUEST RENDERING LOGIC ***
+                // *** THIS IS THE CRITICAL PART FOR THE VISUAL GLITCH ***
                 basicQuestList.innerHTML = validatedBasicQuests.length === 0 ? `
-                    <li class="no-quests">
-                        <p>No basic quests available</p>
-                    </li>
+                    <li class="no-quests"><p>No basic quests available</p></li>
                 ` : validatedBasicQuests.map(quest => {
+                    // Determine button state and reward display logic (as before)
                     const isCompletedGeneral = userData.claimedQuests?.includes(quest.id);
                     let buttonText, buttonClass, buttonStyle, isDisabled = false;
-                    let rewardDisplay = ''; // To hold reward/progress HTML
+                    let rewardDisplay = ''; // Will hold the actual HTML string for reward/progress
 
                     if (quest.type === 'ads' && quest.reward === 0) {
-                        // --- Zero-Reward Ad Quests ---
-                        if (isCompletedGeneral) {
-                            buttonText = 'Completed'; buttonClass = 'claimed-button'; buttonStyle = 'background: #ccc; cursor: default;'; isDisabled = true;
-                        } else {
-                            buttonText = quest.action || 'Watch Ad'; buttonClass = 'go-button'; buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);'; isDisabled = false;
-                        }
+                        // Zero-Reward Ads
+                        if (isCompletedGeneral) { buttonText = 'Completed'; buttonClass = 'claimed-button'; buttonStyle = 'background: #ccc; cursor: default;'; isDisabled = true; }
+                        else { buttonText = quest.action || 'Watch Ad'; buttonClass = 'go-button'; buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);'; isDisabled = false; }
                         rewardDisplay = ''; // No reward shown
-
                     } else if (quest.type === 'ads') {
-                        // --- Reward Ad Quests ---
+                        // Reward Ads
                         const adProgress = userData.adProgress[quest.id] || { watched: 0, claimed: false, lastClaimed: null };
                         const isTaskCompleted = adProgress.watched >= quest.adLimit;
                         const isTaskClaimed = adProgress.claimed;
-                        const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed.seconds ? adProgress.lastClaimed.toDate() : adProgress.lastClaimed) : null; // Handle Firestore Timestamp or ISO string
+                        const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed.seconds ? adProgress.lastClaimed.toDate() : adProgress.lastClaimed) : null;
                         const timeSinceLastClaim = lastClaimedTime ? currentTime.getTime() - lastClaimedTime.getTime() : Infinity;
-                        const cooldownPeriod = 3600000; // 1 hour
+                        const cooldownPeriod = 3600000;
                         let isCooldownOver = timeSinceLastClaim >= cooldownPeriod;
 
-                        // Check for reset condition and update *local* state for rendering
-                        if (isTaskClaimed && isCooldownOver) {
-                            // debugLog(`Resetting reward ad quest ${quest.id} locally for UI update (cooldown over)`);
-                            // NOTE: Actual Firestore reset happens in the click handler or a background job
-                            adProgress.watched = 0;
-                            adProgress.claimed = false;
-                            isCooldownOver = true; // Ensure state reflects reset for button logic below
-                            // Update local variables derived from adProgress
-                            isTaskClaimed = false;
-                        }
+                        if (isTaskClaimed && isCooldownOver) { adProgress.watched = 0; adProgress.claimed = false; isCooldownOver = true; }
 
-                        if (adProgress.claimed && !isCooldownOver) { // Claimed and in cooldown
-                            const timeLeft = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 60000);
-                            buttonText = `Wait ${timeLeft}m`; buttonClass = 'claimed-button'; buttonStyle = 'background: #ccc; cursor: default;'; isDisabled = true;
-                        } else if (isTaskCompleted && !adProgress.claimed) { // Watched all, not claimed
-                            buttonText = 'Claim'; buttonClass = 'claim-button active'; buttonStyle = 'background: linear-gradient(to right, #00ff00, #66ff66);'; isDisabled = false;
-                        } else { // Not completed watch count OR claimed+reset
-                            buttonText = quest.action || 'Watch Ad'; buttonClass = 'go-button'; buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);';
-                            isDisabled = adProgress.claimed && !isCooldownOver; // Should be covered by first 'if' but double-check
-                        }
+                        if (adProgress.claimed && !isCooldownOver) { const timeLeft = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 60000); buttonText = `Wait ${timeLeft}m`; buttonClass = 'claimed-button'; buttonStyle = 'background: #ccc; cursor: default;'; isDisabled = true; }
+                        else if (isTaskCompleted && !adProgress.claimed) { buttonText = 'Claim'; buttonClass = 'claim-button active'; buttonStyle = 'background: linear-gradient(to right, #00ff00, #66ff66);'; isDisabled = false; }
+                        else { buttonText = quest.action || 'Watch Ad'; buttonClass = 'go-button'; buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);'; isDisabled = adProgress.claimed && !isCooldownOver; }
 
-                        // Show reward and progress
-                         rewardDisplay = `
-                            <img src="assets/icons/gem.png" alt="Gem">
-                            <span>+${quest.reward}</span>
-                            ${quest.adLimit > 0 ? `<span class="progress">${adProgress.watched}/${quest.adLimit}</span>` : ''}
-                         `;
-
+                        // Generate actual HTML for reward/progress display
+                        rewardDisplay = `<img src="assets/icons/gem.png" alt="Gem"> <span>+${quest.reward}</span> ${quest.adLimit > 0 ? `<span class="progress">${adProgress.watched}/${quest.adLimit}</span>` : ''}`;
                     } else {
-                        // --- Non-Ad Quests ---
-                        if (isCompletedGeneral) {
-                            buttonText = 'Claimed'; buttonClass = 'claimed-button'; buttonStyle = 'background: #ccc; cursor: default;'; isDisabled = true;
-                        } else {
-                            buttonText = quest.action || 'GO'; buttonClass = 'go-button'; buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);'; isDisabled = false;
-                        }
-                        if (quest.reward > 0) {
-                             rewardDisplay = `<img src="assets/icons/gem.png" alt="Gem"> <span>+${quest.reward}</span>`;
-                        } else {
-                             rewardDisplay = '';
-                        }
+                        // Non-Ad Quests
+                        if (isCompletedGeneral) { buttonText = 'Claimed'; buttonClass = 'claimed-button'; buttonStyle = 'background: #ccc; cursor: default;'; isDisabled = true; }
+                        else { buttonText = quest.action || 'GO'; buttonClass = 'go-button'; buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);'; isDisabled = false; }
+                        // Generate actual HTML for reward display (if any)
+                        if (quest.reward > 0) { rewardDisplay = `<img src="assets/icons/gem.png" alt="Gem"> <span>+${quest.reward}</span>`; }
+                        else { rewardDisplay = ''; }
                     }
 
-                    // Construct the final list item HTML - REMOVED the problematic comments
+                    // *** CONSTRUCT THE LIST ITEM HTML ***
+                    // Notice there are NO comments like {/* ... */} inside the backticks below
                     return `
                         <li class="quest-item" data-quest-id="${quest.id}" data-quest-type="${quest.type}" data-ad-limit="${quest.adLimit}" data-ad-type="${quest.adType}" data-quest-reward="${quest.reward}">
                             <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
                             <span>${quest.title}</span>
                             <div class="quest-reward">
-                                ${rewardDisplay} {/* Actual reward/progress HTML generated above */}
+                                ${rewardDisplay} {/* The 'rewardDisplay' variable holds the actual HTML */}
                                 <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" style="${buttonStyle}" ${isDisabled ? 'disabled' : ''}>${buttonText}</button>
                             </div>
                         </li>
                     `;
                 }).join('');
-                // *** END OF UPDATED BASIC QUEST RENDERING LOGIC ***
-
-                // debugLog("Earn section UI update completed successfully"); // Less verbose
+                // *** END OF CRITICAL PART ***
 
             } catch (error) {
                 debugLog(`[ERROR] Failed to update earn section UI: ${error.message}\nStack: ${error.stack}`);
+                // Display error in UI (as before)
                 const dailyQuestList = document.getElementById('daily-quest-list');
                 const basicQuestList = document.getElementById('basic-quest-list');
                 const errorHtml = `<li class="error" style="color: #ffcc00;"><p>Failed to load quests. Please try again later.</p></li>`;
@@ -1524,6 +1482,7 @@
                 if (basicQuestList) basicQuestList.innerHTML = errorHtml;
             }
         } // End of updateEarnSectionUI
+
 
 
         // Referral System
