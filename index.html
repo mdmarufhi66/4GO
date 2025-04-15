@@ -1306,6 +1306,7 @@ async function initializeFirebase(maxRetries = 3) {
             }
         }
 
+UPDATE EARN SECTION UI
 async function updateEarnSectionUI() {
     try {
         if (!firebaseInitialized || !db) {
@@ -1395,17 +1396,30 @@ async function updateEarnSectionUI() {
         const basicQuests = basicQuestsRaw.tasks || [];
         console.log("[DEBUG] Parsed basic quests:", basicQuests);
 
-        const validatedBasicQuests = basicQuests.map(quest => ({
-            id: quest.id || Math.random().toString(36).substring(7),
-            title: quest.title || "Untitled Quest",
-            icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
-            reward: Number(quest.reward) || 0,
-            action: quest.action || 'GO',
-            link: quest.link || '',
-            type: quest.type || 'default',
-            adLimit: quest.type === 'ads' ? Math.max(1, Number(quest.adLimit) || 1) : 0, // Ensure adLimit >= 1
-            adType: quest.adType || 'rewarded_interstitial'
-        }));
+        const validatedBasicQuests = basicQuests.map(quest => {
+            // Check for adLimit with case-insensitive fallback
+            let rawAdLimit = quest.adLimit !== undefined ? quest.adLimit : quest.adlimit;
+            let adLimitValue = Number(rawAdLimit);
+            if (isNaN(adLimitValue) || adLimitValue <= 0) {
+                console.warn(`[DEBUG] Invalid adLimit for quest ${quest.id}: ${rawAdLimit}, defaulting to 1`);
+                adLimitValue = 1;
+            }
+
+            const validatedQuest = {
+                id: quest.id || Math.random().toString(36).substring(7),
+                title: quest.title || "Untitled Quest",
+                icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
+                reward: Number(quest.reward) || 0,
+                action: quest.action || 'GO',
+                link: quest.link || '',
+                type: quest.type || 'default',
+                adLimit: quest.type === 'ads' ? adLimitValue : 0,
+                adType: quest.adType || 'rewarded_interstitial'
+            };
+
+            console.log(`[DEBUG] Validated quest ${quest.id}:`, { rawAdLimit, adLimit: validatedQuest.adLimit });
+            return validatedQuest;
+        });
         console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
 
         const basicQuestList = document.getElementById('basic-quest-list');
@@ -1509,6 +1523,7 @@ async function updateEarnSectionUI() {
         }
     }
 }
+
         // Referral System
         function generateReferralLink() {
             if (!telegramUser) return;
