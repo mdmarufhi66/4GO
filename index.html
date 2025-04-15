@@ -1327,49 +1327,60 @@ navButtons.forEach(button => {
             }
         }
 
-// Global variables (ensure these are defined in your code)
-const sections = document.querySelectorAll('.section');
-const navButtons = document.querySelectorAll('.nav-button');
+// Global variables (ensure these are defined)
+let firebaseInitialized = false;
+let db = null;
 
-// Placeholder for ensureFirebaseReady (if not defined elsewhere)
-async function ensureFirebaseReady(callback) {
+// Initialize Firebase (updated implementation)
+async function initializeFirebase() {
     try {
-        if (!firebaseInitialized || !db) {
-            const success = await initializeFirebase();
-            if (!success) {
-                throw new Error("Firebase initialization failed");
-            }
+        // If already initialized, return true
+        if (firebaseInitialized && db) {
+            console.log("[DEBUG] Firebase already initialized");
+            return true;
         }
-        await callback();
+
+        // Check if Firebase SDK is loaded
+        if (!window.firebase) {
+            console.error("[ERROR] Firebase SDK not loaded. Ensure the Firebase script is included.");
+            return false;
+        }
+
+        // Initialize Firebase app (replace with your Firebase config)
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase app if not already initialized
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+
+        // Set Firestore instance
+        db = firebase.firestore();
+
+        // Optional: Enable offline persistence (if needed)
+        db.enablePersistence().catch(err => {
+            console.warn("[DEBUG] Firestore persistence failed:", err.message);
+        });
+
+        firebaseInitialized = true;
+        console.log("[DEBUG] Firebase initialized successfully");
+        return true;
     } catch (error) {
-        throw error; // Let the caller handle the error
+        console.error("[ERROR] Failed to initialize Firebase:", error.message);
+        firebaseInitialized = false;
+        db = null;
+        return false;
     }
 }
 
-// Placeholder for initializeFirebase (if not defined elsewhere)
-async function initializeFirebase() {
-    // Implement Firebase initialization logic here
-    // Return true if successful, false otherwise
-    return true; // Placeholder return
-}
-
-// Placeholder for other section update functions (if not defined elsewhere)
-async function updateInviteSectionUI() {
-    console.log("[DEBUG] Updating invite section UI...");
-    // Implement invite section update logic here
-}
-
-async function updateTopSectionUI() {
-    console.log("[DEBUG] Updating top section UI...");
-    // Implement top section update logic here
-}
-
-async function updateWalletSectionUI() {
-    console.log("[DEBUG] Updating wallet section UI...");
-    // Implement wallet section update logic here
-}
-
-// Updated updateEarnSectionUI with fixes for adLimit and error handling
+// Updated updateEarnSectionUI with stricter db checks
 async function updateEarnSectionUI() {
     try {
         if (!firebaseInitialized || !db) {
@@ -1412,28 +1423,30 @@ async function updateEarnSectionUI() {
         // Daily Quests
         console.log("[DEBUG] Starting daily quests fetch...");
         let dailyQuests = [];
-        try {
-            const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({ source: 'server' });
-            console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
-            console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
-            const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
-            // Handle case sensitivity for 'tasks'
-            if (dailyQuestsRaw.tasks) {
-                dailyQuests = dailyQuestsRaw.tasks || [];
-            } else if (dailyQuestsRaw.Tasks) {
-                dailyQuests = dailyQuestsRaw.Tasks || [];
-                console.warn("[DEBUG] Found 'Tasks' field (uppercase) in daily quests, expected 'tasks'");
-            } else {
-                console.warn("[DEBUG] No 'tasks' or 'Tasks' field found in daily quests document");
-                dailyQuests = [];
+        if (firebaseInitialized && db) {
+            try {
+                const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({ source: 'server' });
+                console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
+                console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
+                const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
+                if (dailyQuestsRaw.tasks) {
+                    dailyQuests = dailyQuestsRaw.tasks || [];
+                } else if (dailyQuestsRaw.Tasks) {
+                    dailyQuests = dailyQuestsRaw.Tasks || [];
+                    console.warn("[DEBUG] Found 'Tasks' field (uppercase) in daily quests, expected 'tasks'");
+                } else {
+                    console.warn("[DEBUG] No 'tasks' or 'Tasks' field found in daily quests document");
+                    dailyQuests = [];
+                }
+                if (!dailyQuestsSnapshot.exists) {
+                    await db.collection('quests').doc('daily').set({ tasks: [] });
+                    console.log("[DEBUG] Created empty daily quests document");
+                }
+            } catch (error) {
+                console.warn("[DEBUG] Failed to fetch daily quests:", error.message, error.code);
             }
-            // If document doesn't exist, create it with an empty tasks array (optional)
-            if (!dailyQuestsSnapshot.exists && firebaseInitialized && db) {
-                await db.collection('quests').doc('daily').set({ tasks: [] });
-                console.log("[DEBUG] Created empty daily quests document");
-            }
-        } catch (error) {
-            console.warn("[DEBUG] Failed to fetch daily quests:", error.message, error.code);
+        } else {
+            console.warn("[DEBUG] Firebase not initialized, cannot fetch daily quests");
         }
         console.log("[DEBUG] Parsed daily quests:", dailyQuests);
 
@@ -1480,28 +1493,30 @@ async function updateEarnSectionUI() {
         // Basic Quests
         console.log("[DEBUG] Starting basic quests fetch...");
         let basicQuests = [];
-        try {
-            const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
-            console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
-            console.log("[DEBUG] Basic snapshot data:", basicQuestsSnapshot.data());
-            const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
-            // Handle case sensitivity for 'tasks'
-            if (basicQuestsRaw.tasks) {
-                basicQuests = basicQuestsRaw.tasks || [];
-            } else if (basicQuestsRaw.Tasks) {
-                basicQuests = basicQuestsRaw.Tasks || [];
-                console.warn("[DEBUG] Found 'Tasks' field (uppercase) in basic quests, expected 'tasks'");
-            } else {
-                console.warn("[DEBUG] No 'tasks' or 'Tasks' field found in basic quests document");
-                basicQuests = [];
+        if (firebaseInitialized && db) {
+            try {
+                const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
+                console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
+                console.log("[DEBUG] Basic snapshot data:", basicQuestsSnapshot.data());
+                const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
+                if (basicQuestsRaw.tasks) {
+                    basicQuests = basicQuestsRaw.tasks || [];
+                } else if (basicQuestsRaw.Tasks) {
+                    basicQuests = basicQuestsRaw.Tasks || [];
+                    console.warn("[DEBUG] Found 'Tasks' field (uppercase) in basic quests, expected 'tasks'");
+                } else {
+                    console.warn("[DEBUG] No 'tasks' or 'Tasks' field found in basic quests document");
+                    basicQuests = [];
+                }
+                if (!basicQuestsSnapshot.exists) {
+                    await db.collection('quests').doc('basic').set({ tasks: [] });
+                    console.log("[DEBUG] Created empty basic quests document");
+                }
+            } catch (error) {
+                console.warn("[DEBUG] Failed to fetch basic quests:", error.message, error.code);
             }
-            // If document doesn't exist, create it with an empty tasks array (optional)
-            if (!basicQuestsSnapshot.exists && firebaseInitialized && db) {
-                await db.collection('quests').doc('basic').set({ tasks: [] });
-                console.log("[DEBUG] Created empty basic quests document");
-            }
-        } catch (error) {
-            console.warn("[DEBUG] Failed to fetch basic quests:", error.message, error.code);
+        } else {
+            console.warn("[DEBUG] Firebase not initialized, cannot fetch basic quests");
         }
         console.log("[DEBUG] Parsed basic quests:", basicQuests);
 
