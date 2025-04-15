@@ -1370,71 +1370,46 @@ async function updateWalletSectionUI() {
 }
 
 // Updated updateEarnSectionUI with fixes for adLimit and error handling
+
 async function updateEarnSectionUI() {
     try {
         if (!firebaseInitialized || !db) {
             console.log("[DEBUG] Firebase not initialized, attempting to initialize...");
             const success = await initializeFirebase();
             if (!success) {
-                console.warn("[DEBUG] Failed to initialize Firebase, proceeding with limited functionality");
-            } else {
-                console.log("[DEBUG] Firebase initialized successfully");
+                throw new Error("Failed to initialize Firebase after retries");
             }
+            console.log("[DEBUG] Firebase initialized successfully");
         }
 
-        let userData = {};
-        if (telegramUser && telegramUser.id && firebaseInitialized && db) {
+        let userData;
+        if (telegramUser && firebaseInitialized && db) {
             const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
             const userDoc = await userDocRef.get();
-            userData = userDoc.exists ? userDoc.data() : {};
+            userData = userDoc.data() || {};
             userData.adProgress = userData.adProgress || {};
 
             // Initialize adProgress for ad-based quests
-            try {
-                const basicQuestsSnapshot = await db.collection('quests').doc('basic').get();
-                const basicQuests = basicQuestsSnapshot.exists ? (basicQuestsSnapshot.data().tasks || []) : [];
-                for (const quest of basicQuests.filter(q => q.type === 'ads')) {
-                    if (!userData.adProgress[quest.id]) {
-                        userData.adProgress[quest.id] = { watched: 0, claimed: false, lastClaimed: null };
-                        await userDocRef.update({
-                            [`adProgress.${quest.id}`]: { watched: 0, claimed: false, lastClaimed: null }
-                        });
-                        console.log(`[DEBUG] Initialized adProgress for quest ${quest.id}`);
-                    }
+            const basicQuestsSnapshot = await db.collection('quests').doc('basic').get();
+            const basicQuests = basicQuestsSnapshot.exists ? (basicQuestsSnapshot.data().tasks || []) : [];
+            for (const quest of basicQuests.filter(q => q.type === 'ads')) {
+                if (!userData.adProgress[quest.id]) {
+                    userData.adProgress[quest.id] = { watched: 0, claimed: false, lastClaimed: null };
+                    await userDocRef.update({
+                        [`adProgress.${quest.id}`]: { watched: 0, claimed: false, lastClaimed: null }
+                    });
+                    console.log(`[DEBUG] Initialized adProgress for quest ${quest.id}`);
                 }
-            } catch (error) {
-                console.warn("[DEBUG] Failed to initialize adProgress:", error.message);
             }
-        } else {
-            console.warn("[DEBUG] telegramUser or Firebase not available, skipping adProgress initialization");
         }
 
-        // Daily Quests
+        // Daily Quests (unchanged)
         console.log("[DEBUG] Starting daily quests fetch...");
-        let dailyQuests = [];
-        try {
-            const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({ source: 'server' });
-            console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
-            console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
-            const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
-            // Handle case sensitivity for 'tasks'
-            if (dailyQuestsRaw.tasks) {
-                dailyQuests = dailyQuestsRaw.tasks || [];
-            } else if (dailyQuestsRaw.Tasks) {
-                dailyQuests = dailyQuestsRaw.Tasks || [];
-                console.warn("[DEBUG] Found 'Tasks' field (uppercase) in daily quests, expected 'tasks'");
-            } else {
-                console.warn("[DEBUG] No 'tasks' or 'Tasks' field found in daily quests document");
-                dailyQuests = [];
-            }
-            // If document doesn't exist, create it with an empty tasks array (optional)
-            if (!dailyQuestsSnapshot.exists && firebaseInitialized && db) {
-                await db.collection('quests').doc('daily').set({ tasks: [] });
-                console.log("[DEBUG] Created empty daily quests document");
-            }
-        } catch (error) {
-            console.warn("[DEBUG] Failed to fetch daily quests:", error.message, error.code);
-        }
+        const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({ source: 'server' });
+        console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
+        console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
+        const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
+        const dailyQuests = dailyQuestsRaw.tasks || [];
         console.log("[DEBUG] Parsed daily quests:", dailyQuests);
 
         const validatedDailyQuests = dailyQuests.map(quest => ({
@@ -1450,8 +1425,7 @@ async function updateEarnSectionUI() {
         const dailyQuestList = document.getElementById('daily-quest-list');
         const dailyQuestCount = document.getElementById('daily-quest-count');
         if (!dailyQuestList || !dailyQuestCount) {
-            console.error("[ERROR] Daily quest DOM elements not found");
-            return;
+            throw new Error("Required DOM elements not found for daily quests");
         }
         dailyQuestCount.textContent = validatedDailyQuests.length;
 
@@ -1460,7 +1434,7 @@ async function updateEarnSectionUI() {
                 <p>No daily quests available</p>
             </li>
         ` : validatedDailyQuests.map(quest => {
-            const isClaimed = userData?.claimedQuests?.includes(quest.id) || false;
+            const isClaimed = userData?.claimedQuests?.includes(quest.id);
             const buttonText = isClaimed ? 'Claimed' : quest.action;
             const buttonClass = isClaimed ? 'claimed-button' : 'go-button';
             const buttonStyle = isClaimed ? 'background: #ccc; cursor: default;' : 'background: linear-gradient(to right, #ff00ff, #ff6666);';
@@ -1479,65 +1453,34 @@ async function updateEarnSectionUI() {
 
         // Basic Quests
         console.log("[DEBUG] Starting basic quests fetch...");
-        let basicQuests = [];
-        try {
-            const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
-            console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
-            console.log("[DEBUG] Basic snapshot data:", basicQuestsSnapshot.data());
-            const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
-            // Handle case sensitivity for 'tasks'
-            if (basicQuestsRaw.tasks) {
-                basicQuests = basicQuestsRaw.tasks || [];
-            } else if (basicQuestsRaw.Tasks) {
-                basicQuests = basicQuestsRaw.Tasks || [];
-                console.warn("[DEBUG] Found 'Tasks' field (uppercase) in basic quests, expected 'tasks'");
-            } else {
-                console.warn("[DEBUG] No 'tasks' or 'Tasks' field found in basic quests document");
-                basicQuests = [];
-            }
-            // If document doesn't exist, create it with an empty tasks array (optional)
-            if (!basicQuestsSnapshot.exists && firebaseInitialized && db) {
-                await db.collection('quests').doc('basic').set({ tasks: [] });
-                console.log("[DEBUG] Created empty basic quests document");
-            }
-        } catch (error) {
-            console.warn("[DEBUG] Failed to fetch basic quests:", error.message, error.code);
-        }
+        const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
+        console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
+        console.log("[DEBUG] Basic snapshot data:", basicQuestsSnapshot.data());
+        const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
+        const basicQuests = basicQuestsRaw.tasks || [];
         console.log("[DEBUG] Parsed basic quests:", basicQuests);
 
-        const validatedBasicQuests = basicQuests.map(quest => {
-            let rawAdLimit = quest.adLimit !== undefined ? quest.adLimit : quest.adlimit;
-            let adLimitValue = Number(rawAdLimit);
-            if (isNaN(adLimitValue) || adLimitValue <= 0) {
-                console.warn(`[DEBUG] Invalid adLimit for quest ${quest.id}: ${rawAdLimit}, defaulting to 1`);
-                adLimitValue = 1;
-            }
-
-            const validatedQuest = {
-                id: quest.id || Math.random().toString(36).substring(7),
-                title: quest.title || "Untitled Quest",
-                icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
-                reward: Number(quest.reward) || 0,
-                action: quest.action || 'GO',
-                link: quest.link || '',
-                type: quest.type || 'default',
-                adLimit: quest.type === 'ads' ? adLimitValue : 0,
-                adType: quest.adType || 'rewarded_interstitial'
-            };
-
-            console.log(`[DEBUG] Validated quest ${quest.id}:`, { rawAdLimit, adLimit: validatedQuest.adLimit });
-            return validatedQuest;
-        });
+        const validatedBasicQuests = basicQuests.map(quest => ({
+            id: quest.id || Math.random().toString(36).substring(7),
+            title: quest.title || "Untitled Quest",
+            icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
+            reward: Number(quest.reward) || 0,
+            action: quest.action || 'GO',
+            link: quest.link || '',
+            type: quest.type || 'default',
+            adLimit: quest.type === 'ads' ? Math.max(1, Number(quest.adLimit) || 1) : 0, // Ensure adLimit >= 1
+            adType: quest.adType || 'rewarded_interstitial'
+        }));
         console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
 
         const basicQuestList = document.getElementById('basic-quest-list');
         const basicQuestCount = document.getElementById('basic-quest-count');
         if (!basicQuestList || !basicQuestCount) {
-            console.error("[ERROR] Basic quest DOM elements not found");
-            return;
+            throw new Error("Required DOM elements not found for basic quests");
         }
         basicQuestCount.textContent = validatedBasicQuests.length;
 
+        // Current time for cooldown check
         const currentTime = new Date();
         const cooldownPeriod = 3600000; // 1 hour
 
@@ -1546,26 +1489,27 @@ async function updateEarnSectionUI() {
                 <p>No basic quests available</p>
             </li>
         ` : validatedBasicQuests.map(quest => {
-            const adProgress = userData.adProgress && userData.adProgress[quest.id] ? userData.adProgress[quest.id] : { watched: 0, claimed: false, lastClaimed: null };
+            const adProgress = userData.adProgress[quest.id] || { watched: 0, claimed: false, lastClaimed: null };
             const isCompleted = quest.type === 'ads' && adProgress.watched >= quest.adLimit;
-            const isClaimed = adProgress.claimed || (userData.claimedQuests && userData.claimedQuests.includes(quest.id)) || false;
+            const isClaimed = adProgress.claimed || userData.claimedQuests?.includes(quest.id);
             let buttonText, buttonClass, buttonStyle;
 
+            // Check cooldown
             const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed) : null;
             const timeSinceLastClaim = lastClaimedTime ? currentTime - lastClaimedTime : Infinity;
             const isCooldownOver = timeSinceLastClaim >= cooldownPeriod;
 
+            // Reset logic
             if (isClaimed && quest.type === 'ads' && isCooldownOver) {
                 console.log(`[DEBUG] Resetting ad quest ${quest.id} as cooldown is over`);
-                if (telegramUser && telegramUser.id && firebaseInitialized && db) {
-                    db.collection('userData').doc(telegramUser.id.toString()).update({
-                        [`adProgress.${quest.id}`]: { watched: 0, claimed: false, lastClaimed: null }
-                    }).then(() => {
-                        console.log(`[DEBUG] Quest ${quest.id} reset in Firestore`);
-                    }).catch(error => {
-                        console.error(`[ERROR] Failed to reset quest ${quest.id}:`, error.message);
-                    });
-                }
+                db.collection('userData').doc(telegramUser.id.toString()).update({
+                    [`adProgress.${quest.id}`]: { watched: 0, claimed: false, lastClaimed: null }
+                }).then(() => {
+                    console.log(`[DEBUG] Quest ${quest.id} reset in Firestore`);
+                }).catch(error => {
+                    console.error(`[ERROR] Failed to reset quest ${quest.id}:`, error.message);
+                });
+                // Update local adProgress
                 adProgress.watched = 0;
                 adProgress.claimed = false;
                 adProgress.lastClaimed = null;
@@ -1630,7 +1574,6 @@ async function updateEarnSectionUI() {
         }
     }
 }
-
 
 
 // Attach event listeners (unchanged)
