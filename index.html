@@ -1380,7 +1380,25 @@
                 // --- Fetch and Render Basic Quests --- (Same logic, cleaner template)
                 const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
                 // ... (rest of basic quest fetching logic is unchanged) ...
-                const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {}; const basicQuests = basicQuestsRaw.tasks || []; const validatedBasicQuests = basicQuests.map(quest => ({ id: quest.id || Math.random().toString(36).substring(7), title: quest.title || "Untitled Quest", icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q', reward: Number(quest.reward) || 0, action: quest.action || 'GO', link: quest.link || '', type: quest.type || 'default', adLimit: quest.adLimit || 0, adType: quest.adType || 'rewarded_interstitial' })); const basicQuestList = document.getElementById('basic-quest-list'); const basicQuestCount = document.getElementById('basic-quest-count'); if (!basicQuestList || !basicQuestCount) throw new Error("Required DOM elements missing for basic quests"); basicQuestCount.textContent = validatedBasicQuests.length;
+                const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
+                const basicQuests = basicQuestsRaw.tasks || [];
+                // Ensure adLimit is treated as a number
+                const validatedBasicQuests = basicQuests.map(quest => ({
+                    id: quest.id || Math.random().toString(36).substring(7),
+                    title: quest.title || "Untitled Quest",
+                    icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
+                    reward: Number(quest.reward) || 0,
+                    action: quest.action || 'GO',
+                    link: quest.link || '',
+                    type: quest.type || 'default',
+                    adLimit: Number(quest.adLimit) || 0, // Force to Number
+                    adType: quest.adType || 'rewarded_interstitial'
+                }));
+                debugLog("Validated Basic Quests:", validatedBasicQuests); // Added debug log
+                const basicQuestList = document.getElementById('basic-quest-list');
+                const basicQuestCount = document.getElementById('basic-quest-count');
+                if (!basicQuestList || !basicQuestCount) throw new Error("Required DOM elements missing for basic quests");
+                basicQuestCount.textContent = validatedBasicQuests.length;
 
                 const currentTime = new Date();
 
@@ -1457,6 +1475,7 @@
                 const dailyQuestList = document.getElementById('daily-quest-list'); const basicQuestList = document.getElementById('basic-quest-list'); const errorHtml = `<li class="error" style="color: #ffcc00;"><p>Failed to load quests. Please try again later.</p></li>`; if (dailyQuestList) dailyQuestList.innerHTML = errorHtml; if (basicQuestList) basicQuestList.innerHTML = errorHtml;
             }
         } // End of updateEarnSectionUI
+
 
 
 
