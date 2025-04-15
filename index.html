@@ -1491,6 +1491,92 @@
                  debugLog("[QUEST DEBUG] Fetching basic quests...");
                  const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
                  const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
+                         async function updateEarnSectionUI() {
+            // ... other code ...
+
+            try {
+                // ... code to get user data ...
+
+                // --- Fetch Daily Quests ---
+                // ... daily quest fetching logic ...
+
+
+                // --- Fetch Basic Quests ---
+                debugLog("[QUEST DEBUG] Fetching basic quests...");
+                const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
+                const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {}; // <-- Fetched data
+
+                // ******** START: PASTE THE DEBUG CODE HERE ********
+                debugLog("[QUEST DEBUG] Raw Basic Quests Data from Firestore:", basicQuestsRaw); // Log all raw data
+                if (Array.isArray(basicQuestsRaw.tasks)) { // Check if 'tasks' is an array
+                    const specificQuest = basicQuestsRaw.tasks.find(q => q.id === 'full_ad'); // Find your specific quest by ID
+                    debugLog("[QUEST DEBUG] Data for 'full_ad' quest object:", specificQuest); // Log the object for that quest
+                    if (specificQuest) {
+                        // Log the value and type of the adLimit field specifically
+                        debugLog("[QUEST DEBUG] Value and type of adLimit for 'full_ad':", specificQuest.adLimit, typeof specificQuest.adLimit);
+                    } else {
+                         debugLog("[QUEST DEBUG] Quest with id 'full_ad' not found in fetched tasks array.");
+                    }
+                } else {
+                    debugLog("[QUEST DEBUG] 'tasks' field not found or is not an array in quests/basic document.");
+                }
+                // ******** END: PASTE THE DEBUG CODE HERE ********
+
+
+                // Ensure adProgress structure is initialized for all ad quests if not present (Keep this block)
+                let adProgressUpdateNeeded = false;
+                const adProgressUpdate = {};
+                // This loop needs basicQuestsRaw.tasks, so keep it after the debug logs accessing it
+                (basicQuestsRaw.tasks || []).forEach(quest => { // Use basicQuestsRaw.tasks here safely
+                   if (quest.type === 'ads' && !userData.adProgress[quest.id]) {
+                       // ... existing adProgress initialization logic ...
+                   }
+                });
+                if (adProgressUpdateNeeded) {
+                   await db.collection('userData').doc(telegramUser.id.toString()).update(adProgressUpdate);
+                   debugLog("[QUEST DEBUG] Updated user data with initial adProgress structures.");
+                }
+                // END of adProgress init logic
+
+
+                const basicQuests = basicQuestsRaw.tasks || []; // <-- Assign basicQuests AFTER logging
+
+                basicQuestCountEl.textContent = basicQuests.length;
+                if (basicQuests.length === 0) {
+                    basicQuestList.innerHTML = `<li class="no-quests"><p>No basic quests available right now.</p></li>`;
+                } else {
+                    const currentTime = new Date();
+                    const cooldownPeriod = 3600 * 1000;
+
+                    // The .map loop starts here, processing the basicQuests array
+                    basicQuestList.innerHTML = basicQuests.map(quest => {
+                        const questId = quest.id || `quest_${Math.random().toString(16).slice(2)}`;
+                        const questType = quest.type || 'default';
+                        const questTitle = quest.title || 'Untitled Quest';
+                        const questIcon = quest.icon || 'assets/icons/quest_placeholder.png';
+                        const questReward = Number(quest.reward) || 0;
+                        const questAction = quest.action || 'GO';
+                        const questLink = quest.link || '';
+                        // This line uses quest.adLimit from the mapped 'quest' object
+                        const adLimit = questType === 'ads' ? Math.max(1, Number(quest.adLimit) || 1) : 0;
+                        const adType = quest.adType || 'rewarded_interstitial';
+
+                        // Detailed log for each quest being processed (keep this one too)
+                        debugLog(`[QUEST DEBUG] Processing Basic Quest: ${questTitle}`, {
+                            id: questId, type: questType, rawAdLimit: quest.adLimit, calculatedAdLimit: adLimit, reward: questReward
+                        });
+
+                        // ... rest of the rendering logic inside map ...
+                    }).join('');
+                }
+                debugLog("[QUEST DEBUG] Basic quests rendered.");
+
+           } catch (error) {
+               console.error("[QUEST ERROR] Failed to update Earn section UI:", error);
+               // ... error handling ...
+           }
+       }
+       
                  const basicQuests = basicQuestsRaw.tasks || [];
                  debugLog("[QUEST DEBUG] Raw Basic Quests Data:", basicQuests);
 
