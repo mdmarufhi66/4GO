@@ -1583,6 +1583,11 @@
                      const currentTime = new Date(); // Get current time once for cooldown checks
                      const cooldownPeriod = 3600 * 1000; // 1 hour cooldown in milliseconds
 
+                      // Inside updateEarnSectionUI, before mapping basic quests
+                      if (userData && userData.adProgress) {
+                          debugLog("[QUEST DEBUG] Data used for rendering basic quests:", JSON.stringify(userData.adProgress));
+                      }
+
                      basicQuestList.innerHTML = basicQuests.map(quest => {
                          // Ensure quest object and id are valid before proceeding
                          if (!quest || !quest.id) {
@@ -1619,6 +1624,7 @@
                          let progressText = '';
 
                          if (questType === 'ads') {
+                             // Use the potentially updated userData from the start of the function
                              const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
                              progressText = `<span class="progress">${adProgress.watched}/${adLimit}</span>`;
                              const isCompleted = adProgress.watched >= adLimit;
@@ -1630,22 +1636,23 @@
                              // Cooldown Reset Logic
                              if (isClaimed && isCooldownOver) {
                                  debugLog(`[QUEST DEBUG] Cooldown over for ad quest ${questId}. Resetting progress.`);
+                                 // Prepare local state for immediate rendering update
                                  adProgress.watched = 0;
                                  adProgress.claimed = false;
                                  adProgress.lastClaimed = null;
-
+                                 // Asynchronously update Firestore (don't necessarily need to wait here for UI rendering)
                                  db.collection('userData').doc(telegramUser.id.toString()).update({
                                      [`adProgress.${questId}`]: { watched: 0, claimed: false, lastClaimed: null }
                                  }).then(() => {
-                                     debugLog(`[QUEST DEBUG] Firestore updated for ${questId} reset.`);
-                                     // Optionally refresh user data cache: fetchAndUpdateUserData();
+                                     debugLog(`[QUEST DEBUG] Firestore updated asynchronously for ${questId} reset.`);
+                                     // Optionally refresh user data cache if needed elsewhere: fetchAndUpdateUserData();
                                  }).catch(err => {
-                                     console.error(`[QUEST ERROR] Failed Firestore reset for ${questId}:`, err);
-                                     debugLog(`[QUEST ERROR] Failed Firestore reset for ${questId}: ${err.message}`);
+                                     console.error(`[QUEST ERROR] Failed async Firestore reset for ${questId}:`, err);
+                                     debugLog(`[QUEST ERROR] Failed async Firestore reset for ${questId}: ${err.message}`);
                                  });
-                                 // Update local state immediately for correct button rendering
+                                 // Update local state immediately for correct button rendering THIS RENDER CYCLE
                                  isCooldownOver = true; // Ensure subsequent checks use the reset state
-                                 // Important: Update userData cache or re-fetch if other parts rely on it immediately
+                                 // Update the main userData cache if necessary (might be redundant if fetched fresh at start)
                                  if(currentUserData?.adProgress?.[questId]) {
                                      currentUserData.adProgress[questId] = { watched: 0, claimed: false, lastClaimed: null };
                                  }
@@ -1773,9 +1780,17 @@
 
                  // --- GO for Ad Quests (Manual Trigger) ---
                  if (questType === 'ads') {
-                     const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
-                     if (adProgress.watched >= adLimit) { /* ... alert user ... */ return; }
-                     if (adProgress.claimed) { /* ... alert user ... */ return; }
+                     const initialAdProgressCheck = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null }; // Check before showing ad
+                     if (initialAdProgressCheck.watched >= adLimit) {
+                         debugLog(`[QUEST ACTION] Ad quest ${questId} already completed (${initialAdProgressCheck.watched}/${adLimit}). Ignoring GO click.`);
+                         alert("You have already watched the required ads for this quest.");
+                         return;
+                      }
+                     if (initialAdProgressCheck.claimed) {
+                         debugLog(`[QUEST ACTION] Ad quest ${questId} already claimed. Ignoring GO click.`);
+                         // Maybe check cooldown here too if needed? Button state should handle it though.
+                         return;
+                     }
 
                      // Check if the adType is 'inApp' - if so, it shouldn't be triggered manually now
                      if (adType === 'inApp') {
@@ -1792,31 +1807,42 @@
                          await showAd(adType); // Show the ad (this now rejects 'inApp')
                          debugLog(`[QUEST ACTION] Ad shown successfully (or closed) for quest: ${questId}`);
 
-                         // --- IMPORTANT: Re-fetch user data AFTER ad to prevent race conditions ---
-                         const updatedUserData = await fetchAndUpdateUserData(); // Refresh cache
-                         if (!updatedUserData) throw new Error("User data disappeared after ad.");
-                         const currentAdProgress = updatedUserData.adProgress?.[questId] || { watched: 0, claimed: false, lastClaimed: null };
+                         // --- IMPORTANT: Re-fetch user data BEFORE update to get current state ---
+                         // This ensures we increment correctly if multiple rapid clicks happened (though unlikely now button is disabled)
+                         const userDataBeforeUpdate = await fetchAndUpdateUserData();
+                         if (!userDataBeforeUpdate) throw new Error("User data disappeared after ad.");
+                         // Use the LATEST known progress before applying the increment
+                         const currentAdProgress = userDataBeforeUpdate.adProgress?.[questId] || { watched: 0, claimed: false, lastClaimed: null };
                          // ---
 
                          const newWatchedCount = currentAdProgress.watched + 1;
+                         // --- Update Firestore ---
                          await userDocRef.update({
                              [`adProgress.${questId}`]: {
                                  watched: newWatchedCount,
-                                 claimed: currentAdProgress.claimed,
-                                 lastClaimed: currentAdProgress.lastClaimed
+                                 claimed: currentAdProgress.claimed, // Keep existing claimed status
+                                 lastClaimed: currentAdProgress.lastClaimed // Keep existing lastClaimed status
                              }
                          });
+                         debugLog(`[QUEST ACTION] Ad progress updated in Firestore for ${questId}: ${newWatchedCount}/${adLimit}`);
 
-                         debugLog(`[QUEST ACTION] Ad progress updated for ${questId}: ${newWatchedCount}/${adLimit}`);
+                         // *** === THIS IS THE FIX === ***
+                         // Explicitly refresh the local cache AFTER the successful update
+                         await fetchAndUpdateUserData();
+                         debugLog(`[QUEST ACTION] Refreshed local user data cache after update.`);
+                         // *** ======================== ***
+
                          if (analytics) analytics.logEvent('ads_quest_watch', { userId: telegramUser.id, questId, adType });
 
+                         // Show alert based on the new count
                          if (newWatchedCount >= adLimit) {
                              alert(`Ad watched! (${newWatchedCount}/${adLimit}) You can now claim your reward.`);
                          } else {
                              alert(`Ad watched! Progress: ${newWatchedCount}/${adLimit}`);
                          }
-                         // No need to fetch user data again here, as it was fetched after showAd
-                         await updateEarnSectionUI(); // Refresh UI immediately
+
+                         // --- Update UI (Now uses the refreshed cache) ---
+                         await updateEarnSectionUI();
 
                      } catch (error) {
                          console.error("[QUEST ERROR] Failed to show ad or update progress:", error);
@@ -1824,11 +1850,8 @@
                          alert(`Failed to show ad. ${error.message}`); // Show error message to user
                          // Refresh UI to reset button state if ad failed
                          await updateEarnSectionUI();
-                     } finally {
-                          // Ensure button is re-enabled after attempt, even if updateEarnSectionUI resets it
-                          // It might be better handled within updateEarnSectionUI's rendering logic
-                          // button.disabled = false; // Re-enablement handled by UI refresh
                      }
+                     // No finally block needed as updateEarnSectionUI is called in both try and catch
                  }
                  // --- GO for Daily/Default Link Quests ---
                  else {
@@ -2428,11 +2451,13 @@
                  // Setup withdraw button listeners
                  elements.withdrawButtons.forEach(button => {
                      const card = button.closest('.balance-card');
-                     const newButton = button.cloneNode(true);
-                     button.parentNode.replaceChild(newButton, button);
+                     const newButton = button.cloneNode(true); // Clone to remove old listeners if any
+                     button.parentNode.replaceChild(newButton, button); // Replace button in DOM
                      if (card) {
                          newButton.addEventListener('click', () => showWithdrawModal(card));
-                     } else { /* ... */ }
+                     } else {
+                         debugLog("[WALLET WARN] Could not find parent card for withdraw button.");
+                     }
                  });
 
                  debugLog("Wallet system initialized successfully.");
@@ -2468,6 +2493,7 @@
 
              const confirmButton = document.getElementById('confirm-withdraw');
              const cancelButton = document.getElementById('cancel-withdraw');
+             // Clone buttons to ensure old listeners are removed before adding new ones
              const newConfirmButton = confirmButton.cloneNode(true);
              const newCancelButton = cancelButton.cloneNode(true);
              confirmButton.parentNode.replaceChild(newConfirmButton, confirmButton);
@@ -2489,9 +2515,9 @@
              const confirmButton = document.getElementById('confirm-withdraw');
              confirmButton.disabled = true; confirmButton.textContent = 'Processing...';
 
-             if (isNaN(amount) || amount <= 0) { /* ... */ confirmButton.disabled = false; confirmButton.textContent = 'Confirm'; return; }
-             if (amount + fee > balance) { /* ... */ confirmButton.disabled = false; confirmButton.textContent = 'Confirm'; return; }
-             if (!tonConnectUI || !tonConnectUI.connected || !tonConnectUI.account?.address) { /* ... */ confirmButton.disabled = false; confirmButton.textContent = 'Confirm'; modal.style.display = 'none'; return; }
+             if (isNaN(amount) || amount <= 0) { alert("Invalid amount entered."); confirmButton.disabled = false; confirmButton.textContent = 'Confirm'; return; }
+             if (amount + fee > balance) { alert("Insufficient balance (including fee)."); confirmButton.disabled = false; confirmButton.textContent = 'Confirm'; return; }
+             if (!tonConnectUI || !tonConnectUI.connected || !tonConnectUI.account?.address) { alert("Wallet not connected."); confirmButton.disabled = false; confirmButton.textContent = 'Confirm'; modal.style.display = 'none'; return; }
 
              const destinationAddress = tonConnectUI.account.address;
              const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
@@ -2509,6 +2535,7 @@
                      destination: destinationAddress, status: 'pending',
                      timestamp: firebase.firestore.FieldValue.serverTimestamp(), type: 'withdrawal'
                  };
+                 // Reference the subcollection correctly
                  const txRef = db.collection('userData').doc(telegramUser.id.toString()).collection('transactions').doc(transaction.txId);
                  await txRef.set(transaction);
                  debugLog(`[WITHDRAW SIMULATION] Pending transaction record created: ${transaction.txId}`);
@@ -2526,15 +2553,16 @@
                      } catch (simError) {
                           console.error("Error updating simulated transaction status:", simError);
                           debugLog(`[WITHDRAW SIMULATION ERROR] Failed updating tx ${transaction.txId} status: ${simError.message}`);
-                          await txRef.update({ status: 'failed', failureReason: simError.message });
+                          // Attempt to mark as failed in Firestore
+                          try { await txRef.update({ status: 'failed', failureReason: simError.message }); } catch (failErr) { console.error("Failed to mark tx as failed:", failErr); }
                      }
-                 }, 5000);
+                 }, 5000); // 5 second delay for simulation
 
                  if (analytics) analytics.logEvent('withdrawal_initiated', { userId: telegramUser.id, currency, amount, fee });
 
                  modal.style.display = 'none';
-                 await fetchAndUpdateUserData(); // Refresh cache
-                 await updateUserStatsUI();
+                 await fetchAndUpdateUserData(); // Refresh cache immediately after deduction
+                 await updateUserStatsUI(); // Update header/wallet balances
                  await updateTransactionHistory(); // Show pending transaction
                  alert(`Withdrawal of ${amount.toFixed(4)} ${currency} initiated (Fee: ${fee.toFixed(4)} ${currency}). This is a simulation and no real crypto is sent.`); // Updated alert
 
@@ -2542,8 +2570,14 @@
                  console.error(`Withdrawal error: ${error.message}`);
                  debugLog(`[WITHDRAW ERROR] ${error.message}`);
                  alert(`Withdrawal failed: ${error.message}`);
+                 // If the initial Firestore update fails, transaction shouldn't be created
+                 // If update fails AFTER tx created, need reconciliation logic (complex)
+                 // For simulation, just alert failure.
              } finally {
-                  confirmButton.disabled = false; confirmButton.textContent = 'Confirm';
+                  // Ensure button is re-enabled and modal is potentially closed even on error
+                  if (modal.style.display !== 'none') {
+                      confirmButton.disabled = false; confirmButton.textContent = 'Confirm';
+                  }
              }
          }
 
@@ -2553,27 +2587,38 @@
              if (!elements.transactionList) { /* ... */ return; }
              elements.transactionList.innerHTML = '<li>Loading history...</li>';
 
-             if (!firebaseInitialized || !db || !telegramUser || !telegramUser.id) { /* ... */ return; }
+             if (!firebaseInitialized || !db || !telegramUser || !telegramUser.id) { elements.transactionList.innerHTML = '<li>History unavailable.</li>'; return; }
 
              try {
+                 // Reference the subcollection correctly
                  const txCollectionRef = db.collection('userData').doc(telegramUser.id.toString()).collection('transactions');
                  const snapshot = await txCollectionRef.orderBy('timestamp', 'desc').limit(15).get();
 
-                 if (snapshot.empty) { /* ... */ elements.transactionList.innerHTML = '<li>No transactions yet</li>'; return; }
+                 if (snapshot.empty) { elements.transactionList.innerHTML = '<li>No transactions yet</li>'; return; }
 
                  debugLog(`Workspaceed ${snapshot.docs.length} transaction history entries.`);
                  elements.transactionList.innerHTML = snapshot.docs.map(doc => {
                      const tx = doc.data();
-                     const txTime = tx.timestamp?.toDate ? tx.timestamp.toDate().toLocaleString() : 'Invalid date';
+                     // Format timestamp safely
+                     let txTime = 'Invalid date';
+                     if (tx.timestamp && typeof tx.timestamp.toDate === 'function') {
+                        try { txTime = tx.timestamp.toDate().toLocaleString(); } catch (dateErr) { console.warn("Error formatting date:", dateErr); }
+                     } else if (tx.timestamp) {
+                         txTime = new Date(tx.timestamp).toLocaleString(); // Fallback for potential string/number timestamps
+                     }
+
                      let detail = '';
+                     const status = tx.status || 'unknown';
+                     const statusClass = status.toLowerCase(); // Ensure class is lowercase
+
                       if (tx.type === 'withdrawal') {
-                          detail = `Withdraw ${tx.amount?.toFixed(4)} ${tx.currency} (Fee: ${tx.fee?.toFixed(4)})`;
-                      } else if (tx.type === 'credit_claim') {
-                          detail = `Claimed ${tx.usdtAmount?.toFixed(4)} USDT (${tx.creditsSpent?.toLocaleString()} C)`;
+                          detail = `Withdraw ${tx.amount?.toFixed(4) || '?'} ${tx.currency || '?'} (Fee: ${tx.fee?.toFixed(4) || '?'})`;
+                      } else if (tx.type === 'credit_claim') { // Assuming this type might exist from claim logic
+                          detail = `Claimed ${tx.usdtAmount?.toFixed(4) || '?'} USDT (${tx.creditsSpent?.toLocaleString() || '?'} C)`;
                       } else {
                           detail = `Type: ${tx.type || 'Unknown'}`;
                       }
-                     return `<li> ${detail} - <span class="tx-status ${tx.status || 'unknown'}">${tx.status || 'unknown'}</span> - ${txTime} </li>`;
+                     return `<li> ${detail} - <span class="tx-status ${statusClass}">${status}</span> - ${txTime} </li>`;
                  }).join('');
              } catch (error) {
                  console.error(`Error updating transaction history: ${error.message}`);
@@ -2611,7 +2656,15 @@
 
         function updateChestUI() {
             const chest = chests[currentChestIndex];
-             debugLog(`[CHEST] Updating UI for Chest index: ${currentChestIndex} (${chest.name})`);
+             debugLog(`[CHEST] Updating UI for Chest index: ${currentChestIndex} (${chest?.name || 'N/A'})`); // Safer logging
+             if (!chest) {
+                 console.error(`[CHEST ERROR] Invalid chest index: ${currentChestIndex}`);
+                 debugLog(`[CHEST ERROR] Invalid chest index: ${currentChestIndex}`);
+                 // Optionally reset index or display error
+                 // currentChestIndex = 0; // Reset to first chest
+                 // chest = chests[currentChestIndex];
+                 return; // Prevent further errors
+             }
             const container = document.getElementById('chestContainer');
             const currentChestItem = document.querySelector(`#chestContainer .chest-item[data-index="${currentChestIndex}"]`);
             if (!container || !currentChestItem) { /* ... error handling ... */ return; }
@@ -2637,7 +2690,7 @@
              const userVipLevel = userData?.vipLevel || 0; // Use cached VIP level
              const userGems = userData?.gems || 0; // Use cached Gems
 
-             debugLog(`[CHEST CHECK] User VIP: ${userVipLevel}, User Gems: ${userGems}`);
+             debugLog(`[CHEST CHECK] User VIP: ${userVipLevel}, User Gems: ${userGems}, Chest: ${chest.name} (Needs VIP ${chest.vip}, Cost ${chest.gemCost})`);
 
              if (chest.vip > userVipLevel) {
                  vipDisplay.textContent = `NEED VIP ${chest.vip}`;
@@ -2682,23 +2735,31 @@
 
         window.openChest = async function() {
              const chest = chests[currentChestIndex];
+              if (!chest) {
+                  console.error("[CHEST ACTION ERROR] Cannot open chest, invalid index:", currentChestIndex);
+                  debugLog(`[CHEST ACTION ERROR] Cannot open chest, invalid index: ${currentChestIndex}`);
+                  alert("Error: Could not determine which chest to open.");
+                  return;
+              }
              debugLog(`[CHEST ACTION] Attempting to open chest: ${chest.name}`);
              const openButton = document.querySelector('.open-chest-button');
              openButton.disabled = true; openButton.textContent = 'Opening...';
 
-             if (!telegramUser || !telegramUser.id) { /* ... */ openButton.disabled = false; openButton.textContent = 'Open Chest'; return; }
-             if (!firebaseInitialized || !db) { /* ... */ openButton.disabled = false; openButton.textContent = 'Open Chest'; return; }
+             if (!telegramUser || !telegramUser.id) { alert("User not identified."); openButton.disabled = false; updateChestUI(); return; }
+             if (!firebaseInitialized || !db) { alert("Database not ready."); openButton.disabled = false; updateChestUI(); return; }
 
              const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
              const rankingDocRef = db.collection('users').doc(telegramUser.id.toString());
 
              try {
-                  // Fetch latest data for check
+                  // Fetch latest data for check (important!)
                   const userData = await fetchAndUpdateUserData();
                   if (!userData) throw new Error("User data not found to open chest.");
 
                  const currentGems = userData.gems || 0;
                  const userVipLevel = userData.vipLevel || 0;
+
+                 debugLog(`[CHEST ACTION CHECK] Checking requirements: Need VIP ${chest.vip} (Have ${userVipLevel}), Need Gems ${chest.gemCost} (Have ${currentGems})`);
 
                  if (chest.vip > userVipLevel) throw new Error(`VIP Level ${chest.vip} required.`);
                  if (currentGems < chest.gemCost) throw new Error(`Insufficient gems. Need ${chest.gemCost}, have ${currentGems}.`);
@@ -2706,8 +2767,8 @@
                  // Simulate Reward Calculation
                  const rewards = {
                      usdt: parseFloat((Math.random() * (chest.gemCost / 4000) + (chest.gemCost / 10000)).toFixed(4)),
-                     landPiece: Math.random() < 0.1 ? 1 : 0,
-                     foxMedal: Math.floor(Math.random() * (currentChestIndex + 1)) + 1
+                     landPiece: Math.random() < 0.1 ? 1 : 0, // 10% chance for land piece
+                     foxMedal: Math.floor(Math.random() * (currentChestIndex + 1)) + 1 // Higher index = potentially more medals
                  };
                  debugLog("[CHEST ACTION] Calculated rewards:", rewards);
 
@@ -2720,7 +2781,9 @@
                  };
                  await userDocRef.update(updates);
 
+                 // Update ranking document if medals were awarded
                  if (rewards.foxMedal > 0) {
+                      // Use set with merge to ensure document exists or is updated
                       await rankingDocRef.set({
                           foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
                       }, { merge: true });
@@ -2734,27 +2797,26 @@
                  if (rewards.usdt > 0) rewardString += `- ${rewards.usdt.toFixed(4)} USDT\n`;
                  if (rewards.landPiece > 0) rewardString += `- ${rewards.landPiece} Land Piece\n`;
                  if (rewards.foxMedal > 0) rewardString += `- ${rewards.foxMedal} Fox Medal\n`;
+                 if (rewards.usdt <= 0 && rewards.landPiece <= 0 && rewards.foxMedal <= 0) {
+                    rewardString += "- Nothing this time!"; // Handle case where all rewards are 0
+                 }
                  alert(rewardString);
 
                  // Update UI
-                 await fetchAndUpdateUserData(); // Refresh cache with new balances
-                 await updateUserStatsUI();
-                 updateChestUI(); // Re-check requirements/costs
+                 await fetchAndUpdateUserData(); // Refresh cache with new balances *AFTER* update
+                 await updateUserStatsUI(); // Update header stats
+                 updateChestUI(); // Re-check requirements/costs for the current chest & update button state
 
              } catch (error) {
                  console.error("Error opening chest:", error);
                  debugLog(`[CHEST ERROR] ${error.message}`);
                  alert(`Failed to open chest: ${error.message}`);
-                 // Ensure button is re-enabled on error
+                 // Ensure button is re-enabled and UI reflects potential unchanged state
                  openButton.disabled = false;
-                 // Update UI to reflect correct button state based on potentially unchanged data
-                 updateChestUI();
+                 updateChestUI(); // Crucial to reset button state based on actual data
 
-             } finally {
-                 // The button state is mostly handled by updateChestUI after success or error
-                 // openButton.disabled = false; // Already handled by updateChestUI call in try/catch
-                 // openButton.textContent = 'Open Chest';
              }
+             // No finally block needed as state is handled by updateChestUI called in try/catch
          };
 
 
@@ -2791,9 +2853,9 @@
             renderChests();
 
             // 9. Setup Main Navigation
-            setupNavigation(); // Sets default section and triggers initial data load
+            setupNavigation(); // Sets default section and triggers initial data load for it
 
-            // 10. Initial Data Load for Default Section (handled by setupNavigation/switchSection)
+            // 10. Initial Data Load for Default Section (handled by setupNavigation/switchSection) - No extra call needed here
 
             // ***** START: ADD AUTOMATIC IN-APP AD INITIALIZATION *****
             // This calls the Monetag SDK once and lets it handle automatic display
@@ -2807,7 +2869,7 @@
                         capping: 0.1,    // Session duration = 0.1 hours (6 minutes)
                         interval: 30,   // Minimum 30 seconds between ads
                         timeout: 5,     // 5-second delay before the *first* ad in a session might show
-                        everyPage: false // Attempt to persist session across section switches
+                        everyPage: false // Attempt to persist session across section switches?
                                          // Monitor if this works as expected with section changes.
                     };
                     debugLog('[AD INIT] Initializing automatic In-App ads with settings:', JSON.stringify(autoInAppSettings));
