@@ -2510,10 +2510,7 @@ function showAd(adType) {
                 await handleReferral();
                 generateReferralLink();
 
-// Show Monetag ad when bot opens
-showAd('inApp').catch(error => {
-    console.error("Failed to show initial ad:", error.message);
-});
+
                 // Continue with wallet and UI setup
                 tonConnectUI = await initializeTonConnect();
                 await initWalletSystem();
