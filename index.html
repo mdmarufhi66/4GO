@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4Metas Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Monetag Ad Script (already present, ensuring it matches your zone) -->
     <script src='//whephiwums.com/sdk.js' data-zone='9180370' data-sdk='show_9180370'></script>
     <style>
         /* Updated body structure */
@@ -147,13 +148,13 @@
             cursor: default;
         }
         .quest-item .progress {
-            font-size: 12px;
-            color: #ccc;
-            margin-left: 10px;
-        }
-        .claim-button.active {
-            background: linear-gradient(to right, #00ff00, #66ff66);
-        }
+    font-size: 12px;
+    color: #ccc;
+    margin-left: 10px;
+}
+.claim-button.active {
+    background: linear-gradient(to right, #00ff00, #66ff66);
+}
         .wallet-section h2 {
             font-size: 18px;
             margin: 10px 0;
@@ -195,24 +196,24 @@
             border-radius: 50%;
             cursor: pointer;
         }
-        .connect-button {
-            background: linear-gradient(to right, #ff00ff, #ff6666);
-            border: none;
-            color: white;
-            padding: 10px;
-            border-radius: 15px;
-            width: 100%;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: background 0.3s ease;
-        }
-        .connect-button.connected {
-            background: linear-gradient(to right, #00ff00, #66ff66);
-        }
-        .connect-button:disabled {
-            background: #666;
-            cursor: not-allowed;
-        }
+.connect-button {
+    background: linear-gradient(to right, #ff00ff, #ff6666);
+    border: none;
+    color: white;
+    padding: 10px;
+    border-radius: 15px;
+    width: 100%;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.3s ease;
+}
+.connect-button.connected {
+    background: linear-gradient(to right, #00ff00, #66ff66);
+}
+.connect-button:disabled {
+    background: #666;
+    cursor: not-allowed;
+}
         .wallet-status {
             text-align: center;
             margin: 10px 0;
@@ -564,10 +565,6 @@
         .tx-status.pending { color: #ffcc00; }
         .tx-status.completed { color: #00ff00; }
         .tx-status.failed { color: #ff0000; }
-        /* Style for simulated statuses */
-        .tx-status.pending_backend { color: #ffcc00; }
-        .tx-status.completed_simulated { color: #00dddd; } /* Use a different color for simulated completion */
-
     </style>
 </head>
 <body>
@@ -814,7 +811,7 @@
                             <img src="assets/icons/gem.png" alt="Gem">
                         </div>
                     </div>
-                    </div>
+                </div>
                 <button class="nav-arrow right" onclick="nextChest()">></button>
             </div>
             <div class="rewards">
@@ -877,9 +874,10 @@
             <span>Top</span>
         </button>
     </nav>
+<!-- Add this for debugging -->
 <div id="debugConsole" style="
     position: fixed;
-    bottom: 70px; /* Adjusted position */
+    bottom: 70px;
     left: 0;
     right: 0;
     background: rgba(0,0,0,0.8);
@@ -890,13 +888,13 @@
     max-height: 200px;
     overflow-y: auto;
     z-index: 1000;
-    display: none; /* Start hidden */
-    border-top: 1px solid #ff00ff;
+    display: none;
 "></div>
-<button onclick="toggleDebugConsole()"
+<button onclick="document.getElementById('debugConsole').style.display = 
+    document.getElementById('debugConsole').style.display === 'none' ? 'block' : 'none'"
     style="
         position: fixed;
-        bottom: 75px; /* Position above debug console */
+        bottom: 120px;
         right: 10px;
         z-index: 1001;
         padding: 5px 10px;
@@ -904,35 +902,12 @@
         color: white;
         border: none;
         border-radius: 5px;
-        cursor: pointer;
     ">
-    Debug
+    Toggle Debug
 </button>
-<script>
-        // --- Debug Console Toggle ---
-        function toggleDebugConsole() {
-            const consoleEl = document.getElementById('debugConsole');
-            if (consoleEl) {
-                consoleEl.style.display = (consoleEl.style.display === 'none') ? 'block' : 'none';
-            }
-        }
-
-        // --- Debug Logging Helper ---
-        function debugLog(message) {
-            const now = new Date();
-            const timestamp = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
-            console.log(`[${timestamp}] ${message}`); // Log to browser console
-            const debugConsole = document.getElementById('debugConsole');
-            if (debugConsole) {
-                // Sanitize message slightly to prevent accidental HTML injection
-                const sanitizedMessage = message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                debugConsole.innerHTML += `<div>[${timestamp}] ${sanitizedMessage}</div>`;
-                debugConsole.scrollTop = debugConsole.scrollHeight; // Auto-scroll
-            }
-        }
-
-        debugLog('Script started'); // Initial log
-        debugLog('Nav buttons present at start: ' + document.querySelectorAll('.nav-button').length);
+    <script>
+        console.log('Script started');
+        console.log('Nav buttons present at start:', document.querySelectorAll('.nav-button').length);
 
         // Function to dynamically load a script and return a Promise
         function loadScript(src, retries = 3, delay = 1000) {
@@ -943,16 +918,16 @@
                     script.src = src;
                     script.async = true;
                     script.onload = () => {
-                        debugLog(`Script loaded successfully: ${src}`);
-                        resolve(true); // Resolve with true on success
+                        console.log(`Script loaded successfully: ${src}`);
+                        resolve();
                     };
                     script.onerror = () => {
                         attempts++;
                         if (attempts < retries) {
-                            debugLog(`Failed to load script: ${src}. Retrying (${attempts}/${retries})...`);
+                            console.warn(`Failed to load script: ${src}. Retrying (${attempts}/${retries})...`);
                             setTimeout(tryLoad, delay);
                         } else {
-                            debugLog(`Failed to load script after ${retries} attempts: ${src}`);
+                            console.error(`Failed to load script after ${retries} attempts: ${src}`);
                             reject(new Error(`Failed to load script after ${retries} attempts: ${src}`));
                         }
                     };
@@ -964,7 +939,7 @@
 
         // Firebase Configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyCUkEmFmJK2vr8k7M6JqYaxlcgBDf7WdJI", // WARNING: Exposing API key client-side is insecure
+            apiKey: "AIzaSyCUkEmFmJK2vr8k7M6JqYaxlcgBDf7WdJI",
             authDomain: "fourgo-cd98f.firebaseapp.com",
             projectId: "fourgo-cd98f",
             storageBucket: "fourgo-cd98f.firebasestorage.app",
@@ -975,157 +950,145 @@
 
         // Validate Firebase Configuration
         function validateFirebaseConfig(config) {
-            const requiredFields = ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'];
+            const requiredFields = [
+                'apiKey',
+                'authDomain',
+                'projectId',
+                'storageBucket',
+                'messagingSenderId',
+                'appId'
+            ];
             for (const field of requiredFields) {
                 if (!config[field]) {
                     throw new Error(`Firebase config is missing required field: ${field}`);
                 }
             }
-            debugLog("Firebase config validated successfully");
+            console.log("Firebase config validated successfully");
         }
 
-        // Initialize Firebase with dynamic loading using compat scripts
-        let app, db, auth, storage, analytics;
-        let firebaseInitialized = false;
-        async function initializeFirebase(maxRetries = 3) {
-            if (firebaseInitialized) {
-                debugLog("Firebase already initialized, skipping reinitialization");
-                return true;
+// Initialize Firebase with dynamic loading using compat scripts
+let app, db, auth, storage, analytics;
+let firebaseInitialized = false;
+async function initializeFirebase(maxRetries = 3) {
+    if (firebaseInitialized) {
+        console.log("Firebase already initialized, skipping reinitialization");
+        return true;
+    }
+
+    // Check if Firebase is already in the global scope and has an app instance
+    if (window.firebase && window.firebase.apps && window.firebase.apps.length > 0) {
+        console.log("Firebase detected in global scope, reusing existing instance");
+        app = window.firebase.apps[0];
+        db = app.firestore();
+        auth = app.auth();
+        storage = app.storage();
+        analytics = app.analytics();
+        firebaseInitialized = true;
+        return true;
+    }
+
+    let attempts = 0;
+    const scriptUrls = [
+        'https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js',
+        'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js',
+        'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js',
+        'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js',
+        'https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics-compat.js'
+    ];
+
+    while (attempts < maxRetries && !firebaseInitialized) {
+        try {
+            console.log(`Attempt ${attempts + 1}/${maxRetries} to initialize Firebase...`);
+            validateFirebaseConfig(firebaseConfig);
+
+            await Promise.all(scriptUrls.map(url => loadScript(url)));
+            if (typeof firebase === 'undefined') {
+                throw new Error("Firebase SDK not loaded into global scope");
             }
 
-            if (window.firebase && window.firebase.apps && window.firebase.apps.length > 0) {
-                debugLog("Firebase detected in global scope, reusing existing instance");
-                app = window.firebase.apps[0];
-                db = app.firestore();
-                auth = app.auth();
-                storage = app.storage();
-                if (app.analytics) {
-                  analytics = app.analytics();
-                } else {
-                    debugLog("Firebase Analytics component not available on existing instance.");
-                    try {
-                        await loadScript('https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics-compat.js');
-                        analytics = firebase.analytics();
-                        debugLog("Firebase Analytics loaded dynamically.");
-                    } catch (error) {
-                        debugLog("Failed to load Firebase Analytics dynamically: " + error.message);
-                    }
-                }
-                firebaseInitialized = true;
-                return true;
+            app = firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            auth = firebase.auth();
+            storage = firebase.storage();
+            analytics = firebase.analytics();
+
+            await db.collection('test').doc('init').set({
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            firebaseInitialized = true;
+            console.log("Firebase fully initialized");
+            return true;
+        } catch (error) {
+            attempts++;
+            console.error(`Firebase initialization attempt ${attempts} failed:`, error.message);
+            if (attempts >= maxRetries) {
+                console.error("Max retries reached. Firebase initialization failed.");
+                return false;
             }
-
-            let attempts = 0;
-            const scriptUrls = [
-                'https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js',
-                'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js',
-                'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js',
-                'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js',
-                'https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics-compat.js'
-            ];
-
-            while (attempts < maxRetries && !firebaseInitialized) {
-                try {
-                    debugLog(`Attempt ${attempts + 1}/${maxRetries} to initialize Firebase...`);
-                    validateFirebaseConfig(firebaseConfig);
-
-                    await Promise.all(scriptUrls.map(url => loadScript(url)));
-                    if (typeof firebase === 'undefined') {
-                        throw new Error("Firebase SDK not loaded into global scope");
-                    }
-
-                    if (!firebase.apps.length) {
-                        app = firebase.initializeApp(firebaseConfig);
-                    } else {
-                        app = firebase.app();
-                    }
-                    db = firebase.firestore();
-                    auth = firebase.auth();
-                    storage = firebase.storage();
-                    analytics = firebase.analytics();
-
-                    await db.collection('test').doc('init').set({
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
-
-                    firebaseInitialized = true;
-                    debugLog("Firebase fully initialized");
-                    return true;
-                } catch (error) {
-                    attempts++;
-                    debugLog(`Firebase initialization attempt ${attempts} failed: ${error.message}`);
-                    if (attempts >= maxRetries) {
-                        debugLog("Max retries reached. Firebase initialization failed.");
-                        return false;
-                    }
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                }
-            }
-            return false;
+            await new Promise(resolve => setTimeout(resolve, 2000));
         }
+    }
+    return false;
+}
 
         // Telegram Web App Setup with error handling
         let telegramUser;
         try {
-            debugLog("Initializing Telegram Web App...");
             window.Telegram.WebApp.ready();
             telegramUser = window.Telegram.WebApp.initDataUnsafe.user;
             if (telegramUser) {
                 const profilePic = document.querySelector('.profile-pic img');
-                if (profilePic) profilePic.src = telegramUser.photo_url || 'assets/icons/user-avatar.png';
-                const headerTitle = document.querySelector('header h1');
-                // if (headerTitle) headerTitle.innerText = `${telegramUser.first_name || '4Metas'}`;
-                 if (headerTitle) headerTitle.innerText = `4Metas`; // Keep it simple
-                debugLog(`Telegram Web App initialized. User: ${telegramUser.id}, ${telegramUser.username || telegramUser.first_name}`);
+                profilePic.src = telegramUser.photo_url || 'assets/icons/user-avatar.png';
+                document.querySelector('h1').innerText = `4Metas`;
+                console.log("Telegram Web App initialized successfully");
             } else {
-                debugLog("No Telegram user data available. Running in test mode.");
-                telegramUser = { id: "test_user_123", username: "TestUser", first_name: "Test", photo_url: "https://via.placeholder.com/40/808080/000000?text=T" };
-                 const profilePic = document.querySelector('.profile-pic img');
-                 if (profilePic) profilePic.src = telegramUser.photo_url;
+                console.warn("No Telegram user data available. Running in test mode.");
+                telegramUser = {
+                    id: "test_user_123",
+                    username: "TestUser",
+                    first_name: "Test",
+                    photo_url: "https://via.placeholder.com/40/808080/000000?text=T"
+                };
             }
         } catch (error) {
-            debugLog(`Telegram Web App initialization failed: ${error.message}`);
-            telegramUser = { id: "test_user_123_fallback", username: "TestUserFB", first_name: "TestFB", photo_url: "https://via.placeholder.com/40/808080/000000?text=F" };
-             const profilePic = document.querySelector('.profile-pic img');
-             if (profilePic) profilePic.src = telegramUser.photo_url;
+            console.error("Telegram Web App initialization failed:", error);
+            telegramUser = {
+                id: "test_user_123",
+                username: "TestUser",
+                first_name: "Test",
+                photo_url: "https://via.placeholder.com/40/808080/000000?text=T"
+            };
         }
 
         // Storage abstraction using Firebase Firestore
         const Storage = {
             getItem: async (key) => {
                 if (!firebaseInitialized || !db) {
-                    debugLog("Firestore not initialized. Cannot fetch item: " + key);
+                    console.error("Firestore not initialized. Cannot fetch item:", key);
                     return null;
-                }
-                if (!telegramUser || !telegramUser.id) {
-                     debugLog("Telegram user ID not available. Cannot fetch item: " + key);
-                     return null;
                 }
                 try {
                     const doc = await db.collection('userData')
-                        .doc(telegramUser.id.toString()).get();
+                        .doc(telegramUser?.id.toString()).get();
                     return doc.exists ? doc.data()[key] : null;
                 } catch (error) {
-                    debugLog(`Error fetching ${key}: ${error.message}`);
+                    console.error(`Error fetching ${key}:`, error.message);
                     return null;
                 }
             },
             setItem: async (key, value) => {
                 if (!firebaseInitialized || !db) {
-                    debugLog("Firestore not initialized. Cannot set item: " + key);
+                    console.error("Firestore not initialized. Cannot set item:", key);
                     return false;
                 }
-                 if (!telegramUser || !telegramUser.id) {
-                     debugLog("Telegram user ID not available. Cannot set item: " + key);
-                     return false;
-                 }
                 try {
                     await db.collection('userData')
-                        .doc(telegramUser.id.toString())
+                        .doc(telegramUser?.id.toString())
                         .set({ [key]: value }, { merge: true });
                     return true;
                 } catch (error) {
-                    debugLog(`Error setting ${key}: ${error.message}`);
+                    console.error(`Error setting ${key}:`, error.message);
                     return false;
                 }
             }
@@ -1134,63 +1097,103 @@
         // Navigation Logic with Button Style Forcing
         document.addEventListener('DOMContentLoaded', () => {
             try {
-                debugLog('Setting up navigation');
+                console.log('Setting up navigation');
                 const sections = document.querySelectorAll('.section');
                 const navButtons = document.querySelectorAll('nav.bottom-nav .nav-button');
                 const bottomNav = document.querySelector('nav.bottom-nav');
 
-                debugLog(`Found sections: ${sections.length}, Found nav buttons: ${navButtons.length}, Bottom nav exists: ${!!bottomNav}`);
+                console.log('Found sections:', sections.length);
+                console.log('Found nav buttons:', navButtons.length);
+                console.log('Bottom nav exists:', !!bottomNav);
+                if (bottomNav) {
+                    const computedStyle = window.getComputedStyle(bottomNav);
+                    console.log('Initial nav styles:');
+                    console.log('  Display:', computedStyle.display);
+                    console.log('  Visibility:', computedStyle.visibility);
+                    console.log('  Opacity:', computedStyle.opacity);
+                    console.log('  Height:', computedStyle.height);
+                    console.log('  Position:', computedStyle.position);
+                    console.log('  Bottom:', computedStyle.bottom);
+                    console.log('  Left:', computedStyle.left);
+                    console.log('  Right:', computedStyle.right);
+                    console.log('  Z-Index:', computedStyle.zIndex);
+                    console.log('  Top:', computedStyle.top);
+                }
 
                 navButtons.forEach((btn, index) => {
-                    // debugLog(`Button ${index}: ${btn.getAttribute('data-section')}`); // Less verbose logging
+                    console.log(`Button ${index}:`, btn.getAttribute('data-section'));
+                    console.log(`Button ${index} content:`, btn.innerHTML);
+                    console.log(`Button ${index} initial display:`, window.getComputedStyle(btn).display);
+                    // Force button styles
                     btn.style.display = 'flex';
+                    btn.style.flexDirection = 'column';
+                    btn.style.alignItems = 'center';
+                    btn.style.justifyContent = 'center';
+                    btn.style.width = '60px';
+                    btn.style.height = '100%';
                     btn.style.visibility = 'visible';
                     btn.style.opacity = '1';
+                    console.log(`Button ${index} post-force display:`, window.getComputedStyle(btn).display);
+                    // Check if images are loaded
                     const img = btn.querySelector('img');
                     if (img) {
                         img.onerror = () => {
-                            debugLog(`Image failed to load for button ${index}: ${img.src}`);
+                            console.error(`Image failed to load for button ${index}: ${img.src}`);
                             img.src = 'https://via.placeholder.com/24/FFFFFF/000000?text=X'; // Fallback
+                        };
+                        img.onload = () => {
+                            console.log(`Image loaded for button ${index}: ${img.src}`);
                         };
                     }
                 });
 
                 async function switchSection(sectionId) {
-                    debugLog(`Switching to section: ${sectionId}`);
-                    sections.forEach(section => section.classList.remove('active'));
-                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    console.log(`Switching to section: ${sectionId}`);
+                    sections.forEach(section => {
+                        section.classList.remove('active');
+                        console.log(`Hiding section: ${section.id}`);
+                    });
+                    navButtons.forEach(btn => {
+                        btn.classList.remove('active');
+                        console.log(`Deactivating button: ${btn.getAttribute('data-section')}`);
+                    });
 
                     const targetSection = document.getElementById(sectionId);
                     const targetButton = document.querySelector(`.nav-button[data-section="${sectionId}"]`);
 
-                    if (targetSection) targetSection.classList.add('active');
-                    else debugLog(`Section with id "${sectionId}" not found`);
-
-                    if (targetButton) targetButton.classList.add('active');
-                    else debugLog(`Button with data-section "${sectionId}" not found`);
+                    if (targetSection && targetButton) {
+                        targetSection.classList.add('active');
+                        targetButton.classList.add('active');
+                        console.log(`Activated section: ${sectionId}`);
+                    } else {
+                        console.error(`Section or button not found for: ${sectionId}`);
+                        if (!targetSection) console.error(`Section with id "${sectionId}" not found`);
+                        if (!targetButton) console.error(`Button with data-section "${sectionId}" not found`);
+                    }
 
                     try {
                         if (sectionId === 'earn') await ensureFirebaseReady(updateEarnSectionUI);
-                        else if (sectionId === 'invite') await ensureFirebaseReady(updateInviteSectionUI);
-                        else if (sectionId === 'top') await ensureFirebaseReady(updateTopSectionUI);
-                        else if (sectionId === 'wallet') await ensureFirebaseReady(updateWalletSectionUI);
-                        else if (sectionId === 'chest') await ensureFirebaseReady(updateChestSectionUI);
+                        if (sectionId === 'invite') await ensureFirebaseReady(updateInviteSectionUI);
+                        if (sectionId === 'top') await ensureFirebaseReady(updateTopSectionUI);
+                        if (sectionId === 'wallet') await ensureFirebaseReady(updateWalletSectionUI);
                     } catch (error) {
-                        debugLog(`Error updating section ${sectionId}: ${error.message}`);
+                        console.error(`Error updating section ${sectionId}:`, error.message);
                     }
                 }
 
                 navButtons.forEach(button => {
                     button.addEventListener('click', () => {
                         const sectionId = button.getAttribute('data-section');
+                        console.log(`Clicked section: ${sectionId}`);
                         switchSection(sectionId);
                     });
                 });
 
                 // Set default section
-                debugLog('Setting default section to Earn');
-                switchSection('earn'); // Default to Earn
+                console.log('Setting default section to Earn');
+                switchSection('earn');
 
+                // Ensure nav is visible and positioned
                 if (bottomNav) {
                     bottomNav.style.display = 'flex';
                     bottomNav.style.visibility = 'visible';
@@ -1201,481 +1204,399 @@
                     bottomNav.style.right = '0px';
                     bottomNav.style.height = '60px';
                     bottomNav.style.zIndex = '100000';
-                    bottomNav.style.background = '#1a1a3d';
-                    // debugLog('Forced bottom-nav styles applied.'); // Less verbose
+                    bottomNav.style.backgroundColor = '#1a1a3d';
+                    console.log('Forced bottom-nav styles: display=flex, visibility=visible, opacity=1, position=fixed, bottom=0px, height=60px');
+                    const updatedStyle = window.getComputedStyle(bottomNav);
+                    console.log('Post-force nav styles:');
+                    console.log('  Display:', updatedStyle.display);
+                    console.log('  Visibility:', updatedStyle.visibility);
+                    console.log('  Opacity:', updatedStyle.opacity);
+                    console.log('  Height:', updatedStyle.height);
+                    console.log('  Position:', updatedStyle.position);
+                    console.log('  Bottom:', updatedStyle.bottom);
+                    console.log('  Left:', updatedStyle.left);
+                    console.log('  Right:', updatedStyle.right);
+                    console.log('  Z-Index:', updatedStyle.zIndex);
+                    console.log('  Top:', updatedStyle.top);
                 } else {
-                    debugLog('ERROR: Bottom nav element not found in DOM');
+                    console.error('Bottom nav element not found in DOM');
                 }
             } catch (error) {
-                debugLog(`Navigation setup failed: ${error.message}\nStack: ${error.stack}`);
+                console.error('Navigation setup failed:', error.message);
             }
         });
 
         // Helper to ensure Firebase is ready before running a callback
         async function ensureFirebaseReady(callback) {
-            if (!firebaseInitialized || !db || !auth) {
-                debugLog("Firebase not ready, attempting initialization...");
+            if (!firebaseInitialized || !db) {
+                console.log("Firebase not ready, attempting initialization...");
                 const success = await initializeFirebase();
                 if (!success) {
-                    debugLog("Firebase initialization failed after retries. Cannot proceed.");
+                    console.error("Firebase initialization failed after retries. Cannot proceed.");
                     alert("Failed to connect to database. Please try again later.");
                     return;
                 }
             }
-            // Optional: Check for analytics if needed by callback
-            if (callback.needsAnalytics && !analytics) {
-                 debugLog("Analytics needed but not initialized. Attempting to ensure.");
-                 if (!app.analytics) {
-                    try {
-                        await loadScript('https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics-compat.js');
-                        analytics = firebase.analytics();
-                        debugLog("Firebase Analytics loaded dynamically for callback.");
-                    } catch (error) {
-                        debugLog(`Failed to load Firebase Analytics dynamically: ${error.message}`);
-                    }
-                 } else {
-                    analytics = app.analytics();
-                 }
-            }
-
-            // debugLog("Firebase ready, executing callback..."); // Less verbose
-            try {
-                await callback();
-            } catch (error) {
-                 debugLog(`Error during Firebase-dependent callback execution (${callback.name}): ${error.message}\nStack: ${error.stack}`);
-            }
+            console.log("Firebase ready, executing callback...");
+            await callback();
         }
 
         // User Data Management
         async function initializeUserData() {
-            if (!telegramUser || !telegramUser.id) {
-                debugLog("Cannot initialize user data: No valid Telegram user available");
+            if (!telegramUser) {
+                console.warn("Cannot initialize user data: No Telegram user available");
                 return;
             }
             if (!firebaseInitialized || !db) {
-                debugLog("Firestore not initialized. Cannot initialize user data.");
+                console.error("Firestore not initialized. Cannot initialize user data.");
                 return;
             }
-            const userIdStr = telegramUser.id.toString();
-            const userDocRef = db.collection('userData').doc(userIdStr);
-            const rankingDocRef = db.collection('users').doc(userIdStr);
-
+            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+            const rankingDocRef = db.collection('users').doc(telegramUser.id.toString());
             try {
                 const doc = await userDocRef.get();
                 if (!doc.exists) {
-                    debugLog("New user detected. Creating initial data...");
-                    const initialData = {
-                        gems: 0, usdt: 0, ton: 0, referrals: 0,
-                        inviteRecords: [], totalCreditsEarnedFromInvites: 0,
-                        landPieces: 0, foxMedals: 0, isReferred: false,
+                    await userDocRef.set({
+                        gems: 0,
+                        usdt: 0,
+                        ton: 0,
+                        referrals: 0,
+                        inviteRecords: [],
+                        landPieces: 0,
+                        foxMedals: 0,
+                        isReferred: false,
                         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        claimedQuests: [], adProgress: {}, walletAddress: null,
-                        vipLevel: 0 // Initialize VIP Level
-                    };
-                    await userDocRef.set(initialData);
-                    debugLog("New user data document created in userData");
+                        claimedQuests: [],
+                        walletAddress: null
+                    });
 
-                    const rankingData = {
-                        username: telegramUser.username || telegramUser.first_name || `User_${userIdStr.substring(0,4)}`,
+                    await rankingDocRef.set({
+                        username: telegramUser.username || telegramUser.first_name || 'Anonymous',
                         foxMedals: 0,
                         photoUrl: telegramUser.photo_url || 'https://via.placeholder.com/40/808080/000000?text=U'
-                    };
-                    await rankingDocRef.set(rankingData, { merge: true });
-                    debugLog("New user data initialized in users collection for ranking");
+                    });
 
-                    if (analytics) {
-                         analytics.logEvent('user_signup', { userId: userIdStr });
-                         debugLog("Analytics: user_signup logged");
-                    }
-                } else {
-                    // debugLog("Existing user data found."); // Less verbose
-                    const currentData = doc.data();
-                    const updates = {};
-                    if (currentData.claimedQuests === undefined) updates.claimedQuests = [];
-                    if (currentData.adProgress === undefined) updates.adProgress = {};
-                    if (currentData.inviteRecords === undefined) updates.inviteRecords = [];
-                    if (currentData.totalCreditsEarnedFromInvites === undefined) updates.totalCreditsEarnedFromInvites = 0;
-                    if (currentData.vipLevel === undefined) updates.vipLevel = 0; // Add VIP level if missing
-
-                    if (Object.keys(updates).length > 0) {
-                        await userDocRef.update(updates);
-                        debugLog("User data schema updated with missing fields.");
-                    }
+                    analytics.logEvent('user_signup', { userId: telegramUser.id });
+                    console.log("New user data initialized");
                 }
-                await updateUserStatsUI(); // Update UI after ensuring data exists
+                await updateUserStatsUI();
             } catch (error) {
-                debugLog(`Error initializing/checking user data: ${error.message}\nStack: ${error.stack}`);
+                console.error("Error initializing user data:", error.message);
             }
         }
 
         async function updateUserStatsUI() {
-            if (!telegramUser || !telegramUser.id) {
-                 debugLog("Cannot update UI: No valid Telegram user.");
-                 return;
-            }
+            if (!telegramUser) return;
             if (!firebaseInitialized || !db) {
-                debugLog("Firestore not initialized. Cannot update user stats UI.");
+                console.error("Firestore not initialized. Cannot update user stats UI.");
                 return;
             }
-            const userIdStr = telegramUser.id.toString();
             try {
-                const userDoc = await db.collection('userData').doc(userIdStr).get();
-                if (!userDoc.exists) {
-                     debugLog("User data not found for UI update. Attempting initialization...");
-                     await initializeUserData(); // Try to initialize if missing
-                     return;
-                }
-
+                const userDoc = await db.collection('userData')
+                    .doc(telegramUser.id.toString()).get();
                 const data = userDoc.data();
                 document.getElementById('gems').textContent = data.gems || 0;
                 document.getElementById('usdt').textContent = (data.usdt || 0).toFixed(4);
                 document.getElementById('ton').textContent = (data.ton || 0).toFixed(4);
                 document.getElementById('wallet-usdt').textContent = (data.usdt || 0).toFixed(4);
                 document.getElementById('wallet-ton').textContent = (data.ton || 0).toFixed(4);
-                // debugLog("User stats UI updated successfully"); // Less verbose
+                console.log("User stats updated successfully");
             } catch (error) {
-                debugLog(`Error updating user stats UI: ${error.message}\nStack: ${error.stack}`);
+                console.error("Error updating user stats UI:", error.message);
             }
         }
 
-        // Fetch and Update Earn Section (Quests) - ADDED DEBUG LOG FOR CLAIM CHECK
+        // Fetch and Update Earn Section (Quests) with Enhanced Debugging
         async function updateEarnSectionUI() {
-            try {
-                // Ensure Firebase is ready
-                await ensureFirebaseReady(()=>{});
-                if (!firebaseInitialized || !db) {
-                    throw new Error("Firebase failed to initialize for Earn section");
-                }
-
-                let userData = {};
-                // Fetch user data
-                if (telegramUser && telegramUser.id) {
-                    const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
-                    if (userDoc.exists) {
-                        userData = userDoc.data();
-                        userData.adProgress = userData.adProgress || {};
-                        userData.claimedQuests = userData.claimedQuests || [];
-                    } else {
-                        debugLog("User data not found for Earn section. Initializing...");
-                        await initializeUserData();
-                        const refetchedDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
-                        if (refetchedDoc.exists) userData = refetchedDoc.data();
-                        userData.adProgress = userData.adProgress || {};
-                        userData.claimedQuests = userData.claimedQuests || [];
-                    }
-                } else {
-                    debugLog("Cannot fetch user data for Earn section: Invalid user or Firebase state.");
-                    document.getElementById('daily-quest-list').innerHTML = '<li>Loading user data...</li>';
-                    document.getElementById('basic-quest-list').innerHTML = '<li>Loading user data...</li>';
-                    return;
-                }
-
-                // --- Fetch and Render Daily Quests --- (Same as before)
-                /* ... Daily quest fetching and rendering logic ... */
-                const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({ source: 'server' });
-                // ... (rest of daily quest logic is unchanged) ...
-                const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {}; const dailyQuests = dailyQuestsRaw.tasks || []; const validatedDailyQuests = dailyQuests.map(quest => ({ id: quest.id || Math.random().toString(36).substring(7), title: quest.title || "Untitled Quest", icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q', reward: Number(quest.reward) || 0, action: quest.action || 'GO', link: quest.link || '', type: quest.type || 'default' })); const dailyQuestList = document.getElementById('daily-quest-list'); const dailyQuestCount = document.getElementById('daily-quest-count'); if (!dailyQuestList || !dailyQuestCount) throw new Error("Required DOM elements missing for daily quests"); dailyQuestCount.textContent = validatedDailyQuests.length; dailyQuestList.innerHTML = validatedDailyQuests.length === 0 ? `<li><p>No daily quests available</p></li>` : validatedDailyQuests.map(quest => { const isClaimed = userData.claimedQuests?.includes(quest.id); const buttonText = isClaimed ? 'Claimed' : quest.action; const buttonClass = isClaimed ? 'claimed-button' : 'go-button'; const buttonStyle = isClaimed ? 'background: #ccc; cursor: default;' : 'background: linear-gradient(to right, #ff00ff, #ff6666);'; const rewardDisplay = quest.reward > 0 ? `<img src="assets/icons/gem.png" alt="Gem"> <span>+${quest.reward}</span>` : ''; return ` <li class="quest-item" data-quest-id="${quest.id}" data-quest-type="${quest.type}" data-quest-reward="${quest.reward}"> <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'"> <span>${quest.title}</span> <div class="quest-reward"> ${rewardDisplay} <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button> </div> </li>`; }).join('');
-
-
-                // --- Fetch and Render Basic Quests --- (Same logic, cleaner template)
-                const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
-                // ... (rest of basic quest fetching logic is unchanged) ...
-                const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
-                const basicQuests = basicQuestsRaw.tasks || [];
-                // Ensure adLimit is treated as a number
-                const validatedBasicQuests = basicQuests.map(quest => ({
-                    id: quest.id || Math.random().toString(36).substring(7),
-                    title: quest.title || "Untitled Quest",
-                    icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
-                    reward: Number(quest.reward) || 0,
-                    action: quest.action || 'GO',
-                    link: quest.link || '',
-                    type: quest.type || 'default',
-                    adLimit: Number(quest.adLimit) || 0, // Force to Number
-                    adType: quest.adType || 'rewarded_interstitial'
-                }));
-                debugLog("Validated Basic Quests:", validatedBasicQuests); // Added debug log
-                const basicQuestList = document.getElementById('basic-quest-list');
-                const basicQuestCount = document.getElementById('basic-quest-count');
-                if (!basicQuestList || !basicQuestCount) throw new Error("Required DOM elements missing for basic quests");
-                basicQuestCount.textContent = validatedBasicQuests.length;
-
-                const currentTime = new Date();
-
-                // Generate HTML for Basic Quests
-                basicQuestList.innerHTML = validatedBasicQuests.length === 0 ? `
-                    <li class="no-quests"><p>No basic quests available</p></li>
-                ` : validatedBasicQuests.map(quest => {
-                    // Logic to determine button state and rewardDisplay
-                    const isCompletedGeneral = userData.claimedQuests?.includes(quest.id);
-                    let buttonText, buttonClass, buttonStyle, isDisabled = false;
-                    let rewardDisplay = '';
-
-                    if (quest.type === 'ads' && quest.reward === 0) {
-                        // Zero-Reward Ad Logic (unchanged)
-                        if (isCompletedGeneral) { buttonText = 'Completed'; buttonClass = 'claimed-button'; buttonStyle = 'background: #ccc; cursor: default;'; isDisabled = true; } else { buttonText = quest.action || 'Watch Ad'; buttonClass = 'go-button'; buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);'; isDisabled = false; } rewardDisplay = '';
-                    } else if (quest.type === 'ads' && quest.reward > 0) {
-                        // Reward Ad Logic
-                        const adProgress = userData.adProgress[quest.id] || { watched: 0, claimed: false, lastClaimed: null };
-                        const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed.seconds ? adProgress.lastClaimed.toDate() : adProgress.lastClaimed) : null;
-                        const timeSinceLastClaim = lastClaimedTime ? currentTime.getTime() - lastClaimedTime.getTime() : Infinity;
-                        const cooldownPeriod = 3600000;
-                        let isCooldownOver = timeSinceLastClaim >= cooldownPeriod;
-
-                        // *** ADDED DEBUG LOGGING AND SAFER COMPARISON HERE ***
-                        const currentWatched = Number(adProgress.watched || 0);
-                        const requiredLimit = Number(quest.adLimit || 0); // Use the quest.adLimit from validated data
-                        debugLog(`Quest "${quest.title}" (ID: ${quest.id}): Claim Check -> Watched: ${currentWatched}, Limit: ${requiredLimit}, Claimed: ${adProgress.claimed}`);
-                        const isTaskCompleted = requiredLimit > 0 && currentWatched >= requiredLimit; // Ensure limit > 0
-                        debugLog(`Quest "${quest.title}" -> isTaskCompleted = ${isTaskCompleted} (based on ${currentWatched} >= ${requiredLimit})`);
-                        // *** END OF ADDED DEBUG LOGGING ***
-
-                        // Reset local state if cooldown is over
-                        if (adProgress.claimed && isCooldownOver) { adProgress.watched = 0; adProgress.claimed = false; isCooldownOver = true; }
-
-                        // Determine button state based on isTaskCompleted and adProgress.claimed
-                        if (adProgress.claimed && !isCooldownOver) {
-                            // Claimed and in cooldown
-                            const timeLeft = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 60000);
-                            buttonText = `Wait ${timeLeft}m`; buttonClass = 'claimed-button'; buttonStyle = 'background: #ccc; cursor: default;'; isDisabled = true;
-                        } else if (isTaskCompleted && !adProgress.claimed) {
-                            // Watched >= Limit AND not claimed yet (or reset) -> SHOW CLAIM
-                            buttonText = 'Claim'; buttonClass = 'claim-button active'; buttonStyle = 'background: linear-gradient(to right, #00ff00, #66ff66);'; isDisabled = false;
-                        } else {
-                            // Not completed limit OR needs reset -> SHOW GO
-                            buttonText = quest.action || 'Watch Ad'; buttonClass = 'go-button'; buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);';
-                            isDisabled = adProgress.claimed && !isCooldownOver; // Disable if claimed and cooling down
-                        }
-
-                        // Generate reward/progress HTML string
-                        rewardDisplay = `<img src="assets/icons/gem.png" alt="Gem"> <span>+${quest.reward}</span> ${requiredLimit > 0 ? `<span class="progress">${currentWatched}/${requiredLimit}</span>` : ''}`;
-
-                    } else {
-                        // Non-Ad Quest Logic (unchanged)
-                        if (isCompletedGeneral) { buttonText = 'Claimed'; buttonClass = 'claimed-button'; buttonStyle = 'background: #ccc; cursor: default;'; isDisabled = true; } else { buttonText = quest.action || 'GO'; buttonClass = 'go-button'; buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);'; isDisabled = false; } if (quest.reward > 0) { rewardDisplay = `<img src="assets/icons/gem.png" alt="Gem"> <span>+${quest.reward}</span>`; } else { rewardDisplay = ''; }
-                    }
-
-                    // Generate the List Item HTML (No comments inside ``)
-                    return `
-                        <li class="quest-item" data-quest-id="${quest.id}" data-quest-type="${quest.type}" data-ad-limit="${quest.adLimit || 0}" data-ad-type="${quest.adType}" data-quest-reward="${quest.reward}">
-                            <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
-                            <span>${quest.title}</span>
-                            <div class="quest-reward">
-                                ${rewardDisplay}
-                                <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" style="${buttonStyle}" ${isDisabled ? 'disabled' : ''}>${buttonText}</button>
-                            </div>
-                        </li>
-                    `;
-                }).join('');
-
-            } catch (error) {
-                debugLog(`[ERROR] Failed to update earn section UI: ${error.message}\nStack: ${error.stack}`);
-                // Display error in UI
-                // ... (error display logic unchanged) ...
-                const dailyQuestList = document.getElementById('daily-quest-list'); const basicQuestList = document.getElementById('basic-quest-list'); const errorHtml = `<li class="error" style="color: #ffcc00;"><p>Failed to load quests. Please try again later.</p></li>`; if (dailyQuestList) dailyQuestList.innerHTML = errorHtml; if (basicQuestList) basicQuestList.innerHTML = errorHtml;
+    try {
+        if (!firebaseInitialized || !db) {
+            console.log("[DEBUG] Firebase not initialized, attempting to initialize...");
+            const success = await initializeFirebase();
+            if (!success) {
+                throw new Error("Failed to initialize Firebase after retries");
             }
-        } // End of updateEarnSectionUI
+            console.log("[DEBUG] Firebase initialized successfully");
+        }
 
+        let userData;
+        if (telegramUser && firebaseInitialized && db) {
+            const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
+            userData = userDoc.data() || {};
+            userData.adProgress = userData.adProgress || {}; // Ensure adProgress exists
+        }
 
+        // Daily Quests (unchanged)
+        console.log("[DEBUG] Starting daily quests fetch...");
+        const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({ source: 'server' });
+        console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
+        console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
+        const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
+        const dailyQuests = dailyQuestsRaw.tasks || [];
+        console.log("[DEBUG] Parsed daily quests:", dailyQuests);
 
+        const validatedDailyQuests = dailyQuests.map(quest => ({
+            id: quest.id || Math.random().toString(36).substring(7),
+            title: quest.title || "Untitled Quest",
+            icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
+            reward: Number(quest.reward) || 0,
+            action: quest.action || 'GO',
+            link: quest.link || ''
+        }));
+        console.log("[DEBUG] Validated daily quests:", validatedDailyQuests);
 
+        const dailyQuestList = document.getElementById('daily-quest-list');
+        const dailyQuestCount = document.getElementById('daily-quest-count');
+        if (!dailyQuestList || !dailyQuestCount) {
+            throw new Error("Required DOM elements not found for daily quests");
+        }
+        dailyQuestCount.textContent = validatedDailyQuests.length;
 
+        dailyQuestList.innerHTML = validatedDailyQuests.length === 0 ? `
+            <li class="no-quests">
+                <p>No daily quests available</p>
+            </li>
+        ` : validatedDailyQuests.map(quest => {
+            const isClaimed = userData?.claimedQuests?.includes(quest.id);
+            const buttonText = isClaimed ? 'Claimed' : quest.action;
+            const buttonClass = isClaimed ? 'claimed-button' : 'go-button';
+            const buttonStyle = isClaimed ? 'background: #ccc; cursor: default;' : 'background: linear-gradient(to right, #ff00ff, #ff6666);';
+            return `
+                <li class="quest-item" data-quest-id="${quest.id}">
+                    <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
+                    <span>${quest.title}</span>
+                    <div class="quest-reward">
+                        <img src="assets/icons/gem.png" alt="Gem">
+                        <span>+${quest.reward}</span>
+                        <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
+                    </div>
+                </li>
+            `;
+        }).join('');
+
+        // Basic Quests (updated with reset and cooldown logic)
+        console.log("[DEBUG] Starting basic quests fetch...");
+        const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
+        console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
+        console.log("[DEBUG] Basic snapshot data:", basicQuestsSnapshot.data());
+        const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
+        const basicQuests = basicQuestsRaw.tasks || [];
+        console.log("[DEBUG] Parsed basic quests:", basicQuests);
+
+        const validatedBasicQuests = basicQuests.map(quest => ({
+            id: quest.id || Math.random().toString(36).substring(7),
+            title: quest.title || "Untitled Quest",
+            icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
+            reward: Number(quest.reward) || 0,
+            action: quest.action || 'GO',
+            link: quest.link || '',
+            type: quest.type || 'default',
+            adLimit: quest.adLimit || 0,
+            adType: quest.adType || 'rewarded_interstitial'
+        }));
+        console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
+
+        const basicQuestList = document.getElementById('basic-quest-list');
+        const basicQuestCount = document.getElementById('basic-quest-count');
+        if (!basicQuestList || !basicQuestCount) {
+            throw new Error("Required DOM elements not found for basic quests");
+        }
+        basicQuestCount.textContent = validatedBasicQuests.length;
+
+        // Current time for cooldown check
+        const currentTime = new Date();
+
+        basicQuestList.innerHTML = validatedBasicQuests.length === 0 ? `
+            <li class="no-quests">
+                <p>No basic quests available</p>
+            </li>
+        ` : validatedBasicQuests.map(quest => {
+            const adProgress = userData.adProgress[quest.id] || { watched: 0, claimed: false, lastClaimed: null };
+            const isCompleted = quest.type === 'ads' && adProgress.watched >= quest.adLimit;
+            const isClaimed = adProgress.claimed || userData.claimedQuests?.includes(quest.id);
+            let buttonText, buttonClass, buttonStyle;
+
+            // Check cooldown (1 hour = 3600000 milliseconds)
+            const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed) : null;
+            const timeSinceLastClaim = lastClaimedTime ? currentTime - lastClaimedTime : Infinity;
+            const cooldownPeriod = 3600000; // 1 hour in milliseconds
+            const isCooldownOver = timeSinceLastClaim >= cooldownPeriod;
+
+            // Reset logic: If claimed and cooldown is over, reset the task
+            if (isClaimed && quest.type === 'ads' && isCooldownOver) {
+                console.log(`[DEBUG] Resetting ad quest ${quest.id} as cooldown is over`);
+                db.collection('userData').doc(telegramUser.id.toString()).update({
+                    [`adProgress.${quest.id}`]: { watched: 0, claimed: false, lastClaimed: null }
+                }).then(() => {
+                    console.log(`[DEBUG] Quest ${quest.id} reset in Firestore`);
+                }).catch(error => {
+                    console.error(`[ERROR] Failed to reset quest ${quest.id}:`, error.message);
+                });
+                // Update local adProgress to reflect reset immediately
+                adProgress.watched = 0;
+                adProgress.claimed = false;
+                adProgress.lastClaimed = null;
+            }
+
+            if (isClaimed && !isCooldownOver) {
+                const timeLeft = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 60000); // Minutes left
+                buttonText = `Wait ${timeLeft}m`;
+                buttonClass = 'claimed-button';
+                buttonStyle = 'background: #ccc; cursor: default;';
+            } else if (isCompleted) {
+                buttonText = 'Claim';
+                buttonClass = 'claim-button active';
+                buttonStyle = 'background: linear-gradient(to right, #00ff00, #66ff66);';
+            } else {
+                buttonText = quest.action;
+                buttonClass = 'go-button';
+                buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);';
+            }
+
+            return `
+                <li class="quest-item" data-quest-id="${quest.id}" data-quest-type="${quest.type}" data-ad-limit="${quest.adLimit}" data-ad-type="${quest.adType}">
+                    <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
+                    <span>${quest.title}</span>
+                    <div class="quest-reward">
+                        <img src="assets/icons/gem.png" alt="Gem">
+                        <span>+${quest.reward}</span>
+                        ${quest.type === 'ads' ? `<span class="progress">${adProgress.watched}/${quest.adLimit}</span>` : ''}
+                        <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed && !isCooldownOver ? 'disabled' : ''}>${buttonText}</button>
+                    </div>
+                </li>
+            `;
+        }).join('');
+
+        console.log("[DEBUG] Earn section UI update completed successfully");
+
+    } catch (error) {
+        console.error("[ERROR] Failed to update earn section UI:", {
+            message: error.message,
+            stack: error.stack
+        });
+
+        const dailyQuestList = document.getElementById('daily-quest-list');
+        const basicQuestList = document.getElementById('basic-quest-list');
+
+        if (dailyQuestList) {
+            dailyQuestList.innerHTML = `
+                <li class="error">
+                    <p>Failed to load daily quests: ${error.message}</p>
+                </li>
+            `;
+        }
+
+        if (basicQuestList) {
+            basicQuestList.innerHTML = `
+                <li class="error">
+                    <p>Failed to load basic quests: ${error.message}</p>
+                </li>
+            `;
+        }
+    }
+}
         // Referral System
         function generateReferralLink() {
-            if (!telegramUser || !telegramUser.id) {
-                 debugLog("Cannot generate referral link: No user ID.");
-                 return;
-            }
-            const botUsername = 'fourgobot'; // CHANGE THIS if your bot username is different
+            if (!telegramUser) return;
+            const botUsername = 'fourgobot';
             const referralLink = `https://t.me/${botUsername}?start=ref_${telegramUser.id}`;
-            const inviteButton = document.querySelector('.invite-friend');
-            const copyButton = document.querySelector('.copy-link');
-            if (inviteButton) inviteButton.setAttribute('data-link', referralLink);
-            if (copyButton) copyButton.setAttribute('data-link', referralLink);
-            // debugLog("Referral link generated: " + referralLink); // Less verbose
+            document.querySelector('.invite-friend').setAttribute('data-link', referralLink);
+            document.querySelector('.copy-link').setAttribute('data-link', referralLink);
+            console.log("Referral link generated:", referralLink);
         }
 
         async function handleReferral() {
-            if (!telegramUser || !telegramUser.id) {
-                 debugLog("Cannot handle referral: No user ID.");
-                 return;
-            }
+            if (!telegramUser) return;
             if (!firebaseInitialized || !db) {
-                debugLog("Firestore not initialized. Cannot handle referral.");
+                console.error("Firestore not initialized. Cannot handle referral.");
                 return;
             }
-
-            let startParam = null;
-            try {
-                 if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) {
-                     startParam = window.Telegram.WebApp.initDataUnsafe.start_param;
-                     if(startParam) debugLog("Start parameter found: " + startParam);
-                 } else {
-                      debugLog("Telegram WebApp initData not available for referral check.");
-                 }
-            } catch (error) {
-                 debugLog("Error accessing Telegram start_param: " + error.message);
-                 return;
-            }
+            const initData = Telegram.WebApp.initDataUnsafe;
+            const startParam = initData.start_param;
 
             if (startParam && startParam.startsWith('ref_')) {
                 const referrerId = startParam.split('_')[1];
-                const currentUserId = telegramUser.id.toString();
+                if (referrerId === telegramUser.id.toString()) return;
 
-                if (referrerId === currentUserId) {
-                    debugLog("User tried to self-refer.");
-                    return;
-                }
-
-                debugLog(`Handling referral: ${currentUserId} referred by ${referrerId}`);
-                const userDocRef = db.collection('userData').doc(currentUserId);
+                const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
                 const referrerDocRef = db.collection('userData').doc(referrerId);
 
                 try {
                     const userDoc = await userDocRef.get();
-                    if (!userDoc.exists) {
-                         debugLog("Current user document doesn't exist yet for referral. Initializing...");
-                         await initializeUserData();
-                    } else if (userDoc.data().isReferred === true) {
-                         debugLog("User has already been referred.");
-                         return;
-                    }
+                    if (userDoc.data().isReferred) return;
 
-                    const batch = db.batch();
-                    batch.update(userDocRef, { isReferred: true });
+                    await userDocRef.update({ isReferred: true });
+                    const referrerDoc = await referrerDocRef.get();
+                    const newReferralCount = (referrerDoc.data().referrals || 0) + 1;
+                    const newGems = (referrerDoc.data().gems || 0) + 50;
 
-                     const creditsPerReferral = 10;
-                     const gemsPerReferral = 50;
-                     const newRecord = {
-                         userId: currentUserId,
-                         username: telegramUser.username || telegramUser.first_name || `User_${currentUserId.substring(0,4)}`,
-                         joinTime: new Date().toISOString().split('.')[0].replace('T', ' '),
-                         credit: creditsPerReferral
-                     };
+                    const newRecord = {
+                        username: telegramUser.username || telegramUser.first_name,
+                        joinTime: new Date().toISOString().replace('T', ' ').split('.')[0],
+                        credit: 10
+                    };
 
-                     // Update referrer's data: Check if referrer exists before updating
-                     const referrerDoc = await referrerDocRef.get();
-                     if (referrerDoc.exists) {
-                         batch.update(referrerDocRef, {
-                             referrals: firebase.firestore.FieldValue.increment(1),
-                             gems: firebase.firestore.FieldValue.increment(gemsPerReferral),
-                             totalCreditsEarnedFromInvites: firebase.firestore.FieldValue.increment(creditsPerReferral),
-                             inviteRecords: firebase.firestore.FieldValue.arrayUnion(newRecord)
-                         });
-                         await batch.commit();
-                         debugLog(`Referral handled successfully.`);
-                         if (analytics) analytics.logEvent('referral_success', { referrerId: referrerId, newUserId: currentUserId });
-                     } else {
-                         debugLog(`Referrer (${referrerId}) document not found. Cannot award bonus, but marking user ${currentUserId} as referred.`);
-                         // Commit only the user update part
-                         await userDocRef.update({ isReferred: true });
-                     }
+                    await referrerDocRef.update({
+                        referrals: newReferralCount,
+                        gems: newGems,
+                        inviteRecords: firebase.firestore.FieldValue.arrayUnion(newRecord)
+                    });
 
+                    analytics.logEvent('referral_success', { referrerId, newUserId: telegramUser.id });
+                    console.log("Referral handled successfully");
                 } catch (error) {
-                    debugLog(`Error handling referral transaction: ${error.message}\nStack: ${error.stack}`);
+                    console.error("Error handling referral:", error.message);
                 }
             }
         }
 
-
         async function updateInviteSectionUI() {
-            if (!telegramUser || !telegramUser.id) {
-                 debugLog("Cannot update invite UI: No valid user.");
-                 return;
-            }
+            if (!telegramUser) return;
             if (!firebaseInitialized || !db) {
-                debugLog("Firestore not initialized. Cannot update invite section UI.");
+                console.error("Firestore not initialized. Cannot update invite section UI.");
                 return;
             }
-            const userIdStr = telegramUser.id.toString();
             try {
-                const userDoc = await db.collection('userData').doc(userIdStr).get();
-                 if (!userDoc.exists) {
-                      debugLog("User data not found for invite section.");
-                      document.getElementById('my-invite').textContent = `My Invite: 0`;
-                      document.getElementById('total-credit').textContent = `Total Credit ! : 0`;
-                      document.getElementById('invite-record-title').textContent = `Invite Record (0)`;
-                      document.querySelector('.invite-record .record-list').innerHTML = `<div class="no-frens"><img src="assets/icons/nofrens.png" alt="No Frens"><p>Loading invites...</p></div>`;
-                      return;
-                 }
-
+                const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
                 const data = userDoc.data();
                 const referrals = data.referrals || 0;
-                const totalCredit = data.totalCreditsEarnedFromInvites || 0;
-                const inviteRecords = data.inviteRecords || [];
+                const totalCredit = referrals * 10;
 
                 document.getElementById('my-invite').textContent = `My Invite: ${referrals}`;
                 document.getElementById('total-credit').textContent = `Total Credit ! : ${totalCredit}`;
-                document.getElementById('invite-record-title').textContent = `Invite Record (${inviteRecords.length})`;
+                document.getElementById('invite-record-title').textContent = `Invite Record (${referrals})`;
 
                 const recordList = document.querySelector('.invite-record .record-list');
-                const claimRecordList = document.querySelector('.record-section'); // Placeholder
-
-                if (inviteRecords.length === 0) {
-                     recordList.innerHTML = `<div class="no-frens"><img src="assets/icons/nofrens.png" alt="No Frens"><p>No invites yet</p></div>`;
-                 } else {
-                     recordList.innerHTML = `
-                         <div class="record-header">
-                             <span>User</span>
-                             <span>Join Time</span>
-                             <span>Credit</span>
-                         </div>
-                         ${inviteRecords.map(record => `
-                             <div class="record-item">
-                                 <img src="https://via.placeholder.com/40/808080/000000?text=${(record.username || 'U')[0]}" alt="${record.username || 'User'}">
-                                 <div class="user-info">
-                                     <span>${record.username || 'Invited User'}</span>
-                                     <small>${record.joinTime || 'N/A'}</small>
-                                 </div>
-                                 <span class="credit">${record.credit || 0}</span>
-                             </div>`).join('')}`;
-                 }
-
-                 claimRecordList.innerHTML = `
-                     <h3>Claim Record</h3>
-                     <div class="no-frens">
-                         <p>Claim history feature coming soon.</p> {/* Updated placeholder text */}
-                     </div>`;
-
-                const claimButton = document.querySelector('.invite-section .claim-button');
-                 const creditToUsdtRate = 10000;
-                 if (totalCredit >= creditToUsdtRate) {
-                     claimButton.disabled = false;
-                     claimButton.style.opacity = '1';
-                     claimButton.textContent = 'Claim';
-                 } else {
-                     claimButton.disabled = true;
-                     claimButton.style.opacity = '0.5';
-                     claimButton.textContent = `Need ${creditToUsdtRate}`;
-                 }
-
-                // debugLog("Invite section UI updated successfully"); // Less verbose
+                recordList.innerHTML = data.inviteRecords.length === 0 ? `
+                    <div class="no-frens">
+                        <img src="assets/icons/nofrens.png" alt="No Frens">
+                        <p>No invites yet</p>
+                    </div>
+                ` : data.inviteRecords.map(record => `
+                    <div class="record-item">
+                        <img src="https://via.placeholder.com/40/808080/000000?text=${record.username[0]}" alt="${record.username}">
+                        <div class="user-info">
+                            <span>${record.username}</span>
+                            <small>${record.joinTime}</small>
+                        </div>
+                        <span class="credit">${record.credit}</span>
+                    </div>
+                `).join('');
+                console.log("Invite section UI updated successfully");
             } catch (error) {
-                debugLog(`Error updating invite section UI: ${error.message}\nStack: ${error.stack}`);
-                 document.getElementById('my-invite').textContent = `My Invite: Error`;
-                 document.getElementById('total-credit').textContent = `Total Credit ! : Error`;
+                console.error("Error updating invite section UI:", error.message);
             }
         }
 
-
         async function updateTopSectionUI() {
             if (!firebaseInitialized || !db) {
-                debugLog("Firestore not initialized. Cannot update top section UI.");
+                console.error("Firestore not initialized. Cannot update top section UI.");
                 return;
             }
-            const rankingList = document.getElementById('ranking-list');
-            if (!rankingList) {
-                debugLog("Ranking list element not found.");
-                return;
-            }
-            rankingList.innerHTML = `<li class="no-rankings"><p>Loading rankings...</p></li>`;
-
             try {
                 const rankingsSnapshot = await db.collection('users')
                     .orderBy('foxMedals', 'desc')
                     .limit(20)
                     .get();
-
                 const rankings = [];
                 rankingsSnapshot.forEach(doc => {
                     const data = doc.data();
@@ -1686,626 +1607,433 @@
                     });
                 });
 
-                if (rankings.length === 0) {
-                    rankingList.innerHTML = `<li class="no-rankings"><p>No rankings available yet</p></li>`;
-                } else {
-                    rankingList.innerHTML = rankings.map((user, index) => `
-                        <li class="ranking-item">
-                             <span style="width: 30px; text-align: right; margin-right: 10px;">${index + 1}.</span>
-                            <img src="${user.photoUrl}" alt="${user.username}" onerror="this.src='https://via.placeholder.com/40/808080/000000?text=U'">
-                            <span>${user.username}</span>
-                            <div class="medal-count">
-                                <span>${user.foxMedals}</span>
-                                <img src="assets/icons/fox-medal.png" alt="Fox Medal">
-                            </div>
-                        </li>
-                    `).join('');
-                }
-                // debugLog("Top section UI updated successfully"); // Less verbose
+                const rankingList = document.getElementById('ranking-list');
+                rankingList.innerHTML = rankings.length === 0 ? `
+                    <li class="no-rankings">
+                        <p>No rankings available</p>
+                    </li>
+                ` : rankings.map(user => `
+                    <li class="ranking-item">
+                        <img src="${user.photoUrl}" alt="${user.username}">
+                        <span>${user.username}</span>
+                        <div class="medal-count">
+                            <span>${user.foxMedals}</span>
+                            <img src="assets/icons/fox-medal.png" alt="Fox Medal">
+                        </div>
+                    </li>
+                `).join('');
+
+                console.log("Top section UI updated successfully");
             } catch (error) {
-                debugLog(`Error updating top section UI: ${error.message}\nStack: ${error.stack}`);
-                rankingList.innerHTML = `<li class="no-rankings" style="color: #ffcc00;"><p>Error loading rankings.</p></li>`;
+                console.error("Error updating top section UI:", error.message);
             }
         }
 
         async function updateWalletSectionUI() {
             if (!firebaseInitialized || !db) {
-                debugLog("Firestore not initialized. Cannot update wallet section UI.");
+                console.error("Firestore not initialized. Cannot update wallet section UI.");
                 return;
             }
-             if (!telegramUser || !telegramUser.id) {
-                  debugLog("Cannot update wallet UI: No valid user.");
-                  return;
-             }
             try {
                 await updateUserStatsUI();
                 await updateTransactionHistory();
-                 await updateWalletUI(); // Refreshes connect button state etc.
-                // debugLog("Wallet section UI updated successfully"); // Less verbose
+                console.log("Wallet section UI updated successfully");
             } catch (error) {
-                debugLog(`Error updating wallet section UI: ${error.message}\nStack: ${error.stack}`);
+                console.error("Error updating wallet section UI:", error.message);
             }
         }
 
         // Claim Credits Logic
         document.querySelector('.invite-section .claim-button').addEventListener('click', async () => {
-            if (!telegramUser || !telegramUser.id) { alert("User not authenticated."); return; }
-            if (!firebaseInitialized || !db) { alert("Database not initialized."); return; }
-
-            const userIdStr = telegramUser.id.toString();
-            const userDocRef = db.collection('userData').doc(userIdStr);
-            const claimButton = document.querySelector('.invite-section .claim-button');
-
-            claimButton.disabled = true; claimButton.textContent = 'Claiming...';
-            debugLog("Attempting to claim credits...");
-
-            let claimedAmount = 0; // Variable to store the claimed amount
-
+            if (!telegramUser) {
+                alert("User not authenticated. Please try again.");
+                return;
+            }
+            if (!firebaseInitialized || !db) {
+                console.error("Firestore not initialized. Cannot claim credits.");
+                alert("Database not initialized. Please try again later.");
+                return;
+            }
+            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
             try {
-                await db.runTransaction(async (transaction) => {
-                    const userDoc = await transaction.get(userDocRef);
-                    if (!userDoc.exists) throw new Error("User data not found.");
+                const userDoc = await userDocRef.get();
+                const data = userDoc.data();
+                const totalCredit = (data.referrals || 0) * 10;
 
-                    const data = userDoc.data();
-                    const currentCredits = data.totalCreditsEarnedFromInvites || 0;
-                    const creditToUsdtRate = 10000;
+                if (totalCredit < 10000) {
+                    alert(`You need 10,000 credits to claim 1 USDT. You have ${totalCredit}.`);
+                    return;
+                }
 
-                    if (currentCredits < creditToUsdtRate) {
-                        throw new Error(`Need ${creditToUsdtRate} credits (Have ${currentCredits})`);
-                    }
+                const usdtToClaim = Math.floor(totalCredit / 10000);
+                const remainingCredits = totalCredit % 10000;
+                const newReferralCount = Math.floor(remainingCredits / 10);
 
-                    const usdtToClaim = Math.floor(currentCredits / creditToUsdtRate);
-                    const creditsToDeduct = usdtToClaim * creditToUsdtRate;
-                    claimedAmount = usdtToClaim; // Store for success message
-
-                    transaction.update(userDocRef, {
-                        usdt: firebase.firestore.FieldValue.increment(usdtToClaim),
-                        totalCreditsEarnedFromInvites: firebase.firestore.FieldValue.increment(-creditsToDeduct)
-                    });
-                    debugLog(`Transaction: Claiming ${usdtToClaim} USDT for ${creditsToDeduct} credits.`);
+                await userDocRef.update({
+                    usdt: firebase.firestore.FieldValue.increment(usdtToClaim),
+                    referrals: newReferralCount
                 });
 
-                 alert(`Successfully claimed ${claimedAmount} USDT!`);
-                 debugLog(`Successfully claimed ${claimedAmount} USDT.`);
-                 if (analytics) {
-                     analytics.logEvent('credit_claim_success', { userId: userIdStr, usdt: claimedAmount });
-                     debugLog("Analytics: credit_claim_success logged");
-                 }
-                 await updateUserStatsUI();
-                 await updateInviteSectionUI();
-
+                await updateUserStatsUI();
+                await updateInviteSectionUI();
+                alert(`Successfully claimed ${usdtToClaim} USDT!`);
+                analytics.logEvent('credit_claim', { userId: telegramUser.id, usdt: usdtToClaim });
             } catch (error) {
-                debugLog(`Error claiming credits: ${error.message}`);
+                console.error("Error claiming credits:", error.message);
                 alert("Failed to claim credits: " + error.message);
-                 if (analytics) {
-                      analytics.logEvent('credit_claim_failed', { userId: userIdStr, error: error.message });
-                      debugLog("Analytics: credit_claim_failed logged");
-                 }
-                 // Re-enable button state is handled by updateInviteSectionUI in finally
-            } finally {
-                 // Ensure UI is updated to reflect current state regardless of outcome
-                 await updateInviteSectionUI();
             }
         });
 
-
-        // Chest Slider Logic & Data
-        const chests = [ // Example - consider fetching from Firestore
-            { id: "wood", name: "Wood Chest", next: "Bronze", image: "assets/graphics/wood-chest.png", gemCost: 200, vip: 0, rewards: { usdtRange: [0.01, 0.05], landPieceChance: 0.1, foxMedalChance: 0.05 } },
-            { id: "bronze", name: "Bronze Chest", next: "Silver", image: "assets/graphics/bronze-chest.png", gemCost: 500, vip: 1, rewards: { usdtRange: [0.03, 0.10], landPieceChance: 0.2, foxMedalChance: 0.1 } },
-            { id: "silver", name: "Silver Chest", next: "Gold", image: "assets/graphics/silver-chest.png", gemCost: 1000, vip: 2, rewards: { usdtRange: [0.08, 0.25], landPieceChance: 0.35, foxMedalChance: 0.2 } },
-            { id: "gold", name: "Gold Chest", next: "Master", image: "assets/graphics/gold-chest.png", gemCost: 2000, vip: 3, rewards: { usdtRange: [0.20, 0.60], landPieceChance: 0.5, foxMedalChance: 0.35 } },
-            { id: "master", name: "Master Chest", next: "Legendary", image: "assets/graphics/master-chest.png", gemCost: 5000, vip: 4, rewards: { usdtRange: [0.50, 1.50], landPieceChance: 0.7, foxMedalChance: 0.5 } },
-            { id: "legendary", name: "Legendary Chest", next: "Mythic", image: "assets/graphics/legendary-chest.png", gemCost: 10000, vip: 5, rewards: { usdtRange: [1.20, 3.00], landPieceChance: 0.9, foxMedalChance: 0.7 } },
-            { id: "mythic", name: "Mythic Chest", next: "", image: "assets/graphics/mythic-chest.png", gemCost: 20000, vip: 6, rewards: { usdtRange: [2.50, 6.00], landPieceChance: 1.0, foxMedalChance: 0.9 } }
+        // Chest Slider Logic
+        const chests = [
+            { name: "Wood Chest", next: "Bronze", image: "wood-chest.png", gemCost: 200, vip: 0 },
+            { name: "Bronze Chest", next: "Silver", image: "bronze-chest.png", gemCost: 500, vip: 1 },
+            { name: "Silver Chest", next: "Gold", image: "silver-chest.png", gemCost: 1000, vip: 2 },
+            { name: "Gold Chest", next: "Master", image: "gold-chest.png", gemCost: 2000, vip: 3 },
+            { name: "Master Chest", next: "Legendary", image: "master-chest.png", gemCost: 5000, vip: 4 },
+            { name: "Legendary Chest", next: "Mythic", image: "legendary-chest.png", gemCost: 10000, vip: 5 },
+            { name: "Mythic Chest", next: "", image: "mythic-chest.png", gemCost: 20000, vip: 6 }
         ];
 
         let currentChestIndex = 0;
         const chestContainer = document.getElementById('chestContainer');
         const chestCostElement = document.getElementById('chestCost');
         const chestVipRequirementElement = document.getElementById('chestVipRequirement');
-        const openChestButton = document.querySelector('.open-chest-button');
 
-        function buildChestSlider() {
-             if (!chestContainer) { debugLog("Chest container not found for building slider."); return; }
-             chestContainer.innerHTML = chests.map(chest => `
-                 <div class="chest-item">
-                     <div class="chest-title">
-                         <h2>${chest.name}</h2>
-                         ${chest.next ? `<span>Next: ${chest.next}</span>` : ''}
-                     </div>
-                     <div class="chest-image">
-                         <img src="${chest.image}" alt="${chest.name}" onerror="this.src='https://via.placeholder.com/150/1a1a3d/FFFFFF?text=Chest'">
-                     </div>
-                     <div class="not-enough" id="not-enough-${chest.id}" style="display: none;">
-                         <span>NOT ENOUGH</span>
-                         <img src="assets/icons/gem.png" alt="Gem">
-                     </div>
-                 </div>
-             `).join('');
-             ensureFirebaseReady(updateChestUI); // Initial UI update after building
-        }
+        function updateChest() {
+            const chest = chests[currentChestIndex];
+            chestContainer.style.transform = `translateX(-${currentChestIndex * 100}%)`;
 
-        async function updateChestUI() {
-             if (!chestContainer || !chestCostElement || !chestVipRequirementElement || !openChestButton || chests.length === 0) return;
+            if (chest.vip === 0) {
+                chestCostElement.style.display = 'flex';
+                chestCostElement.querySelector('span').textContent = chest.gemCost;
+                chestVipRequirementElement.style.display = 'none';
+            } else {
+                chestCostElement.style.display = 'none';
+                chestVipRequirementElement.style.display = 'block';
+                chestVipRequirementElement.textContent = `NEED VIP ${chest.vip}`;
+            }
 
-             const chest = chests[currentChestIndex];
-             chestContainer.style.transform = `translateX(-${currentChestIndex * 100}%)`;
-
-             chestCostElement.querySelector('span').textContent = chest.gemCost;
-             if (chest.vip > 0) {
-                 chestVipRequirementElement.textContent = `NEED VIP ${chest.vip}`;
-                 chestVipRequirementElement.style.display = 'block';
-                 chestCostElement.style.display = 'none';
-             } else {
-                 chestVipRequirementElement.style.display = 'none';
-                 chestCostElement.style.display = 'flex';
-             }
-
-            let userGems = 0;
-            let userVipLevel = 0;
-
-             if (telegramUser && telegramUser.id && firebaseInitialized && db) {
-                 try {
-                     const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
-                     if (userDoc.exists) {
-                         userGems = userDoc.data().gems || 0;
-                         userVipLevel = userDoc.data().vipLevel || 0;
-                     }
-                 } catch (error) {
-                     debugLog("Error fetching user data for chest UI: " + error.message);
-                 }
-             }
-
-             let canOpen = true;
-             let reason = "";
-             const notEnoughGemsElement = document.getElementById(`not-enough-${chest.id}`);
-
-             if (chest.vip > userVipLevel) {
-                  canOpen = false;
-                  reason = `Requires VIP ${chest.vip}`;
-                  chestVipRequirementElement.style.color = '#ffcc00';
-                  if (notEnoughGemsElement) notEnoughGemsElement.style.display = 'none';
-             } else {
-                  chestVipRequirementElement.style.color = '#ccc';
-                  if (userGems < chest.gemCost) {
-                      canOpen = false;
-                      reason = `Need ${chest.gemCost} Gems`;
-                      if (notEnoughGemsElement) notEnoughGemsElement.style.display = 'flex';
-                  } else {
-                       if (notEnoughGemsElement) notEnoughGemsElement.style.display = 'none';
-                  }
-             }
-
-             openChestButton.disabled = !canOpen;
-             if (canOpen) {
-                 openChestButton.textContent = `Open Chest (${chest.gemCost} Gems)`;
-                 openChestButton.style.opacity = '1';
-                 openChestButton.style.cursor = 'pointer';
-                 openChestButton.style.background = 'linear-gradient(to right, #ff00ff, #ff6666)';
-             } else {
-                 openChestButton.textContent = reason || `Open Chest (${chest.gemCost} Gems)`;
-                 openChestButton.style.opacity = '0.5';
-                 openChestButton.style.cursor = 'not-allowed';
-                 openChestButton.style.background = '#666';
-             }
-
-             document.querySelector('.nav-arrow.left').style.display = currentChestIndex === 0 ? 'none' : 'block';
-             document.querySelector('.nav-arrow.right').style.display = currentChestIndex === chests.length - 1 ? 'none' : 'block';
-        }
-
-        async function updateChestSectionUI() {
-             await updateChestUI();
+            document.querySelector('.nav-arrow.left').style.display = currentChestIndex === 0 ? 'none' : 'block';
+            document.querySelector('.nav-arrow.right').style.display = currentChestIndex === chests.length - 1 ? 'none' : 'block';
         }
 
         window.nextChest = function() {
             if (currentChestIndex < chests.length - 1) {
                 currentChestIndex++;
-                ensureFirebaseReady(updateChestUI);
+                updateChest();
             }
         };
 
         window.prevChest = function() {
             if (currentChestIndex > 0) {
                 currentChestIndex--;
-                ensureFirebaseReady(updateChestUI);
+                updateChest();
             }
         };
 
         window.openChest = async function() {
-            if (!telegramUser || !telegramUser.id) { alert("User not authenticated."); return; }
-            if (!firebaseInitialized || !db) { alert("Database not initialized."); return; }
-            if (openChestButton.disabled) { debugLog("Open chest button is disabled."); return; }
-
-            const userIdStr = telegramUser.id.toString();
-            const userDocRef = db.collection('userData').doc(userIdStr);
-            const rankingDocRef = db.collection('users').doc(userIdStr);
-            const chest = chests[currentChestIndex];
-
-             openChestButton.disabled = true; openChestButton.textContent = 'Opening...';
-             debugLog(`Attempting to open chest: ${chest.name}`);
-
+            if (!telegramUser) {
+                alert("User not authenticated. Please try again.");
+                return;
+            }
+            if (!firebaseInitialized || !db) {
+                console.error("Firestore not initialized. Cannot open chest.");
+                alert("Database not initialized. Please try again later.");
+                return;
+            }
+            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
             try {
-                 const results = await db.runTransaction(async (transaction) => {
-                     const userDoc = await transaction.get(userDocRef);
-                     if (!userDoc.exists) throw new Error("User data not found.");
+                const userDoc = await userDocRef.get();
+                const userData = userDoc.data();
+                const chest = chests[currentChestIndex];
 
-                     const userData = userDoc.data();
-                     const currentGems = userData.gems || 0;
-                     const currentVipLevel = userData.vipLevel || 0;
+                if (userData.gems < chest.gemCost) {
+                    alert(`You need ${chest.gemCost} gems to open the ${chest.name}! Current: ${userData.gems}`);
+                    return;
+                }
 
-                     if (chest.vip > currentVipLevel) throw new Error(`Requires VIP ${chest.vip}`);
-                     if (currentGems < chest.gemCost) throw new Error(`Not enough Gems (Need ${chest.gemCost})`);
+                const rewards = {
+                    usdt: (Math.random() * 0.5 + 0.1).toFixed(4),
+                    landPiece: 1,
+                    foxMedal: 1
+                };
 
-                     const rewardsConfig = chest.rewards;
-                     let usdtReward = 0, landPieceReward = 0, foxMedalReward = 0;
+                await userDocRef.update({
+                    gems: userData.gems - chest.gemCost,
+                    usdt: userData.usdt + parseFloat(rewards.usdt),
+                    landPieces: firebase.firestore.FieldValue.increment(rewards.landPiece),
+                    foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
+                });
 
-                     if (rewardsConfig.usdtRange) {
-                          usdtReward = Math.random() * (rewardsConfig.usdtRange[1] - rewardsConfig.usdtRange[0]) + rewardsConfig.usdtRange[0];
-                          usdtReward = parseFloat(usdtReward.toFixed(4));
-                     }
-                     if (rewardsConfig.landPieceChance && Math.random() < rewardsConfig.landPieceChance) landPieceReward = 1;
-                     if (rewardsConfig.foxMedalChance && Math.random() < rewardsConfig.foxMedalChance) foxMedalReward = 1;
+                await db.collection('users').doc(telegramUser.id.toString()).update({
+                    foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
+                });
 
-                     const updates = {
-                         gems: firebase.firestore.FieldValue.increment(-chest.gemCost),
-                         usdt: firebase.firestore.FieldValue.increment(usdtReward),
-                         landPieces: firebase.firestore.FieldValue.increment(landPieceReward),
-                         foxMedals: firebase.firestore.FieldValue.increment(foxMedalReward)
-                     };
-                     transaction.update(userDocRef, updates);
-
-                      if (foxMedalReward > 0) {
-                           transaction.set(rankingDocRef, {
-                                foxMedals: firebase.firestore.FieldValue.increment(foxMedalReward)
-                           }, { merge: true });
-                      }
-                     debugLog(`Transaction: Deducted ${chest.gemCost} gems. Rewards: USDT=${usdtReward}, Land=${landPieceReward}, Medal=${foxMedalReward}`);
-                     return { usdt: usdtReward, land: landPieceReward, medal: foxMedalReward };
-                 });
-
-                 let rewardMessage = `Opened ${chest.name}! Rewards:`;
-                 if (results.usdt > 0) rewardMessage += `\n- ${results.usdt.toFixed(4)} USDT`;
-                 if (results.land > 0) rewardMessage += `\n- ${results.land} Land Piece`;
-                 if (results.medal > 0) rewardMessage += `\n- ${results.medal} Fox Medal`;
-                 if (results.usdt === 0 && results.land === 0 && results.medal === 0) rewardMessage += `\n- No special rewards this time.`;
-                 alert(rewardMessage);
-                 debugLog(`Chest opened successfully. Message: ${rewardMessage.replace('\n',' ')}`);
-
-                 if (analytics) {
-                     analytics.logEvent('chest_opened', { chestId: chest.id, chestName: chest.name, userId: userIdStr, usdtReward: results.usdt, landReward: results.land, medalReward: results.medal });
-                     debugLog("Analytics: chest_opened logged");
-                 }
-
-                 await updateUserStatsUI();
-                 await updateChestUI();
-                 if (results.medal > 0) await updateTopSectionUI();
-
+                await updateUserStatsUI();
+                alert(`Opened ${chest.name}! Rewards: ${rewards.usdt} USDT, ${rewards.landPiece} Land Piece, ${rewards.foxMedal} Fox Medal`);
+                analytics.logEvent('chest_opened', { chestName: chest.name, userId: telegramUser.id });
             } catch (error) {
-                debugLog(`Error opening chest: ${error.message}\nStack: ${error.stack}`);
+                console.error("Error opening chest:", error.message);
                 alert("Failed to open chest: " + error.message);
-                 // Re-enable button handled by updateChestUI in finally
-            } finally {
-                // Ensure button state is correct after operation
-                 await updateChestUI();
             }
         };
 
-        // Call buildChestSlider on load after DOM is ready
-        document.addEventListener('DOMContentLoaded', buildChestSlider);
+        updateChest();
 
+// Earn Section Interactions
+document.addEventListener('click', async (event) => {
+    const button = event.target;
+    const taskItem = button.closest('.quest-item');
+    if (!taskItem) return;
 
-            // *** REVISED CLICK EVENT LISTENER FOR SPECIFIC AD QUESTS ***
-        document.addEventListener('click', async (event) => {
-            const button = event.target.closest('.quest-item button'); // Target button specifically
-            if (!button || button.disabled) return; // Only handle enabled button clicks within quest items
+    const questId = taskItem.dataset.questId;
+    const reward = parseInt(button.dataset.questReward);
+    const questType = taskItem.dataset.questType;
+    const adLimit = parseInt(taskItem.dataset.adLimit) || 0;
+    const adType = taskItem.dataset.adType || 'rewarded_interstitial'; // Default ad type
+    const link = button.dataset.questLink;
 
-            const taskItem = button.closest('.quest-item');
-            if (!taskItem) return;
+    if (!firebaseInitialized || !db) {
+        alert("Database not initialized. Please try again later.");
+        return;
+    }
 
-            // --- Get Quest Data from HTML ---
-            const questId = taskItem.dataset.questId;
-            const reward = parseInt(taskItem.dataset.questReward);
-            const questType = taskItem.dataset.questType; // e.g., 'ads', 'default'
-            const adLimit = parseInt(taskItem.dataset.adLimit) || 0;
-            // ** IMPORTANT: Use adType to determine the ad format **
-            const adType = taskItem.dataset.adType; // e.g., 'rewarded_popup', 'rewarded_interstitial', 'in_app_interstitial'
-            const link = button.dataset.questLink;
-            const questTitle = button.dataset.questTitle || taskItem.querySelector('span')?.textContent || 'Quest'; // Get title for logs
+    const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+    const userDoc = await userDocRef.get();
+    const userData = userDoc.data() || {};
+    userData.adProgress = userData.adProgress || {};
 
-            // --- Basic Checks ---
-            if (!firebaseInitialized || !db) { alert("Database not initialized."); return; }
-            if (!telegramUser || !telegramUser.id) { alert("User not identified."); return; }
-            if (typeof window.show_9180370 !== 'function') {
-                 debugLog(`[AD SDK ERROR] show_9180370 function not found. Cannot process ad quest: ${questTitle}`);
-                 alert("Ad service is unavailable. Please check connection or disable ad blockers.");
-                 return; // Stop if SDK isn't loaded
-            }
+    // Claim button for ad-based quests
+    if (button.classList.contains('claim-button') && questType === 'ads') {
+        const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
+        
+        if (adProgress.watched < adLimit) {
+            alert("You need to watch all ads to claim this reward!");
+            return;
+        }
+        
+        if (adProgress.claimed || userData.claimedQuests?.includes(questId)) {
+            alert("This reward has already been claimed!");
+            return;
+        }
 
+        try {
+            const currentTime = new Date().toISOString(); // Client-side timestamp
+            await userDocRef.update({
+                gems: (userData.gems || 0) + reward,
+                claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId),
+                [`adProgress.${questId}`]: {
+                    watched: adProgress.watched,
+                    claimed: true,
+                    lastClaimed: currentTime // Add the timestamp
+                }
+            });
 
-            const userIdStr = telegramUser.id.toString();
-            const userDocRef = db.collection('userData').doc(userIdStr);
-
-            // --- Disable button ---
+            button.textContent = 'Claimed';
+            button.classList.remove('claim-button', 'active');
+            button.classList.add('claimed-button');
             button.disabled = true;
-            const originalButtonText = button.textContent;
-            button.textContent = 'Processing...';
-            debugLog(`Processing click for Quest: "${questTitle}" (ID: ${questId}, Type: ${questType}, AdType: ${adType}, Reward: ${reward})`);
+            button.style.background = '#ccc';
+            button.style.cursor = 'default';
 
-            try {
-                 // --- Fetch latest user data ---
-                 const userDoc = await userDocRef.get();
-                 if (!userDoc.exists) throw new Error("User data could not be loaded.");
-                 const userData = userDoc.data();
-                 userData.adProgress = userData.adProgress || {};
-                 userData.claimedQuests = userData.claimedQuests || [];
-
-                 // --- Check completion status ---
-                 const isZeroRewardAd = questType === 'ads' && reward === 0; // Should not be used if progress tracking needed
-                 const isRewardAd = questType === 'ads' && reward > 0;
-                 const isLinkQuest = questType !== 'ads';
-                 const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
-                 const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed.seconds ? adProgress.lastClaimed.toDate() : adProgress.lastClaimed) : null;
-                 const timeSinceLastClaim = lastClaimedTime ? new Date().getTime() - lastClaimedTime.getTime() : Infinity;
-                 const cooldownPeriod = 3600000; // 1 hour
-
-                 if (isZeroRewardAd && userData.claimedQuests.includes(questId)) throw new Error("Quest already completed.");
-                 if (isRewardAd && adProgress.claimed && timeSinceLastClaim < cooldownPeriod) throw new Error("Quest is in cooldown.");
-                 if (isLinkQuest && userData.claimedQuests.includes(questId)) throw new Error("Quest already claimed.");
-                 // --- End completion check ---
-
-
-                 // --- Handle Button Clicks ---
-
-                 // 1. Claim button (Reward Ads - No change needed here)
-                 if (button.classList.contains('claim-button') && isRewardAd) {
-                     if (adProgress.watched < adLimit) throw new Error("Watch all ads first!");
-                     debugLog(`Claiming reward for quest ${questId}`);
-                     const currentTime = new Date();
-                     await userDocRef.update({
-                         gems: firebase.firestore.FieldValue.increment(reward),
-                         [`adProgress.${questId}`]: { watched: adProgress.watched, claimed: true, lastClaimed: currentTime }
-                     });
-                     alert(`Reward claimed! +${reward} gems.`);
-                     debugLog(`Reward claimed for ${questId}`);
-                     if (analytics) analytics.logEvent('ads_quest_reward_claimed', { questId, userId: userIdStr, reward });
-                 }
-                 // 2. GO button (Ad Quests - Reworked Logic)
-                 else if (button.classList.contains('go-button') && questType === 'ads') {
-                     // Check if watching is needed (not completed limit OR zero-reward type)
-                     const needsWatching = isZeroRewardAd || (isRewardAd && adProgress.watched < adLimit);
-
-                     if (needsWatching) {
-                         debugLog(`Attempting to show ad for quest: "${questTitle}", Required AdType: ${adType}`);
-
-                         // --- Trigger Specific Ad Format ---
-                         let adPromise;
-                         switch (adType) {
-                             case 'rewarded_popup':
-                                 debugLog("Triggering Rewarded Popup: show_9180370('pop')");
-                                 adPromise = window.show_9180370('pop');
-                                 break;
-
-                             case 'rewarded_interstitial':
-                                 debugLog("Triggering Rewarded Interstitial: show_9180370()");
-                                 adPromise = window.show_9180370();
-                                 break;
-
-                             case 'in_app_interstitial':
-                                 debugLog("Triggering In-App Interstitial: show_9180370({ type: 'inApp', ... })");
-                                 // NOTE: Assuming this call doesn't return a reliable promise for completion.
-                                 // We will update Firestore immediately after calling it for progress tracking,
-                                 // but won't wait for a .then() specific to this type based on your example.
-                                 try {
-                                    window.show_9180370({
-                                        type: 'inApp',
-                                        inAppSettings: { frequency: 2, capping: 0.1, interval: 30, timeout: 5, everyPage: false } // Example settings
-                                    });
-                                    debugLog("In-App Interstitial triggered.");
-                                    // Since no promise, resolve immediately to proceed with Firestore update
-                                    adPromise = Promise.resolve();
-                                 } catch (inAppError) {
-                                    debugLog(`Error directly calling In-App Interstitial: ${inAppError.message}`);
-                                    adPromise = Promise.reject(inAppError);
-                                 }
-                                 break;
-
-                             default:
-                                 debugLog(`[ERROR] Unknown adType configured for quest: ${adType}`);
-                                 throw new Error(`Unknown ad type: ${adType}`);
-                         }
-
-                         // --- Handle Ad Result (using the promise where applicable) ---
-                         await adPromise.then(async () => {
-                             // This .then() block executes AFTER Rewarded Popup or Rewarded Interstitial completes successfully,
-                             // or immediately after In-App Interstitial is *triggered*.
-                             debugLog(`Ad call successful (or triggered for In-App) for quest: "${questTitle}"`);
-
-                             // Update Firestore based on quest type
-                             if (isZeroRewardAd) {
-                                 // Mark one-time zero-reward ad as completed
-                                 await userDocRef.update({ claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId) });
-                                 debugLog(`Zero-reward ad quest ${questId} marked completed.`);
-                                 alert(`Ad finished! Quest completed.`);
-                                 if (analytics) analytics.logEvent('ad_quest_watched', { questId, userId: userIdStr, reward: 0, adType: adType });
-                             } else if (isRewardAd) {
-                                 // Increment watch count for reward ads (including In-App if configured as reward > 0)
-                                 const newWatched = (adProgress.watched || 0) + 1;
-                                 // Only update the 'watched' field initially
-                                 await userDocRef.update({ [`adProgress.${questId}.watched`]: newWatched });
-
-                                 debugLog(`Reward ad watched for ${questId}, progress updated: ${newWatched}/${adLimit}`);
-                                 if (newWatched >= adLimit) {
-                                     alert(`Ad finished! All ads watched (${newWatched}/${adLimit}). Click 'Claim' to get your reward.`);
-                                 } else {
-                                     alert(`Ad finished! Progress: ${newWatched}/${adLimit}`);
-                                 }
-                                 if (analytics) analytics.logEvent('ad_quest_watched', { questId, userId: userIdStr, reward: reward, adType: adType });
-                             }
-                         }).catch(error => {
-                             // This .catch() handles errors from show_9180370 calls (Popup, Interstitial)
-                             // or the direct try/catch for In-App.
-                             debugLog(`[AD ERROR] Ad failed or was closed early for quest "${questTitle}": ${error?.message || error}`);
-                             alert(`Ad could not be shown or was closed early. Please try again. (${error?.message || 'Unknown error'})`);
-                             // Don't update progress if the ad failed
-                         });
-
-                     } else if (isRewardAd && adProgress.watched >= adLimit && !adProgress.claimed) {
-                          // User clicked GO but limit reached, needs to click CLAIM
-                          alert("All ads watched! Click the 'Claim' button.");
-                     } else {
-                          // Should not happen if logic is correct
-                          debugLog(`[WARN] Unexpected state for ad quest button click: ${questId}`);
-                     }
-                 }
-                 // 3. GO button (Link Quests - No change needed here)
-                 else if (button.classList.contains('go-button') && isLinkQuest) {
-                     debugLog(`Handling link quest: ${questId}, Link: ${link}`);
-                     if (link) {
-                         try { Telegram.WebApp.openTelegramLink(link); } catch (e) { window.open(link, '_blank'); }
-                     } else { debugLog("Link quest has no link defined: " + questId); }
-
-                     const updates = { claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId) };
-                     if (reward > 0) { updates.gems = firebase.firestore.FieldValue.increment(reward); }
-                     await userDocRef.update(updates);
-                     debugLog(`Link quest ${questId} marked completed. Reward: ${reward}`);
-
-                     if (reward > 0) alert(`Quest completed! +${reward} gems.`);
-                     else alert(`Quest completed!`);
-                     if (analytics) analytics.logEvent('link_quest_completed', { questId, userId: userIdStr, reward });
-                 } else {
-                     // Should not happen if button is GO or CLAIM
-                     debugLog(`[WARN] Unhandled button click state: ${button.classList} | Type: ${questType} | Reward: ${reward}`);
-                     throw new Error("Unknown quest action.");
-                 }
-
-                 // --- Refresh UI sections AFTER successful action OR failed ad ---
-                 // Refreshing UI regardless of ad success/failure to show correct state (e.g., button re-enabled)
-                 await updateUserStatsUI();
-                 await updateEarnSectionUI(); // This will correctly re-render button states
-
-            } catch (error) {
-                 // Catch errors from Firestore updates or completion checks
-                 debugLog(`[ERROR] Processing quest action (${questId}): ${error.message}\nStack: ${error.stack}`);
-                 alert("Action failed: " + error.message);
-                 // Restore button state generally, but let UI refresh handle specifics
-                 button.disabled = false;
-                 button.textContent = originalButtonText;
-                 await updateEarnSectionUI(); // Ensure UI reflects state after error
+            await updateUserStatsUI();
+            await updateEarnSectionUI(); // Refresh UI after claiming
+            alert(`Reward claimed! You earned ${reward} gems.`);
+            analytics.logEvent('ads_quest_completed', { questId, userId: telegramUser.id, reward });
+        } catch (error) {
+            console.error("[ERROR] Error claiming ad reward:", error.message);
+            alert("Failed to claim reward: " + error.message);
+        }
+    }
+    // GO button for ad-based quests
+    else if (button.classList.contains('go-button') && questType === 'ads') {
+        console.log("[DEBUG] Handling ad quest:", { questId, adType });
+        try {
+            const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
+            if (adProgress.watched >= adLimit) {
+                alert("You’ve watched all required ads. Claim your reward!");
+                return;
             }
-        });
-        // *** END OF REVISED CLICK EVENT LISTENER ***
 
+            console.log("[DEBUG] Showing ad for quest:", questId);
+            await showAd(adType); // Trigger the ad
+            const newWatched = adProgress.watched + 1;
 
+            await userDocRef.update({
+                [`adProgress.${questId}`]: {
+                    watched: newWatched,
+                    claimed: adProgress.claimed,
+                    lastClaimed: adProgress.lastClaimed
+                }
+            });
+
+            console.log("[DEBUG] Ad watched, progress updated:", newWatched);
+            await updateEarnSectionUI(); // Refresh UI to reflect new progress
+            if (newWatched >= adLimit) {
+                alert("All ads watched! You can now claim your reward.");
+            } else {
+                alert(`Ad watched! Progress: ${newWatched}/${adLimit}`);
+            }
+        } catch (error) {
+            console.error("[ERROR] Failed to show ad or update progress:", error.message);
+            alert("Failed to show ad: " + error.message);
+        }
+    }
+    // GO button for non-ad quests
+    else if (button.classList.contains('go-button')) {
+        console.log("[DEBUG] Handling non-ad quest:", { questId, link });
+        try {
+            await initializeUserData();
+            const userDoc = await userDocRef.get();
+            const userData = userDoc.data();
+            const claimedQuests = userData.claimedQuests || [];
+
+            if (claimedQuests.includes(questId)) {
+                alert("This quest has already been claimed!");
+                return;
+            }
+
+            console.log("[DEBUG] Redirecting to link:", link);
+            Telegram.WebApp.openTelegramLink(link);
+
+            await userDocRef.update({
+                gems: (userData.gems || 0) + reward,
+                claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId)
+            });
+
+            button.textContent = 'Claimed';
+            button.classList.remove('go-button');
+            button.classList.add('claimed-button');
+            button.disabled = true;
+            button.style.background = '#ccc';
+            button.style.cursor = 'default';
+
+            await updateUserStatsUI();
+            await updateEarnSectionUI(); // Refresh UI after completion
+            alert(`Quest completed! You earned ${reward} gems.`);
+            analytics.logEvent('quest_completed', { questId, userId: telegramUser.id, reward });
+        } catch (error) {
+            console.error("[ERROR] Error completing quest:", error.message);
+            alert("Failed to complete quest: " + error.message);
+        }
+    }
+});
 
         // Invite Section Interactions
         document.querySelector('.invite-friend').addEventListener('click', () => {
-            const link = document.querySelector('.invite-friend').getAttribute('data-link');
-            if (link) {
-                 try { Telegram.WebApp.openTelegramLink(link); } catch (e) { window.open(link, '_blank'); }
-            } else {
-                 alert("Could not generate invite link.");
-                 generateReferralLink();
-            }
+            const link = document.querySelector('.invite-friend').dataset.link;
+            Telegram.WebApp.openTelegramLink(link);
         });
 
         document.querySelector('.copy-link').addEventListener('click', () => {
-            const link = document.querySelector('.copy-link').getAttribute('data-link');
-             if (link && navigator.clipboard) {
-                 navigator.clipboard.writeText(link).then(() => {
-                     alert("Referral link copied!");
-                 }).catch(err => {
-                      debugLog("Failed to copy link via clipboard API: " + err.message);
-                      alert("Copy failed. Please copy manually:\n" + link);
-                 });
-            } else if (link) {
-                 alert("Copy this link:\n" + link);
-            } else {
-                 alert("Could not get invite link.");
-                 generateReferralLink();
-            }
+            const link = document.querySelector('.copy-link').dataset.link;
+            navigator.clipboard.writeText(link).then(() => {
+                alert("Referral link copied to clipboard!");
+            });
         });
 
 
-        // *** UPDATED Function to show Monetag Ads ***
-        function showAd(adType) {
-            return new Promise((resolve, reject) => {
-                const maxWaitTime = 10000; // 10 seconds timeout for SDK load check
-                const startTime = Date.now();
-                const adSdkFunction = window.show_9180370; // Check specific function
+// Function to show Monetag Ads with support for multiple ad types
+function showAd(adType) {
+    return new Promise((resolve, reject) => {
+        const maxWaitTime = 15000; // 15 seconds timeout
+        const startTime = Date.now();
 
-                debugLog(`[AD] Requesting ad type: ${adType}. SDK function available: ${typeof adSdkFunction === 'function'}`);
+        console.log(`[DEBUG] Attempting to show ad of type: ${adType}`);
 
-                function checkAndShow() {
-                    if (typeof window.show_9180370 === 'function') { // Check again inside timeout
-                        debugLog("[AD] SDK loaded. Triggering ad show_9180370...");
-                        try {
-                            window.show_9180370(); // Call the SDK function
-                            debugLog(`[AD] SDK function show_9180370 called for ${adType}. Assuming success (no direct callback).`);
-                            // Resolve after a short delay, assuming the ad will show.
-                            // This is imperfect as we don't get confirmation from this specific SDK.
-                            setTimeout(() => {
-                                debugLog(`[AD] Assuming ad display completed for ${adType}.`);
-                                resolve();
-                            }, 1500); // Resolve slightly faster
-
-                        } catch (error) {
-                            debugLog(`[AD ERROR] Failed to trigger ad via SDK call: ${error.message}`);
-                            alert("Could not trigger ad. Please try again."); // User feedback
-                            reject(error);
-                        }
-                    } else if (Date.now() - startTime < maxWaitTime) {
-                        // SDK not ready yet, retry
-                        setTimeout(checkAndShow, 500);
-                    } else {
-                        // SDK failed to load within timeout
-                        debugLog(`[AD ERROR] Ad SDK function (show_9180370) failed to load within ${maxWaitTime/1000}s.`);
-                        alert("Ad service failed to load. Please check connection or disable ad blockers and try again."); // User feedback
-                        reject(new Error("Ad SDK failed to load in time."));
+        function checkSDK() {
+            if (window.show_9180370) {
+                console.log("[DEBUG] Monetag SDK loaded, triggering ad...");
+                try {
+                    let adPromise;
+                    switch (adType) {
+                        case 'rewarded_interstitial':
+                            console.log("[DEBUG] Triggering Rewarded Interstitial ad...");
+                            adPromise = window.show_9180370(); // Default call for interstitial
+                            break;
+                        case 'rewarded_popup':
+                            console.log("[DEBUG] Triggering Rewarded Popup ad...");
+                            adPromise = window.show_9180370('pop');
+                            break;
+                        case 'inApp':
+                            console.log("[DEBUG] Triggering In-App Interstitial ad...");
+                            adPromise = window.show_9180370({
+                                type: 'inApp',
+                                inAppSettings: {
+                                    frequency: 1,
+                                    capping: 0.1,
+                                    interval: 0,
+                                    timeout: 3,
+                                    everyPage: false
+                                }
+                            });
+                            break;
+                        default:
+                            console.error("[DEBUG] Unknown ad type:", adType);
+                            reject(new Error("Unknown ad type: " + adType));
+                            return;
                     }
+
+                    if (adPromise && typeof adPromise.then === 'function') {
+                        adPromise.then(() => {
+                            console.log(`[DEBUG] ${adType} ad completed successfully`);
+                            resolve();
+                        }).catch(e => {
+                            console.error(`[DEBUG] ${adType} ad failed:`, e.message);
+                            reject(new Error(`${adType} ad failed: ${e.message}`));
+                        });
+                    } else {
+                        console.log(`[DEBUG] ${adType} ad triggered, assuming completion`);
+                        setTimeout(resolve, 1000); // Small delay to simulate ad
+                    }
+                } catch (error) {
+                    console.error("[DEBUG] Failed to trigger Monetag ad:", error.message);
+                    reject(error);
                 }
-                checkAndShow(); // Start the check process
-            });
-        } // End of showAd
+            } else if (Date.now() - startTime < maxWaitTime) {
+                console.log("[DEBUG] Monetag SDK not loaded yet, retrying in 500ms...");
+                setTimeout(checkSDK, 500);
+            } else {
+                console.warn("[DEBUG] Monetag SDK failed to load within 15 seconds, simulating ad...");
+                setTimeout(() => {
+                    alert("Simulated ad: Please wait 5 seconds...");
+                    setTimeout(() => {
+                        console.log("[DEBUG] Simulated ad completed");
+                        resolve();
+                    }, 5000);
+                }, 1000);
+            }
+        }
+        checkSDK();
+    });
+}
 
-
-        // Initialize App
+        // Initialize App with Ad on Launch
         async function initApp() {
             try {
-                debugLog("--- Initializing App ---");
+                console.log("Initializing app...");
                 await initializeFirebase();
-                 if (!firebaseInitialized) throw new Error("Firebase could not be initialized.");
-
                 await initializeUserData();
                 await handleReferral();
                 generateReferralLink();
 
-                // Removed startup ad call
+                // Show Monetag ad when bot opens
+                showMonetagAd();
 
-                // Initialize TON Connect and Wallet System
-                tonConnectUI = await initializeTonConnect(); // Ensure this finishes
-                await initWalletSystem(); // Depends on tonConnectUI
-
-                // Initial UI refresh for the default section (Earn)
-                await ensureFirebaseReady(updateEarnSectionUI);
-                // buildChestSlider() is called via DOMContentLoaded listener now
-
-                 debugLog("--- App initialization complete ---");
-
+                // Continue with wallet and UI setup
+                tonConnectUI = await initializeTonConnect();
+                await initWalletSystem();
             } catch (error) {
-                debugLog(`[CRITICAL] App initialization failed: ${error.message}\nStack: ${error.stack}`);
-                alert("Failed to initialize the app. Please refresh and try again. Error: " + error.message);
-                 const mainContent = document.querySelector('.main-content');
-                 if (mainContent) {
-                      mainContent.innerHTML = `<div style="padding: 20px; text-align: center; color: #ffcc00;"><h2>Initialization Error</h2><p>Could not start the application. Please try refreshing.</p><p><small>Details: ${error.message}</small></p></div>`;
-                 }
+                console.error("App initialization failed:", error);
+                alert("Failed to initialize app. Please refresh and try again.");
             }
-        } // End of initApp
+        }
 
-        // Call initApp when the page loads and DOM is ready
+        // Call initApp when the page loads
         document.addEventListener('DOMContentLoaded', () => {
-            debugLog("DOM loaded, starting initApp...");
-            initApp(); // Start the main initialization sequence
+            console.log("DOM loaded, starting initApp...");
+            initApp();
         });
 
 
@@ -2313,41 +2041,17 @@
 
         let tonConnectUI = null;
 
-        // Get wallet-related DOM elements (no changes needed)
-        function getWalletElements() { /* ... */ }
+        // Debug logging helper
+        function debugLog(message) {
+            console.log(message);
+            const debugConsole = document.getElementById('debugConsole');
+            if (debugConsole) {
+                debugConsole.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
+                debugConsole.scrollTop = debugConsole.scrollHeight;
+            }
+        }
 
-        // Create TON Connect UI manually (fallback - no changes needed)
-        function createManualTonConnectUI() { /* ... */ }
-
-        // Create TON Connect UI with inline script (no changes needed)
-        function createInlineScriptTonConnectUI() { /* ... */ }
-
-        // Initialize TON Connect with multiple strategies (no changes needed)
-        async function initializeTonConnect() { /* ... */ }
-
-        // Update wallet UI based on connection status (no changes needed)
-        async function updateWalletUI() { /* ... */ }
-
-        // Handle wallet connection/disconnection button click (no changes needed)
-        async function handleConnectClick() { /* ... */ }
-
-        // Initialize wallet system (no changes needed)
-        async function initWalletSystem() { /* ... */ }
-
-         // Named handler for withdraw button clicks (no changes needed)
-         function withdrawButtonClickHandler(event) { /* ... */ }
-
-        // Show withdraw modal (no changes needed)
-        function showWithdrawModal(card) { /* ... */ }
-
-        // Confirm withdrawal (Simulated TX - no changes needed)
-        async function confirmWithdraw(currency, balance, fee, minWithdrawal) { /* ... */ }
-
-        // Update transaction history (no changes needed)
-        async function updateTransactionHistory() { /* ... */ }
-
-        // --- Re-fetch necessary DOM element functions or ensure they are defined above ---
-        // Example: (assuming getWalletElements is defined as before)
+        // Get wallet-related DOM elements
         function getWalletElements() {
             const elements = {
                 connectButton: document.querySelector('.connect-button'),
@@ -2355,14 +2059,476 @@
                 withdrawButtons: document.querySelectorAll('.withdraw-button'),
                 walletSection: document.getElementById('wallet')
             };
-            // debugLog(`Wallet elements check: connectButton=${!!elements.connectButton}, status=${!!elements.connectionStatus}`); // Less verbose
+            debugLog(`Wallet elements check: connectButton=${!!elements.connectButton}, status=${!!elements.connectionStatus}`);
             return elements;
         }
-        // Add other necessary functions like createManualTonConnectUI, createInlineScriptTonConnectUI etc. from the previous version here...
-        // [Ensure all the TON Connect related functions provided in the previous code block are included here]
-        // ... (rest of the TON connect functions as provided before) ...
+
+        // Dynamically load a script with retries
+        async function loadScript(src, retries = 3, delay = 1000) {
+            for (let attempt = 1; attempt <= retries; attempt++) {
+                try {
+                    debugLog(`Loading script ${src} (Attempt ${attempt}/${retries})`);
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.async = true;
+                    
+                    const timeoutPromise = new Promise((_, reject) => {
+                        setTimeout(() => reject(new Error(`Timeout loading ${src}`)), 10000); // 10 second timeout
+                    });
+                    
+                    const loadPromise = new Promise((resolve, reject) => {
+                        script.onload = () => {
+                            debugLog(`Script loaded: ${src}`);
+                            resolve();
+                        };
+                        script.onerror = () => reject(new Error(`Failed to load ${src}`));
+                        document.head.appendChild(script);
+                    });
+                    
+                    // Race the script loading against the timeout
+                    await Promise.race([loadPromise, timeoutPromise]);
+                    return true;
+                } catch (error) {
+                    debugLog(`Script load failed: ${error.message}`);
+                    if (attempt === retries) throw error;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+            return false;
+        }
+
+        // Create TON Connect UI manually for version 0.0.14
+        function createManualTonConnectUI() {
+            debugLog("Creating manual TON Connect UI implementation");
+            
+            // Create a simple wrapper with essential functionality
+            return {
+                connected: false,
+                account: null,
+                
+                connectWallet: async function() {
+                    debugLog("Manual connect: Opening TON wallet");
+                    // In Telegram WebApp environment, open the wallet directly
+                    if (window.Telegram && window.Telegram.WebApp) {
+                        Telegram.WebApp.openLink('https://t.me/wallet/start');
+                        
+                        // Set a dummy connected state for demo purposes
+                        setTimeout(() => {
+                            this.connected = true;
+                            this.account = { address: "SIMULATED_TON_ADDRESS" };
+                            
+                            // Manually trigger status change if any listeners exist
+                            if (this._statusChangeCallback) {
+                                this._statusChangeCallback(this.account);
+                            }
+                            
+                            debugLog("Simulated connection established for demo");
+                        }, 2000);
+                    }
+                },
+                
+                disconnect: async function() {
+                    debugLog("Manual disconnect");
+                    this.connected = false;
+                    this.account = null;
+                    
+                    // Trigger callback if exists
+                    if (this._statusChangeCallback) {
+                        this._statusChangeCallback(null);
+                    }
+                },
+                
+                onStatusChange: function(callback) {
+                    debugLog("Setting status change callback");
+                    this._statusChangeCallback = callback;
+                }
+            };
+        }
+
+        // Attempt to create TON Connect UI with inline script
+        function createInlineScriptTonConnectUI() {
+            debugLog("Creating TON Connect UI with inline script");
+            
+            // Add an inline script that will attempt to load the library from a CDN
+            const script = document.createElement('script');
+            script.innerHTML = `
+                // TON Connect fallback loader
+                (async function() {
+                    const cdnUrls = [
+                        'https://unpkg.com/@tonconnect/ui@0.0.14/dist/tonconnect-ui.min.js',
+                        'https://cdn.jsdelivr.net/npm/@tonconnect/ui@0.0.14/dist/tonconnect-ui.min.js',
+                        'https://www.unpkg.com/@tonconnect/ui@0.0.14/dist/tonconnect-ui.min.js'
+                    ];
+                    
+                    async function attemptLoad(url) {
+                        return new Promise((resolve, reject) => {
+                            const scriptTag = document.createElement('script');
+                            scriptTag.src = url;
+                            scriptTag.onload = resolve;
+                            scriptTag.onerror = reject;
+                            document.head.appendChild(scriptTag);
+                        });
+                    }
+                    
+                    for (const url of cdnUrls) {
+                        try {
+                            await attemptLoad(url);
+                            console.log('TON Connect loaded from ' + url);
+                            break;
+                        } catch (e) {
+                            console.error('Failed to load TON Connect from ' + url);
+                        }
+                    }
+                    
+                    if (window.TonConnectUI) {
+                        window.tonConnectLoaded = true;
+                    }
+                })();
+            `;
+            document.head.appendChild(script);
+            
+            // Return a promise that resolves when the library is loaded or falls back
+            return new Promise((resolve) => {
+                const checkInterval = setInterval(() => {
+                    if (window.TonConnectUI) {
+                        clearInterval(checkInterval);
+                        const ui = new TonConnectUI({
+                            manifestUrl: 'https://fourgo.app/tonconnect-manifest.json'
+                        });
+                        debugLog("TON Connect UI loaded via inline script");
+                        resolve(ui);
+                    }
+                }, 500);
+                
+                // Timeout after 10 seconds
+                setTimeout(() => {
+                    clearInterval(checkInterval);
+                    debugLog("Inline script timeout, falling back to manual implementation");
+                    resolve(createManualTonConnectUI());
+                }, 10000);
+            });
+        }
+
+        // Initialize TON Connect with multiple strategies
+        async function initializeTonConnect() {
+            debugLog("Initializing TON Connect...");
+            
+            try {
+                // Strategy 1: Check if TonConnectUI is already available
+                if (window.TonConnectUI) {
+                    tonConnectUI = new TonConnectUI({
+                        manifestUrl: 'https://fourgo.app/tonconnect-manifest.json'
+                    });
+                    debugLog("TON Connect UI already available in window scope");
+                    return tonConnectUI;
+                }
+
+                // Strategy 2: Try loading from CDN
+                const cdnUrl = 'https://unpkg.com/@tonconnect/ui@0.0.14/dist/tonconnect-ui.min.js';
+                try {
+                    await loadScript(cdnUrl);
+                    if (window.TonConnectUI) {
+                        tonConnectUI = new TonConnectUI({
+                            manifestUrl: 'https://fourgo.app/tonconnect-manifest.json'
+                        });
+                        debugLog("TON Connect UI loaded from CDN");
+                        return tonConnectUI;
+                    }
+                } catch (cdnError) {
+                    debugLog(`CDN load failed: ${cdnError.message}`);
+                }
+
+                // Strategy 3: Inline script loading
+                tonConnectUI = await createInlineScriptTonConnectUI();
+                if (tonConnectUI && window.TonConnectUI) {
+                    debugLog("TON Connect UI initialized via inline script");
+                    return tonConnectUI;
+                }
+
+                // Fallback: Manual implementation
+                debugLog("All loading strategies failed, using manual TON Connect implementation");
+                tonConnectUI = createManualTonConnectUI();
+                return tonConnectUI;
+
+            } catch (error) {
+                debugLog(`TON Connect initialization error: ${error.message}`);
+                tonConnectUI = createManualTonConnectUI();
+                return tonConnectUI;
+            }
+        }
+
+        // Update wallet UI based on connection status
+        async function updateWalletUI() {
+            const elements = getWalletElements();
+            if (!elements.connectButton || !elements.connectionStatus) {
+                debugLog("Wallet UI elements not found");
+                return;
+            }
+
+            if (tonConnectUI && tonConnectUI.connected) {
+                elements.connectionStatus.textContent = 'Connected';
+                elements.connectionStatus.className = 'wallet-status connected';
+                elements.connectButton.textContent = 'DISCONNECT';
+                elements.connectButton.classList.add('connected');
+                elements.withdrawButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.style.background = '#00ff00';
+                });
+                
+                const walletAddress = tonConnectUI.account?.address || await Storage.getItem('walletAddress');
+                if (walletAddress) {
+                    await Storage.setItem('walletAddress', walletAddress);
+                    debugLog(`Wallet connected: ${walletAddress}`);
+                }
+            } else {
+                elements.connectionStatus.textContent = 'Disconnected';
+                elements.connectionStatus.className = 'wallet-status disconnected';
+                elements.connectButton.textContent = 'CONNECT TON WALLET';
+                elements.connectButton.classList.remove('connected');
+                elements.withdrawButtons.forEach(btn => {
+                    btn.disabled = true;
+                    btn.style.background = '#666';
+                });
+                debugLog("Wallet disconnected");
+            }
+            await updateTransactionHistory();
+        }
+
+        // Handle wallet connection/disconnection
+        async function handleConnectClick() {
+            const elements = getWalletElements();
+            if (!elements.connectButton) {
+                debugLog("Connect button not found");
+                return;
+            }
+
+            try {
+                elements.connectButton.disabled = true;
+                if (tonConnectUI.connected) {
+                    await tonConnectUI.disconnect();
+                    debugLog("Wallet disconnected by user");
+                } else {
+                    await tonConnectUI.connectWallet();
+                    debugLog("Wallet connection requested");
+                }
+                await updateWalletUI();
+            } catch (error) {
+                debugLog(`Wallet connection error: ${error.message}`);
+                alert(`Wallet connection failed: ${error.message}`);
+            } finally {
+                elements.connectButton.disabled = false;
+            }
+        }
+
+        // Initialize wallet system
+        async function initWalletSystem() {
+            debugLog("Initializing wallet system...");
+            const elements = getWalletElements();
+            
+            if (!elements.connectButton) {
+                debugLog("Connect button not found during wallet init");
+                return;
+            }
+
+            try {
+                // Setup TON Connect status listener
+                tonConnectUI.onStatusChange(async (wallet) => {
+                    debugLog(`Wallet status changed: ${wallet ? 'Connected' : 'Disconnected'}`);
+                    await updateWalletUI();
+                });
+
+                // Add connect button listener
+                elements.connectButton.addEventListener('click', handleConnectClick);
+
+                // Initial UI update
+                await updateWalletUI();
+
+                // Setup withdraw button listeners
+                elements.withdrawButtons.forEach(button => {
+                    button.addEventListener('click', () => showWithdrawModal(button.closest('.balance-card')));
+                });
+
+                debugLog("Wallet system initialized successfully");
+            } catch (error) {
+                debugLog(`Wallet system init failed: ${error.message}`);
+            }
+        }
+
+        // Show withdraw modal
+        function showWithdrawModal(card) {
+            const modal = document.getElementById('withdraw-modal');
+            const amountInput = document.getElementById('withdraw-amount');
+            const availableBalance = document.getElementById('available-balance');
+            const currencySpan = document.getElementById('currency');
+            const feeSpan = document.getElementById('withdraw-fee');
+            const feeCurrencySpan = document.getElementById('fee-currency');
+            
+            const isUsdt = card.classList.contains('usdt-card');
+            const currency = isUsdt ? 'USDT' : 'TON';
+            const balance = parseFloat(card.querySelector('.balance-info span').textContent);
+            const fee = isUsdt ? 0.01 : 0.005;
+
+            availableBalance.textContent = balance.toFixed(4);
+            currencySpan.textContent = currency;
+            feeSpan.textContent = fee.toFixed(4);
+            feeCurrencySpan.textContent = currency;
+            amountInput.value = '';
+            amountInput.max = balance - fee;
+
+            modal.style.display = 'flex';
+
+            document.getElementById('confirm-withdraw').onclick = () => confirmWithdraw(currency, balance, fee);
+            document.getElementById('cancel-withdraw').onclick = () => modal.style.display = 'none';
+        }
+
+        // Confirm withdrawal
+        async function confirmWithdraw(currency, balance, fee) {
+            const modal = document.getElementById('withdraw-modal');
+            const amountInput = document.getElementById('withdraw-amount');
+            const amount = parseFloat(amountInput.value);
+
+            if (!amount || amount <= 0 || amount + fee > balance) {
+                alert("Invalid amount or insufficient balance including fee.");
+                return;
+            }
+
+            if (!tonConnectUI.connected) {
+                alert("Please connect your wallet first.");
+                return;
+            }
+
+            try {
+                const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+                const totalDeduction = amount + fee;
+                const field = currency.toLowerCase();
+
+                // Simulate transaction for demo purposes
+                const transaction = {
+                    txId: `tx_${Date.now()}`,
+                    amount,
+                    currency,
+                    fee,
+                    status: 'pending',
+                    timestamp: new Date().toISOString()
+                };
+
+                await userDocRef.update({
+                    [field]: firebase.firestore.FieldValue.increment(-totalDeduction)
+                });
+
+                await db.collection('transactions')
+                    .doc(telegramUser.id.toString())
+                    .collection('history')
+                    .doc(transaction.txId)
+                    .set(transaction);
+
+                setTimeout(async () => {
+                    await db.collection('transactions')
+                        .doc(telegramUser.id.toString())
+                        .collection('history')
+                        .doc(transaction.txId)
+                        .update({ status: 'completed' });
+                    await updateWalletUI();
+                    debugLog(`Simulated transaction completed: ${transaction.txId}`);
+                }, 5000);
+
+                modal.style.display = 'none';
+                await updateUserStatsUI();
+                alert(`Withdrawal of ${amount} ${currency} initiated (Fee: ${fee} ${currency}).`);
+                analytics.logEvent('withdrawal_initiated', { userId: telegramUser.id, currency, amount });
+            } catch (error) {
+                debugLog(`Withdrawal error: ${error.message}`);
+                alert(`Withdrawal failed: ${error.message}`);
+            }
+        }
+
+        // Update transaction history
+        async function updateTransactionHistory() {
+            if (!firebaseInitialized || !db) {
+                debugLog("Firestore not initialized. Cannot update transaction history.");
+                return;
+            }
+            const transactionList = document.getElementById('transaction-list');
+            try {
+                const snapshot = await db.collection('transactions')
+                    .doc(telegramUser.id.toString())
+                    .collection('history')
+                    .orderBy('timestamp', 'desc')
+                    .limit(10)
+                    .get();
+
+                if (snapshot.empty) {
+                    transactionList.innerHTML = '<li>No transactions yet</li>';
+                    return;
+                }
+
+                transactionList.innerHTML = snapshot.docs.map(doc => {
+                    const tx = doc.data();
+                    return `
+                        <li>
+                            ${tx.amount} ${tx.currency} (${tx.fee} fee) - 
+                            <span class="tx-status ${tx.status}">${tx.status}</span> - 
+                            ${new Date(tx.timestamp).toLocaleString()}
+                        </li>
+                    `;
+                }).join('');
+            } catch (error) {
+                debugLog(`Error updating transaction history: ${error.message}`);
+                transactionList.innerHTML = `<li>Error loading history: ${error.message}</li>`;
+            }
+        }
+
+        // Function to show Monetag In-App Interstitial Ad
+        function showMonetagAd() {
+            if (window.show_9180370) {
+                try {
+                    window.show_9180370({
+                        type: 'inApp',
+                        inAppSettings: {
+                            frequency: 2,      // Show 2 ads
+                            capping: 0.1,      // Within 6 minutes (0.1 hours)
+                            interval: 30,      // 30-second interval between ads
+                            timeout: 5,        // 5-second delay before first ad
+                            everyPage: false   // Session persists across page navigation
+                        }
+                    });
+                    console.log("Monetag In-App Interstitial ad triggered");
+                } catch (error) {
+                    console.error("Failed to show Monetag ad:", error);
+                }
+            } else {
+                console.warn("Monetag SDK (show_9180370) not loaded yet");
+            }
+        }
+
+        // Initialize App with Ad on Launch
+        async function initApp() {
+            try {
+                console.log("Initializing app...");
+                await initializeFirebase();
+                await initializeUserData();
+                await handleReferral();
+                generateReferralLink();
+
+// Show Monetag ad when bot opens
+showAd('inApp').catch(error => {
+    console.error("Failed to show initial ad:", error.message);
+});
+                // Continue with wallet and UI setup
+                tonConnectUI = await initializeTonConnect();
+                await initWalletSystem();
+            } catch (error) {
+                console.error("App initialization failed:", error);
+                alert("Failed to initialize app. Please refresh and try again.");
+            }
+        }
+
+        // Call initApp when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM loaded, starting initApp...");
+            initApp();
+        });
 
     </script>
-
 </body>
 </html>
