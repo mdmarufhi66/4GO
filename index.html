@@ -1510,6 +1510,31 @@ async function initializeFirebase(maxRetries = 3) {
         }
     }
 }
+
+// Inside updateEarnSectionUI
+
+const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
+const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
+const basicQuests = basicQuestsRaw.tasks || [];
+console.log("[DEBUG] Raw Basic Quests Data:", basicQuests); // Log all raw quests
+
+const validatedBasicQuests = basicQuests.map(quest => {
+    // Log the specific quest being processed
+    console.log(`[DEBUG] Processing Quest: ${quest.title}, Raw adLimit:`, quest.adLimit, typeof quest.adLimit);
+
+    const calculatedAdLimit = quest.type === 'ads' ? Math.max(1, Number(quest.adLimit) || 1) : 0;
+
+    // Log the result of the calculation
+    console.log(`[DEBUG] Quest: ${quest.title}, Calculated adLimit:`, calculatedAdLimit);
+
+    return {
+        // ... other properties ...
+        type: quest.type || 'default',
+        adLimit: calculatedAdLimit, // Use the calculated value
+        // ... other properties ...
+    };
+});
+
         // Referral System
         function generateReferralLink() {
             if (!telegramUser) return;
