@@ -2001,7 +2001,7 @@
         document.addEventListener('DOMContentLoaded', buildChestSlider);
 
 
-        // *** UPDATED CLICK EVENT LISTENER FOR QUESTS ***
+            // *** REVISED CLICK EVENT LISTENER FOR SPECIFIC AD QUESTS ***
         document.addEventListener('click', async (event) => {
             const button = event.target.closest('.quest-item button'); // Target button specifically
             if (!button || button.disabled) return; // Only handle enabled button clicks within quest items
@@ -2009,170 +2009,199 @@
             const taskItem = button.closest('.quest-item');
             if (!taskItem) return;
 
+            // --- Get Quest Data from HTML ---
             const questId = taskItem.dataset.questId;
             const reward = parseInt(taskItem.dataset.questReward);
-            const questType = taskItem.dataset.questType;
+            const questType = taskItem.dataset.questType; // e.g., 'ads', 'default'
             const adLimit = parseInt(taskItem.dataset.adLimit) || 0;
-            const adType = taskItem.dataset.adType || 'rewarded_interstitial';
+            // ** IMPORTANT: Use adType to determine the ad format **
+            const adType = taskItem.dataset.adType; // e.g., 'rewarded_popup', 'rewarded_interstitial', 'in_app_interstitial'
             const link = button.dataset.questLink;
+            const questTitle = button.dataset.questTitle || taskItem.querySelector('span')?.textContent || 'Quest'; // Get title for logs
 
+            // --- Basic Checks ---
             if (!firebaseInitialized || !db) { alert("Database not initialized."); return; }
             if (!telegramUser || !telegramUser.id) { alert("User not identified."); return; }
+            if (typeof window.show_9180370 !== 'function') {
+                 debugLog(`[AD SDK ERROR] show_9180370 function not found. Cannot process ad quest: ${questTitle}`);
+                 alert("Ad service is unavailable. Please check connection or disable ad blockers.");
+                 return; // Stop if SDK isn't loaded
+            }
+
 
             const userIdStr = telegramUser.id.toString();
             const userDocRef = db.collection('userData').doc(userIdStr);
 
+            // --- Disable button ---
             button.disabled = true;
             const originalButtonText = button.textContent;
             button.textContent = 'Processing...';
-            debugLog(`Processing quest click: ${questId} (Type: ${questType}, Reward: ${reward})`);
+            debugLog(`Processing click for Quest: "${questTitle}" (ID: ${questId}, Type: ${questType}, AdType: ${adType}, Reward: ${reward})`);
 
             try {
+                 // --- Fetch latest user data ---
                  const userDoc = await userDocRef.get();
                  if (!userDoc.exists) throw new Error("User data could not be loaded.");
                  const userData = userDoc.data();
                  userData.adProgress = userData.adProgress || {};
                  userData.claimedQuests = userData.claimedQuests || [];
 
-                 // --- Check completion status based on latest data ---
-                 const isZeroRewardAd = questType === 'ads' && reward === 0;
+                 // --- Check completion status ---
+                 const isZeroRewardAd = questType === 'ads' && reward === 0; // Should not be used if progress tracking needed
                  const isRewardAd = questType === 'ads' && reward > 0;
                  const isLinkQuest = questType !== 'ads';
                  const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
-                 const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed.seconds ? adProgress.lastClaimed.toDate() : adProgress.lastClaimed) : null; // Handle Timestamp or ISO string
+                 const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed.seconds ? adProgress.lastClaimed.toDate() : adProgress.lastClaimed) : null;
                  const timeSinceLastClaim = lastClaimedTime ? new Date().getTime() - lastClaimedTime.getTime() : Infinity;
                  const cooldownPeriod = 3600000; // 1 hour
 
-                 if (isZeroRewardAd && userData.claimedQuests.includes(questId)) {
-                      throw new Error("Quest already completed.");
-                 }
-                 if (isRewardAd && adProgress.claimed && timeSinceLastClaim < cooldownPeriod) {
-                     throw new Error("Quest is in cooldown.");
-                 }
-                 if (isLinkQuest && userData.claimedQuests.includes(questId)) {
-                      throw new Error("Quest already claimed.");
-                 }
+                 if (isZeroRewardAd && userData.claimedQuests.includes(questId)) throw new Error("Quest already completed.");
+                 if (isRewardAd && adProgress.claimed && timeSinceLastClaim < cooldownPeriod) throw new Error("Quest is in cooldown.");
+                 if (isLinkQuest && userData.claimedQuests.includes(questId)) throw new Error("Quest already claimed.");
                  // --- End completion check ---
 
 
-                 // --- Handling Button Clicks ---
+                 // --- Handle Button Clicks ---
 
-                 // 1. Claim button (Reward Ads)
+                 // 1. Claim button (Reward Ads - No change needed here)
                  if (button.classList.contains('claim-button') && isRewardAd) {
                      if (adProgress.watched < adLimit) throw new Error("Watch all ads first!");
-
                      debugLog(`Claiming reward for quest ${questId}`);
-                     const currentTime = new Date(); // Capture time before update
+                     const currentTime = new Date();
                      await userDocRef.update({
                          gems: firebase.firestore.FieldValue.increment(reward),
-                         [`adProgress.${questId}`]: {
-                             watched: adProgress.watched,
-                             claimed: true,
-                             lastClaimed: currentTime // Store as JS Date (Firestore converts)
-                         }
+                         [`adProgress.${questId}`]: { watched: adProgress.watched, claimed: true, lastClaimed: currentTime }
                      });
                      alert(`Reward claimed! +${reward} gems.`);
                      debugLog(`Reward claimed for ${questId}`);
                      if (analytics) analytics.logEvent('ads_quest_reward_claimed', { questId, userId: userIdStr, reward });
-
                  }
-                 // 2. GO button (Ad Quests)
-                 else if (button.classList.contains('go-button') && (isZeroRewardAd || isRewardAd)) {
+                 // 2. GO button (Ad Quests - Reworked Logic)
+                 else if (button.classList.contains('go-button') && questType === 'ads') {
+                     // Check if watching is needed (not completed limit OR zero-reward type)
                      const needsWatching = isZeroRewardAd || (isRewardAd && adProgress.watched < adLimit);
 
                      if (needsWatching) {
-                         debugLog(`Attempting to show ad for quest: ${questId}, AdType: ${adType}`);
+                         debugLog(`Attempting to show ad for quest: "${questTitle}", Required AdType: ${adType}`);
 
-                         // --- Check if Ad SDK function exists ---
-                         if (typeof window.show_9180370 !== 'function') {
-                             debugLog("[AD ERROR] Ad SDK function (show_9180370) not found. Cannot show ad.");
-                             alert("Ad service is unavailable. Please try again later or check for ad blockers.");
-                             throw new Error("Ad SDK function not available."); // Stop processing
+                         // --- Trigger Specific Ad Format ---
+                         let adPromise;
+                         switch (adType) {
+                             case 'rewarded_popup':
+                                 debugLog("Triggering Rewarded Popup: show_9180370('pop')");
+                                 adPromise = window.show_9180370('pop');
+                                 break;
+
+                             case 'rewarded_interstitial':
+                                 debugLog("Triggering Rewarded Interstitial: show_9180370()");
+                                 adPromise = window.show_9180370();
+                                 break;
+
+                             case 'in_app_interstitial':
+                                 debugLog("Triggering In-App Interstitial: show_9180370({ type: 'inApp', ... })");
+                                 // NOTE: Assuming this call doesn't return a reliable promise for completion.
+                                 // We will update Firestore immediately after calling it for progress tracking,
+                                 // but won't wait for a .then() specific to this type based on your example.
+                                 try {
+                                    window.show_9180370({
+                                        type: 'inApp',
+                                        inAppSettings: { frequency: 2, capping: 0.1, interval: 30, timeout: 5, everyPage: false } // Example settings
+                                    });
+                                    debugLog("In-App Interstitial triggered.");
+                                    // Since no promise, resolve immediately to proceed with Firestore update
+                                    adPromise = Promise.resolve();
+                                 } catch (inAppError) {
+                                    debugLog(`Error directly calling In-App Interstitial: ${inAppError.message}`);
+                                    adPromise = Promise.reject(inAppError);
+                                 }
+                                 break;
+
+                             default:
+                                 debugLog(`[ERROR] Unknown adType configured for quest: ${adType}`);
+                                 throw new Error(`Unknown ad type: ${adType}`);
                          }
-                         // --- End SDK check ---
 
-                         await showAd(adType); // Trigger the ad (showAd now has better logging)
+                         // --- Handle Ad Result (using the promise where applicable) ---
+                         await adPromise.then(async () => {
+                             // This .then() block executes AFTER Rewarded Popup or Rewarded Interstitial completes successfully,
+                             // or immediately after In-App Interstitial is *triggered*.
+                             debugLog(`Ad call successful (or triggered for In-App) for quest: "${questTitle}"`);
 
-                         debugLog(`Ad function called for ${questId}. Assuming success, updating Firestore...`);
-                         // --- Update Firestore based on quest type AFTER assumed ad success ---
-                         if (isZeroRewardAd) {
-                             await userDocRef.update({
-                                 claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId)
-                             });
-                             debugLog(`Zero-reward ad quest ${questId} marked completed.`);
-                             alert(`Ad watched! Quest completed.`);
-                             if (analytics) analytics.logEvent('ad_quest_watched', { questId, userId: userIdStr, reward: 0 });
+                             // Update Firestore based on quest type
+                             if (isZeroRewardAd) {
+                                 // Mark one-time zero-reward ad as completed
+                                 await userDocRef.update({ claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId) });
+                                 debugLog(`Zero-reward ad quest ${questId} marked completed.`);
+                                 alert(`Ad finished! Quest completed.`);
+                                 if (analytics) analytics.logEvent('ad_quest_watched', { questId, userId: userIdStr, reward: 0, adType: adType });
+                             } else if (isRewardAd) {
+                                 // Increment watch count for reward ads (including In-App if configured as reward > 0)
+                                 const newWatched = (adProgress.watched || 0) + 1;
+                                 // Only update the 'watched' field initially
+                                 await userDocRef.update({ [`adProgress.${questId}.watched`]: newWatched });
 
-                         } else { // isRewardAd
-                             const newWatched = (adProgress.watched || 0) + 1; // Ensure watched is a number
-                             await userDocRef.update({
-                                 [`adProgress.${questId}.watched`]: newWatched
-                             });
-                             debugLog(`Reward ad watched for ${questId}, progress updated: ${newWatched}/${adLimit}`);
-                             if (newWatched >= adLimit) {
-                                 alert("All ads watched! Click 'Claim' to get your reward.");
-                             } else {
-                                 alert(`Ad watched! Progress: ${newWatched}/${adLimit}`);
+                                 debugLog(`Reward ad watched for ${questId}, progress updated: ${newWatched}/${adLimit}`);
+                                 if (newWatched >= adLimit) {
+                                     alert(`Ad finished! All ads watched (${newWatched}/${adLimit}). Click 'Claim' to get your reward.`);
+                                 } else {
+                                     alert(`Ad finished! Progress: ${newWatched}/${adLimit}`);
+                                 }
+                                 if (analytics) analytics.logEvent('ad_quest_watched', { questId, userId: userIdStr, reward: reward, adType: adType });
                              }
-                              if (analytics) analytics.logEvent('ad_quest_watched', { questId, userId: userIdStr, reward });
-                         }
+                         }).catch(error => {
+                             // This .catch() handles errors from show_9180370 calls (Popup, Interstitial)
+                             // or the direct try/catch for In-App.
+                             debugLog(`[AD ERROR] Ad failed or was closed early for quest "${questTitle}": ${error?.message || error}`);
+                             alert(`Ad could not be shown or was closed early. Please try again. (${error?.message || 'Unknown error'})`);
+                             // Don't update progress if the ad failed
+                         });
+
                      } else if (isRewardAd && adProgress.watched >= adLimit && !adProgress.claimed) {
+                          // User clicked GO but limit reached, needs to click CLAIM
                           alert("All ads watched! Click the 'Claim' button.");
                      } else {
+                          // Should not happen if logic is correct
                           debugLog(`[WARN] Unexpected state for ad quest button click: ${questId}`);
                      }
-
                  }
-                 // 3. GO button (Link Quests)
+                 // 3. GO button (Link Quests - No change needed here)
                  else if (button.classList.contains('go-button') && isLinkQuest) {
                      debugLog(`Handling link quest: ${questId}, Link: ${link}`);
                      if (link) {
-                         try {
-                             Telegram.WebApp.openTelegramLink(link); // Use Telegram API
-                             debugLog("Telegram link opened: " + link);
-                         } catch (e) {
-                             debugLog("Failed to open Telegram link automatically: " + e.message);
-                             // Fallback or inform user
-                             window.open(link, '_blank'); // Try standard browser open
-                         }
-                     } else {
-                          debugLog("Link quest has no link defined: " + questId);
-                     }
+                         try { Telegram.WebApp.openTelegramLink(link); } catch (e) { window.open(link, '_blank'); }
+                     } else { debugLog("Link quest has no link defined: " + questId); }
 
-                     const updates = {
-                         claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId)
-                     };
-                     if (reward > 0) {
-                         updates.gems = firebase.firestore.FieldValue.increment(reward);
-                     }
+                     const updates = { claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId) };
+                     if (reward > 0) { updates.gems = firebase.firestore.FieldValue.increment(reward); }
                      await userDocRef.update(updates);
                      debugLog(`Link quest ${questId} marked completed. Reward: ${reward}`);
 
                      if (reward > 0) alert(`Quest completed! +${reward} gems.`);
                      else alert(`Quest completed!`);
-                      if (analytics) analytics.logEvent('link_quest_completed', { questId, userId: userIdStr, reward });
+                     if (analytics) analytics.logEvent('link_quest_completed', { questId, userId: userIdStr, reward });
                  } else {
+                     // Should not happen if button is GO or CLAIM
                      debugLog(`[WARN] Unhandled button click state: ${button.classList} | Type: ${questType} | Reward: ${reward}`);
                      throw new Error("Unknown quest action.");
                  }
 
-                 // --- Refresh UI sections AFTER successful action ---
+                 // --- Refresh UI sections AFTER successful action OR failed ad ---
+                 // Refreshing UI regardless of ad success/failure to show correct state (e.g., button re-enabled)
                  await updateUserStatsUI();
-                 await updateEarnSectionUI();
+                 await updateEarnSectionUI(); // This will correctly re-render button states
 
             } catch (error) {
+                 // Catch errors from Firestore updates or completion checks
                  debugLog(`[ERROR] Processing quest action (${questId}): ${error.message}\nStack: ${error.stack}`);
                  alert("Action failed: " + error.message);
-                 // Restore button text BUT keep it disabled if the error wasn't just 'already claimed' or 'cooldown'
-                 if (!error.message.includes("already completed") && !error.message.includes("cooldown")) {
-                     button.disabled = false; // Re-enable only if it wasn't a completion/cooldown issue
-                 }
+                 // Restore button state generally, but let UI refresh handle specifics
+                 button.disabled = false;
                  button.textContent = originalButtonText;
-                 // Optionally refresh UI again to show correct state after error if needed
-                 await updateEarnSectionUI();
+                 await updateEarnSectionUI(); // Ensure UI reflects state after error
             }
         });
-        // *** END OF UPDATED CLICK EVENT LISTENER ***
+        // *** END OF REVISED CLICK EVENT LISTENER ***
+
 
 
         // Invite Section Interactions
