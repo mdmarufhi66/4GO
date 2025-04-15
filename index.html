@@ -115,6 +115,13 @@
             border-radius: 10px;
             margin-bottom: 10px;
         }
+        .quest-item.non-rewarded {
+            opacity: 0.8;
+            border-left: 4px solid #ffcc00;
+        }
+        .quest-item.non-rewarded .quest-reward {
+            display: none;
+        }
         .quest-item img {
             width: 30px;
             height: 30px;
@@ -148,13 +155,13 @@
             cursor: default;
         }
         .quest-item .progress {
-    font-size: 12px;
-    color: #ccc;
-    margin-left: 10px;
-}
-.claim-button.active {
-    background: linear-gradient(to right, #00ff00, #66ff66);
-}
+            font-size: 12px;
+            color: #ccc;
+            margin-left: 10px;
+        }
+        .claim-button.active {
+            background: linear-gradient(to right, #00ff00, #66ff66);
+        }
         .wallet-section h2 {
             font-size: 18px;
             margin: 10px 0;
@@ -942,7 +949,7 @@
             apiKey: "AIzaSyCUkEmFmJK2vr8k7M6JqYaxlcgBDf7WdJI",
             authDomain: "fourgo-cd98f.firebaseapp.com",
             projectId: "fourgo-cd98f",
-            storageBucket: "fourgo-cd98f.firebasestorage.app",
+            storageBucket: "fourgo-cd98f.appspot.com",
             messagingSenderId: "511215742272",
             appId: "1:511215742272:web:04bd85a284919ae123dea5",
             measurementId: "G-DC7E6ECF2L"
@@ -966,71 +973,71 @@
             console.log("Firebase config validated successfully");
         }
 
-// Initialize Firebase with dynamic loading using compat scripts
-let app, db, auth, storage, analytics;
-let firebaseInitialized = false;
-async function initializeFirebase(maxRetries = 3) {
-    if (firebaseInitialized) {
-        console.log("Firebase already initialized, skipping reinitialization");
-        return true;
-    }
-
-    // Check if Firebase is already in the global scope and has an app instance
-    if (window.firebase && window.firebase.apps && window.firebase.apps.length > 0) {
-        console.log("Firebase detected in global scope, reusing existing instance");
-        app = window.firebase.apps[0];
-        db = app.firestore();
-        auth = app.auth();
-        storage = app.storage();
-        analytics = app.analytics();
-        firebaseInitialized = true;
-        return true;
-    }
-
-    let attempts = 0;
-    const scriptUrls = [
-        'https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js',
-        'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js',
-        'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js',
-        'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js',
-        'https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics-compat.js'
-    ];
-
-    while (attempts < maxRetries && !firebaseInitialized) {
-        try {
-            console.log(`Attempt ${attempts + 1}/${maxRetries} to initialize Firebase...`);
-            validateFirebaseConfig(firebaseConfig);
-
-            await Promise.all(scriptUrls.map(url => loadScript(url)));
-            if (typeof firebase === 'undefined') {
-                throw new Error("Firebase SDK not loaded into global scope");
+        // Initialize Firebase with dynamic loading using compat scripts
+        let app, db, auth, storage, analytics;
+        let firebaseInitialized = false;
+        async function initializeFirebase(maxRetries = 3) {
+            if (firebaseInitialized) {
+                console.log("Firebase already initialized, skipping reinitialization");
+                return true;
             }
 
-            app = firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
-            auth = firebase.auth();
-            storage = firebase.storage();
-            analytics = firebase.analytics();
-
-            await db.collection('test').doc('init').set({
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
-
-            firebaseInitialized = true;
-            console.log("Firebase fully initialized");
-            return true;
-        } catch (error) {
-            attempts++;
-            console.error(`Firebase initialization attempt ${attempts} failed:`, error.message);
-            if (attempts >= maxRetries) {
-                console.error("Max retries reached. Firebase initialization failed.");
-                return false;
+            // Check if Firebase is already in the global scope and has an app instance
+            if (window.firebase && window.firebase.apps && window.firebase.apps.length > 0) {
+                console.log("Firebase detected in global scope, reusing existing instance");
+                app = window.firebase.apps[0];
+                db = app.firestore();
+                auth = app.auth();
+                storage = app.storage();
+                analytics = app.analytics();
+                firebaseInitialized = true;
+                return true;
             }
-            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            let attempts = 0;
+            const scriptUrls = [
+                'https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js',
+                'https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js',
+                'https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js',
+                'https://www.gstatic.com/firebasejs/10.13.0/firebase-storage-compat.js',
+                'https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics-compat.js'
+            ];
+
+            while (attempts < maxRetries && !firebaseInitialized) {
+                try {
+                    console.log(`Attempt ${attempts + 1}/${maxRetries} to initialize Firebase...`);
+                    validateFirebaseConfig(firebaseConfig);
+
+                    await Promise.all(scriptUrls.map(url => loadScript(url)));
+                    if (typeof firebase === 'undefined') {
+                        throw new Error("Firebase SDK not loaded into global scope");
+                    }
+
+                    app = firebase.initializeApp(firebaseConfig);
+                    db = firebase.firestore();
+                    auth = firebase.auth();
+                    storage = firebase.storage();
+                    analytics = firebase.analytics();
+
+                    await db.collection('test').doc('init').set({
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+
+                    firebaseInitialized = true;
+                    console.log("Firebase fully initialized");
+                    return true;
+                } catch (error) {
+                    attempts++;
+                    console.error(`Firebase initialization attempt ${attempts} failed:`, error.message);
+                    if (attempts >= maxRetries) {
+                        console.error("Max retries reached. Firebase initialization failed.");
+                        return false;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            }
+            return false;
         }
-    }
-    return false;
-}
 
         // Telegram Web App Setup with error handling
         let telegramUser;
@@ -1308,192 +1315,202 @@ async function initializeFirebase(maxRetries = 3) {
 
         // Fetch and Update Earn Section (Quests) with Enhanced Debugging
         async function updateEarnSectionUI() {
-    try {
-        if (!firebaseInitialized || !db) {
-            console.log("[DEBUG] Firebase not initialized, attempting to initialize...");
-            const success = await initializeFirebase();
-            if (!success) {
-                throw new Error("Failed to initialize Firebase after retries");
-            }
-            console.log("[DEBUG] Firebase initialized successfully");
-        }
+            try {
+                if (!firebaseInitialized || !db) {
+                    console.log("[DEBUG] Firebase not initialized, attempting to initialize...");
+                    const success = await initializeFirebase();
+                    if (!success) {
+                        throw new Error("Failed to initialize Firebase after retries");
+                    }
+                    console.log("[DEBUG] Firebase initialized successfully");
+                }
 
-        let userData;
-        if (telegramUser && firebaseInitialized && db) {
-            const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
-            userData = userDoc.data() || {};
-            userData.adProgress = userData.adProgress || {}; // Ensure adProgress exists
-        }
+                let userData;
+                if (telegramUser && firebaseInitialized && db) {
+                    const userDoc = await db.collection('userData').doc(telegramUser.id.toString()).get();
+                    userData = userDoc.data() || {};
+                    userData.adProgress = userData.adProgress || {}; // Ensure adProgress exists
+                }
 
-        // Daily Quests (unchanged)
-        console.log("[DEBUG] Starting daily quests fetch...");
-        const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({ source: 'server' });
-        console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
-        console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
-        const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
-        const dailyQuests = dailyQuestsRaw.tasks || [];
-        console.log("[DEBUG] Parsed daily quests:", dailyQuests);
+                // Daily Quests (unchanged)
+                console.log("[DEBUG] Starting daily quests fetch...");
+                const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({ source: 'server' });
+                console.log("[DEBUG] Daily snapshot exists:", dailyQuestsSnapshot.exists);
+                console.log("[DEBUG] Daily snapshot data:", dailyQuestsSnapshot.data());
+                const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
+                const dailyQuests = dailyQuestsRaw.tasks || [];
+                console.log("[DEBUG] Parsed daily quests:", dailyQuests);
 
-        const validatedDailyQuests = dailyQuests.map(quest => ({
-            id: quest.id || Math.random().toString(36).substring(7),
-            title: quest.title || "Untitled Quest",
-            icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
-            reward: Number(quest.reward) || 0,
-            action: quest.action || 'GO',
-            link: quest.link || ''
-        }));
-        console.log("[DEBUG] Validated daily quests:", validatedDailyQuests);
+                const validatedDailyQuests = dailyQuests.map(quest => ({
+                    id: quest.id || Math.random().toString(36).substring(7),
+                    title: quest.title || "Untitled Quest",
+                    icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
+                    reward: Number(quest.reward) || 0,
+                    action: quest.action || 'GO',
+                    link: quest.link || ''
+                }));
+                console.log("[DEBUG] Validated daily quests:", validatedDailyQuests);
 
-        const dailyQuestList = document.getElementById('daily-quest-list');
-        const dailyQuestCount = document.getElementById('daily-quest-count');
-        if (!dailyQuestList || !dailyQuestCount) {
-            throw new Error("Required DOM elements not found for daily quests");
-        }
-        dailyQuestCount.textContent = validatedDailyQuests.length;
+                const dailyQuestList = document.getElementById('daily-quest-list');
+                const dailyQuestCount = document.getElementById('daily-quest-count');
+                if (!dailyQuestList || !dailyQuestCount) {
+                    throw new Error("Required DOM elements not found for daily quests");
+                }
+                dailyQuestCount.textContent = validatedDailyQuests.length;
 
-        dailyQuestList.innerHTML = validatedDailyQuests.length === 0 ? `
-            <li class="no-quests">
-                <p>No daily quests available</p>
-            </li>
-        ` : validatedDailyQuests.map(quest => {
-            const isClaimed = userData?.claimedQuests?.includes(quest.id);
-            const buttonText = isClaimed ? 'Claimed' : quest.action;
-            const buttonClass = isClaimed ? 'claimed-button' : 'go-button';
-            const buttonStyle = isClaimed ? 'background: #ccc; cursor: default;' : 'background: linear-gradient(to right, #ff00ff, #ff6666);';
-            return `
-                <li class="quest-item" data-quest-id="${quest.id}">
-                    <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
-                    <span>${quest.title}</span>
-                    <div class="quest-reward">
-                        <img src="assets/icons/gem.png" alt="Gem">
-                        <span>+${quest.reward}</span>
-                        <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
-                    </div>
-                </li>
-            `;
-        }).join('');
+                dailyQuestList.innerHTML = validatedDailyQuests.length === 0 ? `
+                    <li class="no-quests">
+                        <p>No daily quests available</p>
+                    </li>
+                ` : validatedDailyQuests.map(quest => {
+                    const isClaimed = userData?.claimedQuests?.includes(quest.id);
+                    const buttonText = isClaimed ? 'Claimed' : quest.action;
+                    const buttonClass = isClaimed ? 'claimed-button' : 'go-button';
+                    const buttonStyle = isClaimed ? 'background: #ccc; cursor: default;' : 'background: linear-gradient(to right, #ff00ff, #ff6666);';
+                    return `
+                        <li class="quest-item" data-quest-id="${quest.id}">
+                            <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
+                            <span>${quest.title}</span>
+                            <div class="quest-reward">
+                                <img src="assets/icons/gem.png" alt="Gem">
+                                <span>+${quest.reward}</span>
+                                <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed ? 'disabled' : ''}>${buttonText}</button>
+                            </div>
+                        </li>
+                    `;
+                }).join('');
 
-        // Basic Quests (updated with reset and cooldown logic)
-        console.log("[DEBUG] Starting basic quests fetch...");
-        const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
-        console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
-        console.log("[DEBUG] Basic snapshot data:", basicQuestsSnapshot.data());
-        const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
-        const basicQuests = basicQuestsRaw.tasks || [];
-        console.log("[DEBUG] Parsed basic quests:", basicQuests);
+                // Basic Quests (updated with non-rewarded ads)
+                console.log("[DEBUG] Starting basic quests fetch...");
+                const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
+                console.log("[DEBUG] Basic snapshot exists:", basicQuestsSnapshot.exists);
+                console.log("[DEBUG] Basic snapshot data:", basicQuestsSnapshot.data());
+                const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
+                const basicQuests = basicQuestsRaw.tasks || [];
+                console.log("[DEBUG] Parsed basic quests:", basicQuests);
 
-        const validatedBasicQuests = basicQuests.map(quest => ({
-            id: quest.id || Math.random().toString(36).substring(7),
-            title: quest.title || "Untitled Quest",
-            icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
-            reward: Number(quest.reward) || 0,
-            action: quest.action || 'GO',
-            link: quest.link || '',
-            type: quest.type || 'default',
-            adLimit: quest.adLimit || 0,
-            adType: quest.adType || 'rewarded_interstitial'
-        }));
-        console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
+                const validatedBasicQuests = basicQuests.map(quest => ({
+                    id: quest.id || Math.random().toString(36).substring(7),
+                    title: quest.title || "Untitled Quest",
+                    icon: quest.icon || 'https://via.placeholder.com/30/FFFFFF/000000?text=Q',
+                    reward: Number(quest.reward) || 0,
+                    action: quest.action || 'GO',
+                    link: quest.link || '',
+                    type: quest.type || 'default',
+                    adLimit: quest.adLimit || 0,
+                    adType: quest.adType || 'rewarded_interstitial',
+                    isNonRewarded: quest.isNonRewarded || false
+                }));
+                console.log("[DEBUG] Validated basic quests:", validatedBasicQuests);
 
-        const basicQuestList = document.getElementById('basic-quest-list');
-        const basicQuestCount = document.getElementById('basic-quest-count');
-        if (!basicQuestList || !basicQuestCount) {
-            throw new Error("Required DOM elements not found for basic quests");
-        }
-        basicQuestCount.textContent = validatedBasicQuests.length;
+                const basicQuestList = document.getElementById('basic-quest-list');
+                const basicQuestCount = document.getElementById('basic-quest-count');
+                if (!basicQuestList || !basicQuestCount) {
+                    throw new Error("Required DOM elements not found for basic quests");
+                }
+                basicQuestCount.textContent = validatedBasicQuests.length;
 
-        // Current time for cooldown check
-        const currentTime = new Date();
+                basicQuestList.innerHTML = validatedBasicQuests.length === 0 ? `
+                    <li class="no-quests">
+                        <p>No basic quests available</p>
+                    </li>
+                ` : validatedBasicQuests.map(quest => {
+                    const adProgress = userData.adProgress[quest.id] || { watched: 0, claimed: false, lastClaimed: null };
+                    const isCompleted = quest.type === 'ads' && adProgress.watched >= quest.adLimit;
+                    const isClaimed = adProgress.claimed || userData.claimedQuests?.includes(quest.id);
+                    let buttonText, buttonClass, buttonStyle;
 
-        basicQuestList.innerHTML = validatedBasicQuests.length === 0 ? `
-            <li class="no-quests">
-                <p>No basic quests available</p>
-            </li>
-        ` : validatedBasicQuests.map(quest => {
-            const adProgress = userData.adProgress[quest.id] || { watched: 0, claimed: false, lastClaimed: null };
-            const isCompleted = quest.type === 'ads' && adProgress.watched >= quest.adLimit;
-            const isClaimed = adProgress.claimed || userData.claimedQuests?.includes(quest.id);
-            let buttonText, buttonClass, buttonStyle;
+                    // Check cooldown (1 hour = 3600000 milliseconds)
+                    const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed) : null;
+                    const timeSinceLastClaim = lastClaimedTime ? new Date() - lastClaimedTime : Infinity;
+                    const cooldownPeriod = 3600000; // 1 hour in milliseconds
+                    const isCooldownOver = timeSinceLastClaim >= cooldownPeriod;
 
-            // Check cooldown (1 hour = 3600000 milliseconds)
-            const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed) : null;
-            const timeSinceLastClaim = lastClaimedTime ? currentTime - lastClaimedTime : Infinity;
-            const cooldownPeriod = 3600000; // 1 hour in milliseconds
-            const isCooldownOver = timeSinceLastClaim >= cooldownPeriod;
+                    // Reset logic: If claimed and cooldown is over, reset the task
+                    if (isClaimed && quest.type === 'ads' && isCooldownOver) {
+                        console.log(`[DEBUG] Resetting ad quest ${quest.id} as cooldown is over`);
+                        db.collection('userData').doc(telegramUser.id.toString()).update({
+                            [`adProgress.${quest.id}`]: { watched: 0, claimed: false, lastClaimed: null }
+                        }).then(() => {
+                            console.log(`[DEBUG] Quest ${quest.id} reset in Firestore`);
+                        }).catch(error => {
+                            console.error(`[ERROR] Failed to reset quest ${quest.id}:`, error.message);
+                        });
+                        // Update local adProgress to reflect reset immediately
+                        adProgress.watched = 0;
+                        adProgress.claimed = false;
+                        adProgress.lastClaimed = null;
+                    }
 
-            // Reset logic: If claimed and cooldown is over, reset the task
-            if (isClaimed && quest.type === 'ads' && isCooldownOver) {
-                console.log(`[DEBUG] Resetting ad quest ${quest.id} as cooldown is over`);
-                db.collection('userData').doc(telegramUser.id.toString()).update({
-                    [`adProgress.${quest.id}`]: { watched: 0, claimed: false, lastClaimed: null }
-                }).then(() => {
-                    console.log(`[DEBUG] Quest ${quest.id} reset in Firestore`);
-                }).catch(error => {
-                    console.error(`[ERROR] Failed to reset quest ${quest.id}:`, error.message);
+                    if (isClaimed && !isCooldownOver) {
+                        const timeLeft = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 60000); // Minutes left
+                        buttonText = `Wait ${timeLeft}m`;
+                        buttonClass = 'claimed-button';
+                        buttonStyle = 'background: #ccc; cursor: default;';
+                    } else if (isCompleted) {
+                        buttonText = 'Claim';
+                        buttonClass = 'claim-button active';
+                        buttonStyle = 'background: linear-gradient(to right, #00ff00, #66ff66);';
+                    } else {
+                        buttonText = quest.action;
+                        buttonClass = 'go-button';
+                        buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);';
+                    }
+
+                    // Special handling for non-rewarded ads
+                    const questItemClass = quest.isNonRewarded ? 'quest-item non-rewarded' : 'quest-item';
+
+                    return `
+                        <li class="${questItemClass}" data-quest-id="${quest.id}" data-quest-type="${quest.type}" 
+                            data-ad-limit="${quest.adLimit}" data-ad-type="${quest.adType}" 
+                            data-is-non-rewarded="${quest.isNonRewarded}">
+                            <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
+                            <span>${quest.title}</span>
+                            <div class="quest-reward">
+                                ${!quest.isNonRewarded ? `
+                                    <img src="assets/icons/gem.png" alt="Gem">
+                                    <span>+${quest.reward}</span>
+                                    ${quest.type === 'ads' ? `<span class="progress">${adProgress.watched}/${quest.adLimit}</span>` : ''}
+                                ` : ''}
+                                <button class="${buttonClass}" data-quest-link="${quest.link}" 
+                                    data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" 
+                                    style="${buttonStyle}" ${isClaimed && !isCooldownOver ? 'disabled' : ''}>
+                                    ${buttonText}
+                                </button>
+                            </div>
+                        </li>
+                    `;
+                }).join('');
+
+                console.log("[DEBUG] Earn section UI update completed successfully");
+
+            } catch (error) {
+                console.error("[ERROR] Failed to update earn section UI:", {
+                    message: error.message,
+                    stack: error.stack
                 });
-                // Update local adProgress to reflect reset immediately
-                adProgress.watched = 0;
-                adProgress.claimed = false;
-                adProgress.lastClaimed = null;
+
+                const dailyQuestList = document.getElementById('daily-quest-list');
+                const basicQuestList = document.getElementById('basic-quest-list');
+
+                if (dailyQuestList) {
+                    dailyQuestList.innerHTML = `
+                        <li class="error">
+                            <p>Failed to load daily quests: ${error.message}</p>
+                        </li>
+                    `;
+                }
+
+                if (basicQuestList) {
+                    basicQuestList.innerHTML = `
+                        <li class="error">
+                            <p>Failed to load basic quests: ${error.message}</p>
+                        </li>
+                    `;
+                }
             }
-
-            if (isClaimed && !isCooldownOver) {
-                const timeLeft = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 60000); // Minutes left
-                buttonText = `Wait ${timeLeft}m`;
-                buttonClass = 'claimed-button';
-                buttonStyle = 'background: #ccc; cursor: default;';
-            } else if (isCompleted) {
-                buttonText = 'Claim';
-                buttonClass = 'claim-button active';
-                buttonStyle = 'background: linear-gradient(to right, #00ff00, #66ff66);';
-            } else {
-                buttonText = quest.action;
-                buttonClass = 'go-button';
-                buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);';
-            }
-
-            return `
-                <li class="quest-item" data-quest-id="${quest.id}" data-quest-type="${quest.type}" data-ad-limit="${quest.adLimit}" data-ad-type="${quest.adType}">
-                    <img src="${quest.icon}" alt="${quest.title}" onerror="this.src='https://via.placeholder.com/30/FFFFFF/000000?text=Q'">
-                    <span>${quest.title}</span>
-                    <div class="quest-reward">
-                        <img src="assets/icons/gem.png" alt="Gem">
-                        <span>+${quest.reward}</span>
-                        ${quest.type === 'ads' ? `<span class="progress">${adProgress.watched}/${quest.adLimit}</span>` : ''}
-                        <button class="${buttonClass}" data-quest-link="${quest.link}" data-quest-title="${quest.title}" data-quest-reward="${quest.reward}" style="${buttonStyle}" ${isClaimed && !isCooldownOver ? 'disabled' : ''}>${buttonText}</button>
-                    </div>
-                </li>
-            `;
-        }).join('');
-
-        console.log("[DEBUG] Earn section UI update completed successfully");
-
-    } catch (error) {
-        console.error("[ERROR] Failed to update earn section UI:", {
-            message: error.message,
-            stack: error.stack
-        });
-
-        const dailyQuestList = document.getElementById('daily-quest-list');
-        const basicQuestList = document.getElementById('basic-quest-list');
-
-        if (dailyQuestList) {
-            dailyQuestList.innerHTML = `
-                <li class="error">
-                    <p>Failed to load daily quests: ${error.message}</p>
-                </li>
-            `;
         }
 
-        if (basicQuestList) {
-            basicQuestList.innerHTML = `
-                <li class="error">
-                    <p>Failed to load basic quests: ${error.message}</p>
-                </li>
-            `;
-        }
-    }
-}
         // Referral System
         function generateReferralLink() {
             if (!telegramUser) return;
@@ -1781,235 +1798,235 @@ async function initializeFirebase(maxRetries = 3) {
 
         updateChest();
 
-// Earn Section Interactions
-document.addEventListener('click', async (event) => {
-    const button = event.target;
-    const taskItem = button.closest('.quest-item');
-    if (!taskItem) return;
+        // Earn Section Interactions
+        document.addEventListener('click', async (event) => {
+            const button = event.target;
+            const taskItem = button.closest('.quest-item');
+            if (!taskItem) return;
 
-    const questId = taskItem.dataset.questId;
-    const reward = parseInt(button.dataset.questReward);
-    const questType = taskItem.dataset.questType;
-    const adLimit = parseInt(taskItem.dataset.adLimit) || 0;
-    const adType = taskItem.dataset.adType || 'rewarded_interstitial'; // Default ad type
-    const link = button.dataset.questLink;
+            const questId = taskItem.dataset.questId;
+            const reward = parseInt(button.dataset.questReward) || 0;
+            const questType = taskItem.dataset.questType;
+            const isNonRewarded = taskItem.dataset.isNonRewarded === 'true';
+            const adLimit = parseInt(taskItem.dataset.adLimit) || 0;
+            const adType = taskItem.dataset.adType || 'rewarded_interstitial';
+            const link = button.dataset.questLink;
 
-    if (!firebaseInitialized || !db) {
-        alert("Database not initialized. Please try again later.");
-        return;
-    }
-
-    const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-    const userDoc = await userDocRef.get();
-    const userData = userDoc.data() || {};
-    userData.adProgress = userData.adProgress || {};
-
-    // Claim button for ad-based quests
-    if (button.classList.contains('claim-button') && questType === 'ads') {
-        const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
-        
-        if (adProgress.watched < adLimit) {
-            alert("You need to watch all ads to claim this reward!");
-            return;
-        }
-        
-        if (adProgress.claimed || userData.claimedQuests?.includes(questId)) {
-            alert("This reward has already been claimed!");
-            return;
-        }
-
-        try {
-            const currentTime = new Date().toISOString(); // Client-side timestamp
-            await userDocRef.update({
-                gems: (userData.gems || 0) + reward,
-                claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId),
-                [`adProgress.${questId}`]: {
-                    watched: adProgress.watched,
-                    claimed: true,
-                    lastClaimed: currentTime // Add the timestamp
-                }
-            });
-
-            button.textContent = 'Claimed';
-            button.classList.remove('claim-button', 'active');
-            button.classList.add('claimed-button');
-            button.disabled = true;
-            button.style.background = '#ccc';
-            button.style.cursor = 'default';
-
-            await updateUserStatsUI();
-            await updateEarnSectionUI(); // Refresh UI after claiming
-            alert(`Reward claimed! You earned ${reward} gems.`);
-            analytics.logEvent('ads_quest_completed', { questId, userId: telegramUser.id, reward });
-        } catch (error) {
-            console.error("[ERROR] Error claiming ad reward:", error.message);
-            alert("Failed to claim reward: " + error.message);
-        }
-    }
-    // GO button for ad-based quests
-    else if (button.classList.contains('go-button') && questType === 'ads') {
-        console.log("[DEBUG] Handling ad quest:", { questId, adType });
-        try {
-            const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
-            if (adProgress.watched >= adLimit) {
-                alert("You’ve watched all required ads. Claim your reward!");
+            if (!firebaseInitialized || !db) {
+                alert("Database not initialized. Please try again later.");
                 return;
             }
 
-            console.log("[DEBUG] Showing ad for quest:", questId);
-            await showAd(adType); // Trigger the ad
-            const newWatched = adProgress.watched + 1;
-
-            await userDocRef.update({
-                [`adProgress.${questId}`]: {
-                    watched: newWatched,
-                    claimed: adProgress.claimed,
-                    lastClaimed: adProgress.lastClaimed
-                }
-            });
-
-            console.log("[DEBUG] Ad watched, progress updated:", newWatched);
-            await updateEarnSectionUI(); // Refresh UI to reflect new progress
-            if (newWatched >= adLimit) {
-                alert("All ads watched! You can now claim your reward.");
-            } else {
-                alert(`Ad watched! Progress: ${newWatched}/${adLimit}`);
-            }
-        } catch (error) {
-            console.error("[ERROR] Failed to show ad or update progress:", error.message);
-            alert("Failed to show ad: " + error.message);
-        }
-    }
-    // GO button for non-ad quests
-    else if (button.classList.contains('go-button')) {
-        console.log("[DEBUG] Handling non-ad quest:", { questId, link });
-        try {
-            await initializeUserData();
+            const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
             const userDoc = await userDocRef.get();
-            const userData = userDoc.data();
-            const claimedQuests = userData.claimedQuests || [];
+            const userData = userDoc.data() || {};
+            userData.adProgress = userData.adProgress || {};
 
-            if (claimedQuests.includes(questId)) {
-                alert("This quest has already been claimed!");
-                return;
+            // Handle non-rewarded ads
+            if (isNonRewarded && button.classList.contains('go-button')) {
+                try {
+                    await showAd(adType);
+                    alert("Thank you for supporting us by watching this ad!");
+                    return;
+                } catch (error) {
+                    console.error("Failed to show non-rewarded ad:", error);
+                    alert("Failed to show ad. Please try again.");
+                    return;
+                }
             }
 
-            console.log("[DEBUG] Redirecting to link:", link);
-            Telegram.WebApp.openTelegramLink(link);
+            // Claim button for ad-based quests
+            if (button.classList.contains('claim-button') && questType === 'ads') {
+                const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
+                
+                if (adProgress.watched < adLimit) {
+                    alert("You need to watch all ads to claim this reward!");
+                    return;
+                }
+                
+                if (adProgress.claimed || userData.claimedQuests?.includes(questId)) {
+                    alert("This reward has already been claimed!");
+                    return;
+                }
 
-            await userDocRef.update({
-                gems: (userData.gems || 0) + reward,
-                claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId)
-            });
-
-            button.textContent = 'Claimed';
-            button.classList.remove('go-button');
-            button.classList.add('claimed-button');
-            button.disabled = true;
-            button.style.background = '#ccc';
-            button.style.cursor = 'default';
-
-            await updateUserStatsUI();
-            await updateEarnSectionUI(); // Refresh UI after completion
-            alert(`Quest completed! You earned ${reward} gems.`);
-            analytics.logEvent('quest_completed', { questId, userId: telegramUser.id, reward });
-        } catch (error) {
-            console.error("[ERROR] Error completing quest:", error.message);
-            alert("Failed to complete quest: " + error.message);
-        }
-    }
-});
-
-        // Invite Section Interactions
-        document.querySelector('.invite-friend').addEventListener('click', () => {
-            const link = document.querySelector('.invite-friend').dataset.link;
-            Telegram.WebApp.openTelegramLink(link);
-        });
-
-        document.querySelector('.copy-link').addEventListener('click', () => {
-            const link = document.querySelector('.copy-link').dataset.link;
-            navigator.clipboard.writeText(link).then(() => {
-                alert("Referral link copied to clipboard!");
-            });
-        });
-
-
-// Function to show Monetag Ads with support for multiple ad types
-function showAd(adType) {
-    return new Promise((resolve, reject) => {
-        const maxWaitTime = 15000; // 15 seconds timeout
-        const startTime = Date.now();
-
-        console.log(`[DEBUG] Attempting to show ad of type: ${adType}`);
-
-        function checkSDK() {
-            if (window.show_9180370) {
-                console.log("[DEBUG] Monetag SDK loaded, triggering ad...");
                 try {
-                    let adPromise;
-                    switch (adType) {
-                        case 'rewarded_interstitial':
-                            console.log("[DEBUG] Triggering Rewarded Interstitial ad...");
-                            adPromise = window.show_9180370(); // Default call for interstitial
-                            break;
-                        case 'rewarded_popup':
-                            console.log("[DEBUG] Triggering Rewarded Popup ad...");
-                            adPromise = window.show_9180370('pop');
-                            break;
-                        case 'inApp':
-                            console.log("[DEBUG] Triggering In-App Interstitial ad...");
-                            adPromise = window.show_9180370({
-                                type: 'inApp',
-                                inAppSettings: {
-                                    frequency: 1,
-                                    capping: 0.1,
-                                    interval: 0,
-                                    timeout: 3,
-                                    everyPage: false
-                                }
-                            });
-                            break;
-                        default:
-                            console.error("[DEBUG] Unknown ad type:", adType);
-                            reject(new Error("Unknown ad type: " + adType));
-                            return;
+                    const currentTime = new Date().toISOString();
+                    await userDocRef.update({
+                        gems: (userData.gems || 0) + reward,
+                        claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId),
+                        [`adProgress.${questId}`]: {
+                            watched: adProgress.watched,
+                            claimed: true,
+                            lastClaimed: currentTime
+                        }
+                    });
+
+                    button.textContent = 'Claimed';
+                    button.classList.remove('claim-button', 'active');
+                    button.classList.add('claimed-button');
+                    button.disabled = true;
+                    button.style.background = '#ccc';
+                    button.style.cursor = 'default';
+
+                    await updateUserStatsUI();
+                    await updateEarnSectionUI();
+                    alert(`Reward claimed! You earned ${reward} gems.`);
+                    analytics.logEvent('ads_quest_completed', { questId, userId: telegramUser.id, reward });
+                } catch (error) {
+                    console.error("[ERROR] Error claiming ad reward:", error.message);
+                    alert("Failed to claim reward: " + error.message);
+                }
+            }
+            // GO button for ad-based quests
+            else if (button.classList.contains('go-button') && questType === 'ads') {
+                console.log("[DEBUG] Handling ad quest:", { questId, adType });
+                try {
+                    const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
+                    if (adProgress.watched >= adLimit) {
+                        alert("You've watched all required ads. Claim your reward!");
+                        return;
                     }
 
-                    if (adPromise && typeof adPromise.then === 'function') {
-                        adPromise.then(() => {
-                            console.log(`[DEBUG] ${adType} ad completed successfully`);
-                            resolve();
-                        }).catch(e => {
-                            console.error(`[DEBUG] ${adType} ad failed:`, e.message);
-                            reject(new Error(`${adType} ad failed: ${e.message}`));
-                        });
+                    console.log("[DEBUG] Showing ad for quest:", questId);
+                    await showAd(adType);
+                    const newWatched = adProgress.watched + 1;
+
+                    await userDocRef.update({
+                        [`adProgress.${questId}`]: {
+                            watched: newWatched,
+                            claimed: adProgress.claimed,
+                            lastClaimed: adProgress.lastClaimed
+                        }
+                    });
+
+                    console.log("[DEBUG] Ad watched, progress updated:", newWatched);
+                    await updateEarnSectionUI();
+                    if (newWatched >= adLimit) {
+                        alert("All ads watched! You can now claim your reward.");
                     } else {
-                        console.log(`[DEBUG] ${adType} ad triggered, assuming completion`);
-                        setTimeout(resolve, 1000); // Small delay to simulate ad
+                        alert(`Ad watched! Progress: ${newWatched}/${adLimit}`);
                     }
                 } catch (error) {
-                    console.error("[DEBUG] Failed to trigger Monetag ad:", error.message);
-                    reject(error);
+                    console.error("[ERROR] Failed to show ad or update progress:", error.message);
+                    alert("Failed to show ad: " + error.message);
                 }
-            } else if (Date.now() - startTime < maxWaitTime) {
-                console.log("[DEBUG] Monetag SDK not loaded yet, retrying in 500ms...");
-                setTimeout(checkSDK, 500);
-            } else {
-                console.warn("[DEBUG] Monetag SDK failed to load within 15 seconds, simulating ad...");
-                setTimeout(() => {
-                    alert("Simulated ad: Please wait 5 seconds...");
-                    setTimeout(() => {
-                        console.log("[DEBUG] Simulated ad completed");
-                        resolve();
-                    }, 5000);
-                }, 1000);
             }
-        }
-        checkSDK();
-    });
-}
+            // GO button for non-ad quests
+            else if (button.classList.contains('go-button')) {
+                console.log("[DEBUG] Handling non-ad quest:", { questId, link });
+                try {
+                    await initializeUserData();
+                    const userDoc = await userDocRef.get();
+                    const userData = userDoc.data();
+                    const claimedQuests = userData.claimedQuests || [];
 
-        // Initialize App with Ad on Launch
+                    if (claimedQuests.includes(questId)) {
+                        alert("This quest has already been claimed!");
+                        return;
+                    }
+
+                    console.log("[DEBUG] Redirecting to link:", link);
+                    Telegram.WebApp.openTelegramLink(link);
+
+                    await userDocRef.update({
+                        gems: (userData.gems || 0) + reward,
+                        claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId)
+                    });
+
+                    button.textContent = 'Claimed';
+                    button.classList.remove('go-button');
+                    button.classList.add('claimed-button');
+                    button.disabled = true;
+                    button.style.background = '#ccc';
+                    button.style.cursor = 'default';
+
+                    await updateUserStatsUI();
+                    await updateEarnSectionUI();
+                    alert(`Quest completed! You earned ${reward} gems.`);
+                    analytics.logEvent('quest_completed', { questId, userId: telegramUser.id, reward });
+                } catch (error) {
+                    console.error("[ERROR] Error completing quest:", error.message);
+                    alert("Failed to complete quest: " + error.message);
+                }
+            }
+        });
+
+        // Function to show Monetag Ads with support for multiple ad types
+        function showAd(adType) {
+            return new Promise((resolve, reject) => {
+                const maxWaitTime = 15000; // 15 seconds timeout
+                const startTime = Date.now();
+
+                console.log(`[DEBUG] Attempting to show ad of type: ${adType}`);
+
+                function checkSDK() {
+                    if (window.show_9180370) {
+                        console.log("[DEBUG] Monetag SDK loaded, triggering ad...");
+                        try {
+                            let adPromise;
+                            switch (adType) {
+                                case 'rewarded_interstitial':
+                                    console.log("[DEBUG] Triggering Rewarded Interstitial ad...");
+                                    adPromise = window.show_9180370(); // Default call for interstitial
+                                    break;
+                                case 'rewarded_popup':
+                                    console.log("[DEBUG] Triggering Rewarded Popup ad...");
+                                    adPromise = window.show_9180370('pop');
+                                    break;
+                                case 'inApp':
+                                    console.log("[DEBUG] Triggering In-App Interstitial ad...");
+                                    adPromise = window.show_9180370({
+                                        type: 'inApp',
+                                        inAppSettings: {
+                                            frequency: 1,
+                                            capping: 0.1,
+                                            interval: 0,
+                                            timeout: 3,
+                                            everyPage: false
+                                        }
+                                    });
+                                    break;
+                                default:
+                                    console.error("[DEBUG] Unknown ad type:", adType);
+                                    reject(new Error("Unknown ad type: " + adType));
+                                    return;
+                            }
+
+                            if (adPromise && typeof adPromise.then === 'function') {
+                                adPromise.then(() => {
+                                    console.log(`[DEBUG] ${adType} ad completed successfully`);
+                                    resolve();
+                                }).catch(e => {
+                                    console.error(`[DEBUG] ${adType} ad failed:`, e.message);
+                                    reject(new Error(`${adType} ad failed: ${e.message}`));
+                                });
+                            } else {
+                                console.log(`[DEBUG] ${adType} ad triggered, assuming completion`);
+                                setTimeout(resolve, 1000); // Small delay to simulate ad
+                            }
+                        } catch (error) {
+                            console.error("[DEBUG] Failed to trigger Monetag ad:", error.message);
+                            reject(error);
+                        }
+                    } else if (Date.now() - startTime < maxWaitTime) {
+                        console.log("[DEBUG] Monetag SDK not loaded yet, retrying in 500ms...");
+                        setTimeout(checkSDK, 500);
+                    } else {
+                        console.warn("[DEBUG] Monetag SDK failed to load within 15 seconds, simulating ad...");
+                        setTimeout(() => {
+                            alert("Simulated ad: Please wait 5 seconds...");
+                            setTimeout(() => {
+                                console.log("[DEBUG] Simulated ad completed");
+                                resolve();
+                            }, 5000);
+                        }, 1000);
+                    }
+                }
+                checkSDK();
+            });
+        }
+
+        // Initialize App without automatic ads
         async function initApp() {
             try {
                 console.log("Initializing app...");
@@ -2018,10 +2035,7 @@ function showAd(adType) {
                 await handleReferral();
                 generateReferralLink();
 
-                // Show Monetag ad when bot opens
-                showMonetagAd();
-
-                // Continue with wallet and UI setup
+                // Initialize wallet system (without showing ads on launch)
                 tonConnectUI = await initializeTonConnect();
                 await initWalletSystem();
             } catch (error) {
@@ -2035,7 +2049,6 @@ function showAd(adType) {
             console.log("DOM loaded, starting initApp...");
             initApp();
         });
-
 
         // ====== TON CONNECT IMPLEMENTATION ====== //
 
@@ -2477,58 +2490,6 @@ function showAd(adType) {
                 transactionList.innerHTML = `<li>Error loading history: ${error.message}</li>`;
             }
         }
-
-        // Function to show Monetag In-App Interstitial Ad
-        function showMonetagAd() {
-            if (window.show_9180370) {
-                try {
-                    window.show_9180370({
-                        type: 'inApp',
-                        inAppSettings: {
-                            frequency: 2,      // Show 2 ads
-                            capping: 0.1,      // Within 6 minutes (0.1 hours)
-                            interval: 30,      // 30-second interval between ads
-                            timeout: 5,        // 5-second delay before first ad
-                            everyPage: false   // Session persists across page navigation
-                        }
-                    });
-                    console.log("Monetag In-App Interstitial ad triggered");
-                } catch (error) {
-                    console.error("Failed to show Monetag ad:", error);
-                }
-            } else {
-                console.warn("Monetag SDK (show_9180370) not loaded yet");
-            }
-        }
-
-        // Initialize App with Ad on Launch
-        async function initApp() {
-            try {
-                console.log("Initializing app...");
-                await initializeFirebase();
-                await initializeUserData();
-                await handleReferral();
-                generateReferralLink();
-
-// Show Monetag ad when bot opens
-showAd('inApp').catch(error => {
-    console.error("Failed to show initial ad:", error.message);
-});
-                // Continue with wallet and UI setup
-                tonConnectUI = await initializeTonConnect();
-                await initWalletSystem();
-            } catch (error) {
-                console.error("App initialization failed:", error);
-                alert("Failed to initialize app. Please refresh and try again.");
-            }
-        }
-
-        // Call initApp when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("DOM loaded, starting initApp...");
-            initApp();
-        });
-
     </script>
 </body>
 </html>
