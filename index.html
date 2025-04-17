@@ -611,6 +611,7 @@
         .tx-status.pending { color: #ffcc00; }
         .tx-status.completed { color: #00ff00; }
         .tx-status.failed { color: #ff0000; }
+        .tx-status.unknown { color: #ccc; } /* Added for safety */
 
         /* Debug Console Style */
          #debugConsole {
@@ -2864,15 +2865,12 @@
                 if (typeof window.show_9180370 === 'function') {
                     // Define the settings for automatic display
                     // Adjust these values as needed based on Monetag docs and desired behavior
-                               const autoInAppSettings = {
-               frequency: 2,      // Max 2 ads per session defined by capping
-               capping: 0.016,    // Session duration = 0.016 hours (~1 minute) <<<--- NEW VALUE
-               interval: 30,     // Minimum 30 seconds between ads
-               timeout: 5,       // 5-second delay before the *first* ad in a session might show
-               everyPage: false   // Keep this based on your needs
-           };
-
-                                         // Monitor if this works as expected with section changes.
+                    const autoInAppSettings = {
+                        frequency: 2,      // Max 2 ads per session defined by capping
+                        capping: 0.016,    // Session duration = 0.016 hours (~1 minute) <<<--- UPDATED VALUE
+                        interval: 30,     // Minimum 30 seconds between ads
+                        timeout: 5,       // 5-second delay before the *first* ad in a session might show
+                        everyPage: false   // Keep this based on your needs
                     };
                     debugLog('[AD INIT] Initializing automatic In-App ads with settings:', JSON.stringify(autoInAppSettings));
                     // Initialize automatic ads
