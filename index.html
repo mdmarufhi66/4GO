@@ -1848,7 +1848,8 @@
                      } catch (error) {
                          console.error("[QUEST ERROR] Failed to show ad or update progress:", error);
                          debugLog(`[QUEST ERROR] Failed showing ad/updating progress for ${questId}: ${error.message}`);
-                         alert(`Failed to show ad. ${error.message}`); // Show error message to user
+                         // UPDATED ALERT MESSAGE HERE
+                         alert(`Failed to show ad: ${error.message}. Please try again.`); // Show error message to user
                          // Refresh UI to reset button state if ad failed
                          await updateEarnSectionUI();
                      }
@@ -1911,7 +1912,8 @@
                 }
                 // --- END REJECTION ---
 
-                const maxWaitTime = 20000; // Increased timeout slightly
+                // INCREASED TIMEOUT VALUE HERE
+                const maxWaitTime = 30000; // Increased timeout to 30 seconds
 
                 // Check if SDK function exists
                 if (typeof window.show_9180370 !== 'function') {
@@ -2867,7 +2869,7 @@
                     // Adjust these values as needed based on Monetag docs and desired behavior
                     const autoInAppSettings = {
                         frequency: 2,      // Max 2 ads per session defined by capping
-                        capping: 0.016,    // Session duration = 0.016 hours (~1 minute) <<<--- UPDATED VALUE
+                        capping: 0.016,    // Session duration = 0.016 hours (~1 minute)
                         interval: 30,     // Minimum 30 seconds between ads
                         timeout: 5,       // 5-second delay before the *first* ad in a session might show
                         everyPage: false   // Keep this based on your needs
