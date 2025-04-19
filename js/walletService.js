@@ -1,5 +1,7 @@
 // js/walletService.js
 
+debugLog("walletService.js script started."); // <-- ADDED DEBUG LOG
+
 // Forward declare global variable defined in this file, used by other scripts
 let tonConnectUI = null; // TON Connect UI instance
 
@@ -211,11 +213,11 @@ function setupWithdrawListeners() {
       }
       // Validate Firebase/User state
       if (!window.firebaseInitialized || !window.db || !window.telegramUser || !window.telegramUser.id) {
-          alert("App initialization error. Please reload.");
-          elements.confirmButton.disabled = false; elements.confirmButton.textContent = 'Confirm'; // Re-enable and reset text
-          elements.modal.style.display = 'none'; // Hide modal on critical error
-          debugLog("[WITHDRAW ERROR] Firebase or User not ready.");
-          return; // Stop validation
+         alert("App initialization error. Please reload.");
+         elements.confirmButton.disabled = false; elements.confirmButton.textContent = 'Confirm'; // Re-enable and reset text
+         elements.modal.style.display = 'none'; // Hide modal on critical error
+         debugLog("[WITHDRAW ERROR] Firebase or User not ready.");
+         return; // Stop validation
       }
       // --- End Validation ---
 
@@ -358,41 +360,172 @@ function setupWithdrawListeners() {
      // No finally block needed; button state and modal visibility are managed explicitly in try/catch blocks
   }
 
+ // Update the wallet section UI including balances and history
+ // This function is called by switchSection in navigation.js and other places
+ async function updateWalletSectionUI() {
+     debugLog("[WALLET] Updating Wallet section UI..."); // <-- ADDED DEBUG LOG
+     // Uses debugLog from utils.js (globally available)
+     // Uses currentUserData from uiUpdater.js (globally available)
+     // Calls fetchAndUpdateUserData, updateUserStatsUI from uiUpdater.js (globally available)
+     // Calls updateWalletConnectionStatusUI, updateTransactionHistory, setupWithdrawListeners from this file
+
+     // Use cached user data. If not available, attempt a quick fetch.
+     // Note: The calling code (e.g., navigation.js's switchSection with ensureFirebaseReady)
+     // should ideally ensure currentUserData is populated before calling this,
+     // but adding a fetch here is a safeguard if needed.
+     if (!window.currentUserData) {
+         debugLog("[WALLET] updateWalletSectionUI: currentUserData not in cache, attempting fetch."); // <-- ADDED DEBUG LOG
+        await window.fetchAndUpdateUserData(); // Ensure data is fetched if not present
+        if (!window.currentUserData) {
+             debugLog("[WALLET] updateWalletSectionUI: Failed to fetch user data."); // <-- ADDED DEBUG LOG
+             // Optionally display an error message in the wallet section itself
+             return; // Cannot update UI without data
+        }
+        debugLog("[WALLET] updateWalletSectionUI: User data fetched."); // <-- ADDED DEBUG LOG
+     } else {
+          debugLog("[WALLET] updateWalletSectionUI: Using cached currentUserData."); // <-- ADDED DEBUG LOG
+     }
+
+
+     // Update balances shown in the wallet section from cached data (also done by updateUserStatsUI, but useful to call explicitly)
+     window.updateUserStatsUI(); // Updates header and wallet balances
+
+     // Update connection button/status text based on current TON Connect state
+     await updateWalletConnectionStatusUI();
+
+     // Update the transaction history list
+     await updateTransactionHistory();
+
+     // Ensure withdraw listeners are set up (important if elements are added/removed dynamically)
+     setupWithdrawListeners();
+
+     debugLog("[WALLET] Wallet section UI update complete."); // <-- ADDED DEBUG LOG
+  }
+
+
+ // Update connection status text and button
+ async function updateWalletConnectionStatusUI() {
+     debugLog("[WALLET] Updating Wallet Connection Status UI..."); // <-- ADDED DEBUG LOG
+     // Uses debugLog from utils.js (globally available)
+     // Uses getWalletElements from this file (implicitly global)
+     // Uses tonConnectUI from this file (implicitly global)
+     // Uses currentUserData from uiUpdater.js (globally available)
+     // Uses Storage from firebaseService.js (globally available)
+
+     const elements = getWalletElements(); // Use function to get current elements
+
+     // Ensure connect button and status element exist
+     if (!elements.connectButton || !elements.connectionStatus) {
+        debugLog("[WALLET] Connect button or status element not found for UI update."); // <-- ADDED DEBUG LOG
+        console.warn("[WALLET] Connect button or status element not found.");
+        return; // Stop if essential elements are missing
+     }
+
+     // Check TON Connect UI instance and connection status
+     const isConnected = window.tonConnectUI && window.tonConnectUI.connected; // Use global tonConnectUI
+     debugLog(`[WALLET] TON Connect is connected: ${isConnected}`); // <-- ADDED DEBUG LOG
+
+     // Determine if the user has a wallet address stored in their data
+     const userHasWallet = !!window.currentUserData?.walletAddress;
+      debugLog(`[WALLET] User has stored wallet address in data: ${userHasWallet}`); // <-- ADDED DEBUG LOG
+
+
+     if (isConnected) {
+         const wallet = window.tonConnectUI.wallet; // Get wallet info from TON Connect UI
+         let address = wallet?.account?.address;
+         let shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connected';
+          debugLog(`[WALLET] Wallet connected: Address ${address || 'N/A'}`); // <-- ADDED DEBUG LOG
+
+         // Update UI for connected state
+         elements.connectionStatus.textContent = `Connected: ${shortAddress}`;
+         elements.connectionStatus.className = 'wallet-status connected'; // Set CSS class
+         elements.connectButton.textContent = 'DISCONNECT';
+         elements.connectButton.classList.add('connected'); // Add class for connected style
+         // Enable withdraw buttons - check should happen again in confirmWithdraw based on balance
+         elements.withdrawButtons.forEach(btn => btn.disabled = false );
+         debugLog("[WALLET] UI updated to connected state."); // <-- ADDED DEBUG LOG
+
+         // Update stored address in Firestore if different or not set
+         // Uses Storage from firebaseService.js (globally available)
+         if (address && address !== window.currentUserData?.walletAddress) {
+             debugLog(`[WALLET] Stored wallet address differs or is missing. Updating in Firestore.`); // <-- ADDED DEBUG LOG
+             await window.Storage.setItem('walletAddress', address);
+              // Update local cached data immediately as well
+             if (window.currentUserData) window.currentUserData.walletAddress = address;
+         } else if (address) {
+             debugLog("[WALLET] Stored wallet address matches connected wallet."); // <-- ADDED DEBUG LOG
+         } else {
+             debugLog("[WALLET] Wallet connected, but address not available from walletInfo."); // <-- ADDED DEBUG LOG
+         }
+
+     } else {
+         // Update UI for disconnected state
+         elements.connectionStatus.textContent = 'Disconnected';
+         elements.connectionStatus.className = 'wallet-status disconnected'; // Set CSS class
+         elements.connectButton.textContent = 'CONNECT TON WALLET';
+         elements.connectButton.classList.remove('connected'); // Remove connected style class
+         // Disable withdraw buttons when disconnected
+         elements.withdrawButtons.forEach(btn => btn.disabled = true );
+         debugLog("[WALLET] UI updated to disconnected state."); // <-- ADDED DEBUG LOG
+
+         // Optionally clear stored address on explicit disconnect if you wish
+         // await window.Storage.setItem('walletAddress', null);
+         // debugLog("Wallet disconnected, cleared stored address.");
+          // Clear wallet address from cached currentUserData
+         if (window.currentUserData) {
+              window.currentUserData.walletAddress = null;
+              debugLog("Cached user data wallet address cleared."); // <-- ADDED DEBUG LOG
+         }
+     }
+
+     // Ensure the connect button is enabled after the UI update
+     elements.connectButton.disabled = false;
+      debugLog("[WALLET] Connect button re-enabled."); // <-- ADDED DEBUG LOG
+      debugLog("[WALLET] Wallet Connection Status UI update complete."); // <-- ADDED DEBUG LOG
+ }
+
+
  // Update the transaction history list in the wallet section
  // This function is called by updateWalletSectionUI and after withdrawal simulations
  async function updateTransactionHistory() {
+     debugLog("[WALLET] Updating transaction history..."); // <-- ADDED DEBUG LOG
      // Uses debugLog from utils.js (globally available)
      // Uses getWalletElements from this file (implicitly global)
      // Uses firebaseInitialized, db from firebaseService.js (implicitly global)
      // Uses telegramUser from telegramService.js (globally available)
      // Uses formatTimestamp from utils.js (globally available)
 
-     debugLog("Updating transaction history...");
      const elements = getWalletElements(); // Get elements
 
      // Ensure the transaction list element exists
      if (!elements.transactionList) {
-         debugLog("[WALLET HISTORY ERROR] Transaction list element not found. Skipping history update.");
+         debugLog("[WALLET HISTORY ERROR] Transaction list element not found. Skipping history update."); // <-- ADDED DEBUG LOG
          console.error("[WALLET HISTORY ERROR] Transaction list element missing.");
          return; // Stop if element is missing
       }
 
      // Display a loading message
      elements.transactionList.innerHTML = '<li><p>Loading history...</p></li>'; // Use <p> inside <li> for structure
+      debugLog("[WALLET HISTORY] Set loading message."); // <-- ADDED DEBUG LOG
 
      // Ensure Firebase and user are ready before fetching history
      if (!window.firebaseInitialized || !window.db || !window.telegramUser || !window.telegramUser.id) {
-         debugLog("[WALLET HISTORY ERROR] Firebase or User not ready for history fetch.");
+         debugLog("[WALLET HISTORY ERROR] Firebase or User not ready for history fetch."); // <-- ADDED DEBUG LOG
          elements.transactionList.innerHTML = '<li><p>History unavailable. Please try again later.</p></li>'; // Show unavailable message
          return; // Stop fetch
      }
+      debugLog("[WALLET HISTORY] Firebase and user ready for fetch."); // <-- ADDED DEBUG LOG
+
 
      try {
          // Reference the transactions subcollection for the current user
          const txCollectionRef = window.db.collection('userData').doc(window.telegramUser.id.toString()).collection('transactions');
+          debugLog("[WALLET HISTORY] Transaction collection reference created."); // <-- ADDED DEBUG LOG
 
          // Fetch the latest transactions, ordered by timestamp
          const snapshot = await txCollectionRef.orderBy('timestamp', 'desc').limit(15).get(); // Limit to latest 15
+          debugLog("[WALLET HISTORY] Firestore query executed."); // <-- ADDED DEBUG LOG
+
 
          // Check if there are any transaction records
          if (snapshot.empty) {
@@ -439,7 +572,7 @@ function setupWithdrawListeners() {
              `;
          }).join(''); // Join the array of list item HTML strings into a single string
 
-         debugLog("Transaction history UI updated successfully.");
+         debugLog("[WALLET HISTORY] Transaction history UI updated successfully.");
 
      } catch (error) {
          console.error("[WALLET HISTORY ERROR] Error updating transaction history:", error);
@@ -449,7 +582,500 @@ function setupWithdrawListeners() {
  }
 
 
+// --- TON Connect Initialization ---
+// This function is called internally by initWalletSystem
+async function initializeTonConnect() {
+    // Uses debugLog and loadScript from utils.js (globally available)
+    // Uses TONCONNECT_MANIFEST_URL from config.js (globally available)
+
+    debugLog("[WALLET] Initializing TON Connect..."); // <-- ADDED DEBUG LOG
+    try {
+        // Check if TonConnectUI class is already available
+        if (typeof window.TonConnectUI === 'undefined') {
+            debugLog("[WALLET] Attempting to load TON Connect UI from CDN:", TONCONNECT_CDN_URL); // <-- ADDED DEBUG LOG
+            // Load the TON Connect UI SDK script dynamically
+            // loadScript is expected to be globally available from utils.js
+            await window.loadScript(TONCONNECT_CDN_URL);
+             debugLog("[WALLET] loadScript for TON Connect UI finished."); // <-- ADDED DEBUG LOG
+            // Check again after attempting to load
+            if (typeof window.TonConnectUI === 'undefined') {
+                 throw new Error("Loaded from CDN, but TonConnectUI not defined.");
+            }
+            debugLog("[WALLET] TON Connect UI loaded successfully from CDN."); // <-- ADDED DEBUG LOG
+        } else {
+             debugLog("[WALLET] TON Connect UI already available in window scope."); // <-- ADDED DEBUG LOG
+        }
+
+        // Check if a TON Connect UI instance already exists
+        if (tonConnectUI) {
+             debugLog("[WALLET] TON Connect UI instance already exists, reusing."); // <-- ADDED DEBUG LOG
+             return tonConnectUI; // Return the existing instance
+        }
+
+        // Create a new TonConnectUI instance
+        // Needs TONCONNECT_MANIFEST_URL from config.js (globally available)
+        debugLog("[WALLET] Creating new TonConnectUI instance with manifest:", window.TONCONNECT_MANIFEST_URL); // <-- ADDED DEBUG LOG
+        tonConnectUI = new window.TonConnectUI({
+            manifestUrl: window.TONCONNECT_MANIFEST_URL, // Use global constant from config.js
+            buttonRootId: null // We manage the button connection manually with our own button
+        });
+        debugLog("[WALLET] TonConnectUI instance created."); // <-- ADDED DEBUG LOG
+        return tonConnectUI; // Return the newly created instance
+
+    } catch (error) {
+        // Handle errors during TON Connect initialization
+        console.error(`[WALLET ERROR] TON Connect initialization failed: ${error.message}`);
+        debugLog(`[WALLET ERROR] TON Connect initialization failed: ${error.message}`); // <-- ADDED DEBUG LOG
+        alert("Wallet connection features are unavailable."); // Inform the user
+        // Return a dummy object with necessary properties to prevent errors
+        // in calling code that expects a TonConnectUI-like object.
+        return {
+            connected: false,
+            account: null,
+            connectWallet: async () => { debugLog("Dummy connectWallet called: Wallet connection unavailable."); alert("Wallet connection unavailable."); },
+            disconnect: async () => { debugLog("Dummy disconnect called: Wallet connection unavailable."); },
+            onStatusChange: (callback) => { debugLog("Dummy onStatusChange registered."); /* Optionally call callback with null immediately */ callback(null); }
+        };
+    }
+}
+
+// Handle clicks on the Connect/Disconnect button
+async function handleConnectClick() {
+    // Uses debugLog from utils.js (globally available)
+    // Uses tonConnectUI from this file (implicitly global)
+    // Calls updateWalletConnectionStatusUI from this file (implicitly global)
+
+    debugLog("[WALLET ACTION] Connect/Disconnect button clicked."); // <-- ADDED DEBUG LOG
+    const elements = getWalletElements(); // Get current elements
+    if (!elements.connectButton || !tonConnectUI) {
+        debugLog("[WALLET ACTION ERROR] Wallet connect button or TON Connect UI not ready."); // <-- ADDED DEBUG LOG
+        // alert("Wallet service not ready. Please try again."); // Optional: alert user
+        return; // Stop if essential elements are missing
+    }
+
+    // Disable the button and show processing state
+    elements.connectButton.disabled = true;
+    elements.connectButton.textContent = 'Processing...';
+    debugLog("[WALLET ACTION] Connect button disabled, text set to Processing."); // <-- ADDED DEBUG LOG
+
+    try {
+        if (tonConnectUI.connected) {
+            // If currently connected, attempt to disconnect
+            debugLog("[WALLET ACTION] Disconnecting wallet..."); // <-- ADDED DEBUG LOG
+            await tonConnectUI.disconnect(); // This should trigger the onStatusChange listener
+            debugLog("[WALLET ACTION] Wallet disconnect initiated."); // <-- ADDED DEBUG LOG
+            // The onStatusChange listener will handle updating the UI state and re-enabling the button
+        } else {
+            // If currently disconnected, attempt to connect
+            debugLog("[WALLET ACTION] Connecting wallet..."); // <-- ADDED DEBUG LOG
+             // The connectWallet method handles opening the modal or redirecting to wallet apps
+             await tonConnectUI.connectWallet(); // This should trigger the onStatusChange listener
+             // The onStatusChange listener will handle updating the UI state and re-enabling the button
+            debugLog("[WALLET ACTION] Wallet connection process initiated via TON Connect UI."); // <-- ADDED DEBUG LOG
+        }
+    } catch (error) {
+        // Handle errors that occur during the connectWallet or disconnect calls
+        console.error(`[WALLET ACTION ERROR] Wallet connection/disconnection error: ${error.message}`);
+        debugLog(`[WALLET ACTION ERROR] Wallet connect/disconnect error: ${error.message}`); // <-- ADDED DEBUG LOG
+        alert(`Wallet action failed: ${error.message}`); // Inform the user about the failure
+
+        // Ensure the UI is updated to reflect the actual state after an error
+        await updateWalletConnectionStatusUI(); // This will also re-enable the button based on the actual state
+    }
+    // No finally block needed because the button state is managed by the onStatusChange listener
+    // which is expected to fire after connectWallet or disconnect complete (successfully or with error).
+    // A timeout could be added here as a safety net if the status change listener doesn't fire,
+    // but relying on the listener is the standard approach.
+}
+
+
+// Initialize the wallet system: TON Connect, listeners, and initial UI state
+// This function is exposed globally for use by main.js
+async function initWalletSystem() {
+    // Uses debugLog from utils.js (globally available)
+    // Uses initializeTonConnect, handleConnectClick, setupWithdrawListeners, updateWalletConnectionStatusUI from this file (implicitly global)
+    // Depends on elements existing in index.html (fetched via getWalletElements)
+    // Depends on fetchAndUpdateUserData from uiUpdater.js (globally available)
+    // Depends on Storage from firebaseService.js (globally available)
+
+    debugLog("[WALLET] Initializing wallet system..."); // <-- ADDED DEBUG LOG
+
+    // 1. Initialize TON Connect UI instance
+    tonConnectUI = await initializeTonConnect();
+    debugLog("[WALLET] initializeTonConnect() finished."); // <-- ADDED DEBUG LOG
+
+    // If TON Connect UI failed to initialize, stop the wallet system init process
+    if (!tonConnectUI || typeof tonConnectUI.onStatusChange !== 'function') {
+        debugLog("[WALLET INIT ERROR] TON Connect UI failed to initialize. Wallet system cannot start."); // <-- ADDED DEBUG LOG
+        // The initializeTonConnect function already alerts the user.
+        // We can update wallet UI to a permanent error state here if needed.
+        const elements = getWalletElements();
+         if (elements.connectionStatus) {
+             elements.connectionStatus.textContent = 'Service Error';
+             elements.connectionStatus.className = 'wallet-status error';
+         }
+         if (elements.connectButton) {
+             elements.connectButton.textContent = 'Unavailable';
+             elements.connectButton.disabled = true;
+         }
+        return; // Exit initialization
+    }
+    debugLog("[WALLET] TON Connect UI is ready."); // <-- ADDED DEBUG LOG
+
+
+    // 2. Set up the TON Connect status change listener
+    // This listener is crucial for reacting to wallet connections and disconnections
+    try {
+        debugLog("[WALLET] Registering TON Connect onStatusChange listener..."); // <-- ADDED DEBUG LOG
+        tonConnectUI.onStatusChange(async (walletInfo) => {
+            const isConnected = !!walletInfo; // walletInfo is null when disconnected
+            const walletAddress = walletInfo?.account?.address || null;
+            const walletChain = walletInfo?.account?.chain || null;
+
+            debugLog(`[WALLET STATUS CHANGE] Status changed. Connected: ${isConnected}`, walletInfo ? { address: walletAddress, chain: walletChain } : null); // <-- ADDED DEBUG LOG
+
+             // Re-fetch user data to ensure consistency, especially after a wallet connection
+             // This updates window.currentUserData
+             debugLog("[WALLET STATUS CHANGE] Refreshing user data..."); // <-- ADDED DEBUG LOG
+             await window.fetchAndUpdateUserData();
+             debugLog("[WALLET STATUS CHANGE] User data refreshed."); // <-- ADDED DEBUG LOG
+
+
+            // Update the UI based on the new connection status
+            debugLog("[WALLET STATUS CHANGE] Calling updateWalletConnectionStatusUI()..."); // <-- ADDED DEBUG LOG
+            await updateWalletConnectionStatusUI();
+             debugLog("[WALLET STATUS CHANGE] Wallet connection UI updated."); // <-- ADDED DEBUG LOG
+
+             // Store or clear the wallet address in Firestore on status change
+             // Uses Storage from firebaseService.js (globally available)
+             if (isConnected && walletAddress) {
+                debugLog(`[WALLET STATUS CHANGE] Storing wallet address ${walletAddress} in Firestore...`); // <-- ADDED DEBUG LOG
+                await window.Storage.setItem('walletAddress', walletAddress);
+                 debugLog("[WALLET STATUS CHANGE] Wallet address stored in Firestore."); // <-- ADDED DEBUG LOG
+              // Update local cached data immediately as well
+             if (window.currentUserData) {
+                 window.currentUserData.walletAddress = walletAddress;
+                 debugLog("[WALLET STATUS CHANGE] Cached user data updated with wallet address."); // <-- ADDED DEBUG LOG
+             }
+
+             } else if (!isConnected) {
+                 // Optionally clear stored address on disconnect if you wish
+                 // This might depend on your security requirements. Clearing is safer
+                 // if you only want the user's *currently connected* wallet stored.
+                 // If you store it to remember their preferred wallet, don't clear on disconnect.
+                 // Let's clear it for now for better security practice.
+                 debugLog("[WALLET STATUS CHANGE] Wallet disconnected. Clearing stored address in Firestore..."); // <-- ADDED DEBUG LOG
+                 await window.Storage.setItem('walletAddress', null);
+                 debugLog("[WALLET STATUS CHANGE] Stored address cleared in Firestore."); // <-- ADDED DEBUG LOG
+                  // Clear wallet address from cached currentUserData as well
+                 if (window.currentUserData) {
+                     window.currentUserData.walletAddress = null;
+                     debugLog("[WALLET STATUS CHANGE] Cached user data wallet address cleared."); // <-- ADDED DEBUG LOG
+                 }
+             }
+
+        }, (error) => {
+             // Handle errors that occur within the status change listener
+             console.error("[WALLET STATUS CHANGE ERROR]", error);
+             debugLog(`[WALLET STATUS CHANGE ERROR] ${error.message || 'Unknown error'}`); // <-- ADDED DEBUG LOG
+             // Update UI to show an error state in the connection status
+             const elements = getWalletElements();
+              if (elements.connectionStatus) {
+                  elements.connectionStatus.textContent = 'Error';
+                  elements.connectionStatus.className = 'wallet-status error';
+              }
+             // Ensure the connect button is usable again
+              if (elements.connectButton) {
+                  elements.connectButton.disabled = false;
+                  elements.connectButton.textContent = 'CONNECT TON WALLET'; // Reset text
+                  elements.connectButton.classList.remove('connected');
+              }
+        });
+        debugLog("[WALLET] TON Connect onStatusChange listener registered."); // <-- ADDED DEBUG LOG
+
+    } catch (listenerError) {
+        console.error("[WALLET INIT ERROR] Failed to register TON Connect status listener:", listenerError);
+        debugLog(`[WALLET INIT ERROR] Failed to register status listener: ${listenerError.message}`); // <-- ADDED DEBUG LOG
+        alert("Wallet connection status updates may not work correctly.");
+    }
+
+
+    // 3. Add listener for the Connect/Disconnect button click
+    // Ensure we only add the listener once by removing any existing ones
+    const elements = getWalletElements(); // Get current elements after potential DOM changes
+    if (elements.connectButton) {
+        elements.connectButton.removeEventListener('click', handleConnectClick); // Remove old listeners
+        elements.connectButton.addEventListener('click', handleConnectClick); // Add the new listener
+        debugLog("[WALLET] Connect/Disconnect button listener added."); // <-- ADDED DEBUG LOG
+    } else {
+        debugLog("[WALLET INIT WARN] Connect/Disconnect button element not found."); // <-- ADDED DEBUG LOG
+    }
+
+
+    // 4. Set up listeners for the Withdraw buttons
+    // This needs to happen after the DOM is ready and elements exist
+    setupWithdrawListeners();
+    debugLog("[WALLET] Withdraw button listeners setup."); // <-- ADDED DEBUG LOG
+
+
+    // 5. Perform initial UI update based on the current wallet connection state
+    // This should reflect whether the wallet is connected right after the app loads.
+    // It also updates the enabled/disabled state of withdraw buttons.
+    debugLog("[WALLET] Performing initial Wallet Connection Status UI update..."); // <-- ADDED DEBUG LOG
+    await updateWalletConnectionStatusUI();
+    debugLog("[WALLET] Initial wallet connection UI state updated."); // <-- ADDED DEBUG LOG
+
+
+    debugLog("[WALLET] Wallet system initialization successfully completed."); // <-- ADDED DEBUG LOG
+}
+
+// Update the wallet section UI including balances and history
+// This function is called by switchSection in navigation.js and other places
+ async function updateWalletSectionUI() {
+     debugLog("[WALLET] Updating Wallet section UI..."); // <-- ADDED DEBUG LOG
+     // Uses debugLog from utils.js (globally available)
+     // Uses currentUserData from uiUpdater.js (globally available)
+     // Calls fetchAndUpdateUserData, updateUserStatsUI from uiUpdater.js (globally available)
+     // Calls updateWalletConnectionStatusUI, updateTransactionHistory, setupWithdrawListeners from this file
+
+     // Use cached user data. If not available, attempt a quick fetch.
+     // Note: The calling code (e.g., navigation.js's switchSection with ensureFirebaseReady)
+     // should ideally ensure currentUserData is populated before calling this,
+     // but adding a fetch here is a safeguard if needed.
+     if (!window.currentUserData) {
+         debugLog("[WALLET] updateWalletSectionUI: currentUserData not in cache, attempting fetch."); // <-- ADDED DEBUG LOG
+        await window.fetchAndUpdateUserData(); // Ensure data is fetched if not present
+        if (!window.currentUserData) {
+             debugLog("[WALLET] updateWalletSectionUI: Failed to fetch user data."); // <-- ADDED DEBUG LOG
+             // Optionally display an error message in the wallet section itself
+             return; // Cannot update UI without data
+        }
+        debugLog("[WALLET] updateWalletSectionUI: User data fetched."); // <-- ADDED DEBUG LOG
+     } else {
+          debugLog("[WALLET] updateWalletSectionUI: Using cached currentUserData."); // <-- ADDED DEBUG LOG
+     }
+
+
+     // Update balances shown in the wallet section from cached data (also done by updateUserStatsUI, but useful to call explicitly)
+     debugLog("[WALLET] updateWalletSectionUI: Calling updateUserStatsUI()..."); // <-- ADDED DEBUG LOG
+     window.updateUserStatsUI(); // Updates header and wallet balances
+     debugLog("[WALLET] updateWalletSectionUI: updateUserStatsUI() finished."); // <-- ADDED DEBUG LOG
+
+
+     // Update connection button/status text based on current TON Connect state
+     debugLog("[WALLET] updateWalletSectionUI: Calling updateWalletConnectionStatusUI()..."); // <-- ADDED DEBUG LOG
+     await updateWalletConnectionStatusUI();
+     debugLog("[WALLET] updateWalletSectionUI: updateWalletConnectionStatusUI() finished."); // <-- ADDED DEBUG LOG
+
+     // Update the transaction history list
+     debugLog("[WALLET] updateWalletSectionUI: Calling updateTransactionHistory()..."); // <-- ADDED DEBUG LOG
+     await updateTransactionHistory();
+     debugLog("[WALLET] updateWalletSectionUI: updateTransactionHistory() finished."); // <-- ADDED DEBUG LOG
+
+     // Ensure withdraw listeners are set up (important if elements are added/removed dynamically)
+     debugLog("[WALLET] updateWalletSectionUI: Calling setupWithdrawListeners()..."); // <-- ADDED DEBUG LOG
+     setupWithdrawListeners();
+     debugLog("[WALLET] updateWalletSectionUI: setupWithdrawListeners() finished."); // <-- ADDED DEBUG LOG
+
+
+     debugLog("[WALLET] Wallet section UI update complete."); // <-- ADDED DEBUG LOG
+  }
+
+
+ // Update connection status text and button
+ async function updateWalletConnectionStatusUI() {
+     debugLog("[WALLET] Updating Wallet Connection Status UI..."); // <-- ADDED DEBUG LOG
+     // Uses debugLog from utils.js (globally available)
+     // Uses getWalletElements from this file (implicitly global)
+     // Uses tonConnectUI from this file (implicitly global)
+     // Uses currentUserData from uiUpdater.js (globally available)
+     // Uses Storage from firebaseService.js (globally available)
+
+     const elements = getWalletElements(); // Use function to get current elements
+     debugLog("[WALLET] getWalletElements() finished."); // <-- ADDED DEBUG LOG
+
+     // Ensure connect button and status element exist
+     if (!elements.connectButton || !elements.connectionStatus) {
+        debugLog("[WALLET] Connect button or status element not found for UI update. Skipping."); // <-- ADDED DEBUG LOG
+        console.warn("[WALLET] Connect button or status element not found.");
+        return; // Stop if essential elements are missing
+     }
+     debugLog("[WALLET] Wallet UI elements found."); // <-- ADDED DEBUG LOG
+
+     // Check TON Connect UI instance and connection status
+     const isConnected = window.tonConnectUI && window.tonConnectUI.connected; // Use global tonConnectUI
+     debugLog(`[WALLET] TON Connect is connected: ${isConnected}`); // <-- ADDED DEBUG LOG
+
+     // Determine if the user has a wallet address stored in their data
+     const userHasWallet = !!window.currentUserData?.walletAddress;
+      debugLog(`[WALLET] User has stored wallet address in data: ${userHasWallet}`); // <-- ADDED DEBUG LOG
+
+
+     if (isConnected) {
+         const wallet = window.tonConnectUI.wallet; // Get wallet info from TON Connect UI
+         let address = wallet?.account?.address;
+         let shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connected';
+          debugLog(`[WALLET] Wallet connected: Address ${address || 'N/A'}`); // <-- ADDED DEBUG LOG
+
+         // Update UI for connected state
+         elements.connectionStatus.textContent = `Connected: ${shortAddress}`;
+         elements.connectionStatus.className = 'wallet-status connected'; // Set CSS class
+         elements.connectButton.textContent = 'DISCONNECT';
+         elements.connectButton.classList.add('connected'); // Add class for connected style
+         // Enable withdraw buttons - check should happen again in confirmWithdraw based on balance
+         elements.withdrawButtons.forEach(btn => btn.disabled = false );
+         debugLog("[WALLET] UI updated to connected state."); // <-- ADDED DEBUG LOG
+
+         // Update stored address in Firestore if different or not set
+         // Uses Storage from firebaseService.js (globally available)
+         if (address && address !== window.currentUserData?.walletAddress) {
+             debugLog(`[WALLET] Stored wallet address differs or is missing. Updating in Firestore.`); // <-- ADDED DEBUG LOG
+             await window.Storage.setItem('walletAddress', address);
+              debugLog("[WALLET] Wallet address stored in Firestore."); // <-- ADDED DEBUG LOG
+              // Update local cached data immediately as well
+             if (window.currentUserData) {
+                 window.currentUserData.walletAddress = address;
+                 debugLog("[WALLET] Cached user data updated with wallet address."); // <-- ADDED DEBUG LOG
+             }
+
+         } else if (address) {
+             debugLog("[WALLET] Stored wallet address matches connected wallet."); // <-- ADDED DEBUG LOG
+         } else {
+             debugLog("[WALLET] Wallet connected, but address not available from walletInfo."); // <-- ADDED DEBUG LOG
+         }
+
+     } else {
+         // Update UI for disconnected state
+         elements.connectionStatus.textContent = 'Disconnected';
+         elements.connectionStatus.className = 'wallet-status disconnected'; // Set CSS class
+         elements.connectButton.textContent = 'CONNECT TON WALLET';
+         elements.connectButton.classList.remove('connected'); // Remove connected style class
+         // Disable withdraw buttons when disconnected
+         elements.withdrawButtons.forEach(btn => btn.disabled = true );
+         debugLog("[WALLET] UI updated to disconnected state."); // <-- ADDED DEBUG LOG
+
+         // Optionally clear stored address on explicit disconnect if you wish
+         // await window.Storage.setItem('walletAddress', null);
+         // debugLog("Wallet disconnected, cleared stored address.");
+          // Clear wallet address from cached currentUserData
+         if (window.currentUserData) {
+              window.currentUserData.walletAddress = null;
+              debugLog("[WALLET] Cached user data wallet address cleared."); // <-- ADDED DEBUG LOG
+         }
+     }
+
+     // Ensure the connect button is enabled after the UI update
+     elements.connectButton.disabled = false;
+      debugLog("[WALLET] Connect button re-enabled."); // <-- ADDED DEBUG LOG
+      debugLog("[WALLET] Wallet Connection Status UI update complete."); // <-- ADDED DEBUG LOG
+ }
+
+
+ // Update the transaction history list in the wallet section
+ // This function is called by updateWalletSectionUI and after withdrawal simulations
+ async function updateTransactionHistory() {
+     debugLog("[WALLET] Updating transaction history..."); // <-- ADDED DEBUG LOG
+     // Uses debugLog from utils.js (globally available)
+     // Uses getWalletElements from this file (implicitly global)
+     // Uses firebaseInitialized, db from firebaseService.js (implicitly global)
+     // Uses telegramUser from telegramService.js (globally available)
+     // Uses formatTimestamp from utils.js (globally available)
+
+     const elements = getWalletElements(); // Get elements
+     debugLog("[WALLET HISTORY] getWalletElements() finished."); // <-- ADDED DEBUG LOG
+
+
+     // Ensure the transaction list element exists
+     if (!elements.transactionList) {
+         debugLog("[WALLET HISTORY ERROR] Transaction list element not found. Skipping history update."); // <-- ADDED DEBUG LOG
+         console.error("[WALLET HISTORY ERROR] Transaction list element missing.");
+         return; // Stop if element is missing
+      }
+      debugLog("[WALLET HISTORY] Transaction list element found."); // <-- ADDED DEBUG LOG
+
+
+     // Display a loading message
+     elements.transactionList.innerHTML = '<li><p>Loading history...</p></li>'; // Use <p> inside <li> for structure
+      debugLog("[WALLET HISTORY] Set loading message."); // <-- ADDED DEBUG LOG
+
+     // Ensure Firebase and user are ready before fetching history
+     if (!window.firebaseInitialized || !window.db || !window.telegramUser || !window.telegramUser.id) {
+         debugLog("[WALLET HISTORY ERROR] Firebase or User not ready for history fetch."); // <-- ADDED DEBUG LOG
+         elements.transactionList.innerHTML = '<li><p>History unavailable. Please try again later.</p></li>'; // Show unavailable message
+         return; // Stop fetch
+     }
+      debugLog("[WALLET HISTORY] Firebase and user ready for fetch."); // <-- ADDED DEBUG LOG
+
+
+     try {
+         // Reference the transactions subcollection for the current user
+         const txCollectionRef = window.db.collection('userData').doc(window.telegramUser.id.toString()).collection('transactions');
+          debugLog("[WALLET HISTORY] Transaction collection reference created."); // <-- ADDED DEBUG LOG
+
+         // Fetch the latest transactions, ordered by timestamp
+         const snapshot = await txCollectionRef.orderBy('timestamp', 'desc').limit(15).get(); // Limit to latest 15
+          debugLog("[WALLET HISTORY] Firestore query executed."); // <-- ADDED DEBUG LOG
+
+
+         // Check if there are any transaction records
+         if (snapshot.empty) {
+              debugLog("[WALLET HISTORY] No transaction records found.");
+              elements.transactionList.innerHTML = '<li><p>No transactions yet</p></li>'; // Show empty state message
+              return; // Stop here
+         }
+
+         debugLog(`[WALLET HISTORY] Fetched ${snapshot.docs.length} transaction history entries.`);
+
+         // Generate HTML for each transaction record
+         elements.transactionList.innerHTML = snapshot.docs.map(doc => {
+             const tx = doc.data(); // Get the transaction data
+
+             // Format the timestamp using the utility function
+             const txTime = window.formatTimestamp(tx.timestamp); // Use global formatTimestamp
+
+             // Build the detail string based on transaction type
+             let detail = '';
+             const status = tx.status || 'unknown'; // Default status if missing
+             const statusClass = status.toLowerCase(); // Use lowercase status for CSS class
+
+             if (tx.type === 'withdrawal') {
+                  detail = `Withdraw ${tx.amount?.toFixed(4) || '?'} ${tx.currency || '?'} (Fee: ${tx.fee?.toFixed(4) || '?'})`;
+                  // Optionally add destination address snippet
+                  // if (tx.destination) detail += ` to ${tx.destination.slice(0, 6)}...${tx.destination.slice(-4)}`;
+             } else if (tx.type === 'credit_claim') {
+                  detail = `Claimed ${tx.usdtAmount?.toFixed(4) || '?'} USDT (${tx.creditsSpent?.toLocaleString() || '?'} C)`;
+              } else if (tx.type === 'quest_reward') { // Example for future quest rewards
+                  detail = `Quest Reward: +${tx.rewardAmount?.toLocaleString() || '?'} ${tx.rewardCurrency || '?'}`;
+              } else {
+                 // Generic fallback for unknown types
+                 detail = `Type: ${tx.type || 'Unknown'} | Amount: ${tx.amount || 'N/A'}`;
+             }
+
+             // Return the HTML for a list item
+             return `
+                 <li>
+                     ${detail}
+                     - <span class="tx-status ${statusClass}">${status}</span>
+                     <br><small>${txTime}</small>
+                     ${tx.failureReason ? `<br><small style="color: #ff4500;">Reason: ${tx.failureReason}</small>` : ''}
+                 </li>
+             `;
+         }).join(''); // Join the array of list item HTML strings into a single string
+
+         debugLog("[WALLET HISTORY] Transaction history UI updated successfully.");
+
+     } catch (error) {
+         console.error("[WALLET HISTORY ERROR] Error updating transaction history:", error);
+         debugLog(`[WALLET HISTORY ERROR] Error updating history: ${error.message}`);
+         elements.transactionList.innerHTML = `<li><p class="error">Failed to load transaction history. Please try again.</p></li>`; // Show error message
+     }
+ }
+
+
+debugLog("[WALLET] walletService.js script finishing execution - preparing global exports."); // <-- ADDED DEBUG LOG
+
 // Make key wallet system variables and functions available globally
+// This is necessary for other scripts to access TON Connect instance and wallet-related functions
 window.tonConnectUI = tonConnectUI; // Expose the TonConnectUI instance
 window.initWalletSystem = initWalletSystem; // Expose the main initialization function
 // Expose UI update functions so navigation/main can call them
@@ -459,3 +1085,6 @@ window.updateTransactionHistory = updateTransactionHistory;
 // Helper functions like getWalletElements, showWithdrawModal, confirmWithdraw, setupWithdrawListeners
 // can remain local or be exposed if needed elsewhere explicitly.
 // Based on the original code structure, they seem to be primarily internal to walletService.
+
+debugLog("[WALLET] Global wallet variables/functions exported."); // <-- ADDED DEBUG LOG
+debugLog("walletService.js script finished."); // <-- ADDED DEBUG LOG
