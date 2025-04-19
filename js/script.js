@@ -1,4 +1,4 @@
-console.log('[DEBUG] Script execution started.');
+Console.log('[DEBUG] Script execution started.');
 
 // --- Global Variables ---
 let app, db, auth, storage, analytics;
@@ -874,7 +874,7 @@ function updateQuestItemUI(quest, li, button) {
 async function initializeTONConnect() {
     debugLog("Initializing TON Connect...");
     try {
-        await loadScript('https://unpkg.com/tonconnect@1.0.3/dist/tonconnect-ui.min.js');
+        await loadScript('https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js');
         if (!window.TONConnectUI) {
             throw new Error("TONConnectUI not loaded.");
         }
