@@ -1,4 +1,4 @@
-console.log('[DEBUG] Script execution started.'); // Correct!
+console.log('[DEBUG] Script execution started.');
 
 // --- Global Variables ---
 let app, db, auth, storage, analytics;
@@ -6,6 +6,9 @@ let firebaseInitialized = false;
 let telegramUser;
 let tonConnectUI = null;
 let currentChestIndex = 0; // Keep track of chest slider
+let dailyQuests = []; // Global quest arrays for efficient fetching
+let basicQuests = [];
+let currentUserData = null;
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -505,10 +508,8 @@ async function initializeUserData() {
     }
 }
 
-// Global variable to store fetched user data to reduce reads
-let currentUserData = null;
-
 async function fetchAndUpdateUserData() {
+    debugLog("Fetching user data...");
     if (!telegramUser || !telegramUser.id || !firebaseInitialized || !db) {
         debugLog("User data fetch skipped: Conditions not met.");
         currentUserData = null;
@@ -516,13 +517,16 @@ async function fetchAndUpdateUserData() {
     }
     try {
         const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+        debugLog("Querying Firestore for user data...");
         const userDoc = await userDocRef.get();
+        debugLog("User data query completed.");
         if (!userDoc.exists) {
             debugLog("User doc not found during fetch.");
             currentUserData = null;
             return null;
         }
         currentUserData = userDoc.data();
+        debugLog("User data fetched successfully.", currentUserData);
         return currentUserData;
     } catch (error) {
         console.error("Error fetching user data:", error);
@@ -548,70 +552,131 @@ async function updateUserStatsUI() {
     document.getElementById('ton').textContent = (data.ton || 0).toFixed(4);
 }
 
-// --- Earn Section (Quests) ---
-async function updateEarnSectionUI() {
-    debugLog("Updating Earn section UI...");
-    let userData = currentUserData || await fetchAndUpdateUserData();
-    if (!userData) {
-        debugLog("Earn section UI update skipped: No user data.");
+// --- Fetch Quests ---
+async function fetchQuests() {
+    debugLog("Fetching quests...");
+    if (!firebaseInitialized || !db) {
+        debugLog("Quest fetch skipped: Firestore not initialized.");
+        dailyQuests = [];
+        basicQuests = [];
         return;
     }
+    try {
+        debugLog("Attempting to query Firestore for quests...");
+        const questsSnapshot = await db.collection('quests').get();
+        debugLog("Firestore query completed.");
+        dailyQuests = [];
+        basicQuests = [];
+        if (questsSnapshot.empty) {
+            debugLog("No quests found in Firestore.");
+            return;
+        }
+        questsSnapshot.forEach(doc => {
+            const quest = { id: doc.id, ...doc.data() };
+            debugLog(`Processing quest: ${quest.id}`, quest);
+            if (quest.type === 'daily') dailyQuests.push(quest);
+            else if (quest.type === 'basic') basicQuests.push(quest);
+        });
+        debugLog(`Fetched ${dailyQuests.length} daily and ${basicQuests.length} basic quests.`);
+    } catch (error) {
+        console.error("Error fetching quests:", error);
+        debugLog(`Error fetching quests: ${error.message}`);
+        dailyQuests = [];
+        basicQuests = [];
+    }
+}
 
+// --- Earn Section (Quests) ---
+async function updateEarnSectionUI() {
+    debugLog("Starting updateEarnSectionUI...");
     const dailyQuestList = document.getElementById('daily-quest-list');
     const basicQuestList = document.getElementById('basic-quest-list');
     const dailyQuestCount = document.getElementById('daily-quest-count');
     const basicQuestCount = document.getElementById('basic-quest-count');
 
-    try {
-        const questsSnapshot = await db.collection('quests').get();
-        if (questsSnapshot.empty) {
-            debugLog("No quests found in Firestore.");
-            dailyQuestList.innerHTML = '<li class="no-quests"><p>No quests available.</p></li>';
-            basicQuestList.innerHTML = '<li class="no-quests"><p>No quests available.</p></li>';
-            dailyQuestCount.textContent = '0';
-            basicQuestCount.textContent = '0';
-            return;
-        }
-
-        const dailyQuests = [];
-        const basicQuests = [];
-        questsSnapshot.forEach(doc => {
-            const quest = { id: doc.id, ...doc.data() };
-            if (quest.type === 'daily') dailyQuests.push(quest);
-            else if (quest.type === 'basic') basicQuests.push(quest);
+    // Check if DOM elements exist
+    if (!dailyQuestList || !basicQuestList || !dailyQuestCount || !basicQuestCount) {
+        console.error("Earn section DOM elements not found.", {
+            dailyQuestList: !!dailyQuestList,
+            basicQuestList: !!basicQuestList,
+            dailyQuestCount: !!dailyQuestCount,
+            basicQuestCount: !!basicQuestCount
         });
+        debugLog("Earn section DOM elements not found.");
+        return;
+    }
+    debugLog("Earn section DOM elements found.");
 
-        dailyQuestCount.textContent = dailyQuests.length;
-        basicQuestCount.textContent = basicQuests.length;
+    // Set initial loading state
+    dailyQuestList.innerHTML = '<li class="no-quests"><p>Loading daily quests...</p></li>';
+    basicQuestList.innerHTML = '<li class="no-quests"><p>Loading basic quests...</p></li>';
+    dailyQuestCount.textContent = '0';
+    basicQuestCount.textContent = '0';
+    debugLog("Set initial loading state.");
 
-        // Initialize adProgress if not exists
+    // Fetch user data
+    let userData = currentUserData || await fetchAndUpdateUserData();
+    if (!userData) {
+        debugLog("Earn section UI update aborted: No user data available.");
+        dailyQuestList.innerHTML = '<li class="error"><p>Error: User data not loaded.</p></li>';
+        basicQuestList.innerHTML = '<li class="error"><p>Error: User data not loaded.</p></li>';
+        return;
+    }
+    debugLog("User data available for Earn section.");
+
+    // Check Firebase initialization
+    if (!firebaseInitialized || !db) {
+        debugLog("Earn section UI update aborted: Firestore not initialized.");
+        dailyQuestList.innerHTML = '<li class="error"><p>Error: Database not connected.</p></li>';
+        basicQuestList.innerHTML = '<li class="error"><p>Error: Database not connected.</p></li>';
+        return;
+    }
+    debugLog("Firestore initialized for Earn section.");
+
+    try {
+        // Ensure adProgress exists
         if (!userData.adProgress) {
+            debugLog("Initializing adProgress for user.");
             userData.adProgress = {};
             await db.collection('userData').doc(telegramUser.id.toString()).update({ adProgress: {} });
+            debugLog("adProgress initialized.");
         }
+
+        // Use global quest arrays
+        debugLog("Rendering quests from global arrays.", { dailyQuests, basicQuests });
+        dailyQuestCount.textContent = dailyQuests.length;
+        basicQuestCount.textContent = basicQuests.length;
 
         dailyQuestList.innerHTML = '';
         if (dailyQuests.length === 0) {
             dailyQuestList.innerHTML = '<li class="no-quests"><p>No daily quests available.</p></li>';
+            debugLog("No daily quests to render.");
         } else {
             dailyQuests.forEach(quest => {
+                debugLog(`Rendering daily quest: ${quest.id}`);
                 const li = createQuestItem(quest, userData);
                 dailyQuestList.appendChild(li);
             });
+            debugLog("Daily quests rendered.");
         }
 
         basicQuestList.innerHTML = '';
         if (basicQuests.length === 0) {
             basicQuestList.innerHTML = '<li class="no-quests"><p>No basic quests available.</p></li>';
+            debugLog("No basic quests to render.");
         } else {
             basicQuests.forEach(quest => {
+                debugLog(`Rendering basic quest: ${quest.id}`);
                 const li = createQuestItem(quest, userData);
                 basicQuestList.appendChild(li);
             });
+            debugLog("Basic quests rendered.");
         }
+
+        debugLog("Earn section UI updated successfully.");
     } catch (error) {
-        console.error("Error fetching quests:", error);
-        debugLog(`Error fetching quests: ${error.message}`);
+        console.error("Error updating Earn section UI:", error);
+        debugLog(`Error updating Earn section UI: ${error.message}`);
         dailyQuestList.innerHTML = '<li class="error"><p>Error loading quests. Please try again.</p></li>';
         basicQuestList.innerHTML = '<li class="error"><p>Error loading quests. Please try again.</p></li>';
         dailyQuestCount.textContent = '0';
@@ -620,40 +685,44 @@ async function updateEarnSectionUI() {
 }
 
 function createQuestItem(quest, userData) {
+    debugLog(`Creating quest item: ${quest.id}`);
     const li = document.createElement('li');
     li.className = 'quest-item';
+    li.dataset.questId = quest.id;
+    li.dataset.questType = quest.type;
+
+    // Validate quest data
+    const icon = quest.icon || 'assets/icons/quest_placeholder.png';
+    const title = quest.title || 'Untitled Quest';
+    const reward = quest.reward || 0;
+
     li.innerHTML = `
-        <img src="${quest.icon || 'assets/icons/quest_placeholder.png'}" alt="${quest.title}">
-        <span>${quest.title}</span>
+        <img src="${icon}" alt="${title}">
+        <span>${title}</span>
         <div class="quest-reward">
             <img src="assets/icons/gem.png" alt="Gem">
-            <span>${quest.reward}</span>
+            <span>${reward}</span>
         </div>
     `;
 
     const isRepeatable = quest.repeatable !== false;
     const isAdBased = quest.action === 'watch_ad';
-    const isClaimed = userData.claimedQuests?.includes(quest.id);
-    let adProgress = userData.adProgress[quest.id] || { watched: 0, claimed: false, lastClaimed: null };
+    const isClaimed = userData.claimedQuests?.includes(quest.id) || false;
+    let adProgress = userData.adProgress?.[quest.id] || { watched: 0, claimed: false, lastClaimed: null };
     const adsRequired = quest.adsRequired || 1;
 
-    if (isAdBased && !adProgress.lastClaimed) {
-        adProgress.lastClaimed = null;
+    if (isAdBased) {
+        li.innerHTML += `<span class="progress">${adProgress.watched}/${adsRequired}</span>`;
+        li.dataset.adType = 'rewarded_interstitial';
+        li.dataset.adLimit = adsRequired;
     }
 
     const canClaimToday = isRepeatable || !isClaimed;
-    const isDaily = quest.type === 'daily';
-    let canClaim = false;
-
-    if (isAdBased) {
-        const progress = adProgress.watched || 0;
-        li.innerHTML += `<span class="progress">${progress}/${adsRequired}</span>`;
-        canClaim = progress >= adsRequired && !adProgress.claimed && canClaimToday;
-    } else {
-        canClaim = canClaimToday;
-    }
+    const canClaim = isAdBased ? adProgress.watched >= adsRequired && !adProgress.claimed && canClaimToday : canClaimToday;
 
     const button = document.createElement('button');
+    button.dataset.questReward = reward;
+
     if (!canClaimToday || (isAdBased && adProgress.claimed)) {
         button.className = 'claimed-button';
         button.textContent = 'Claimed';
@@ -667,8 +736,12 @@ function createQuestItem(quest, userData) {
     }
 
     button.addEventListener('click', async () => {
-        if (button.classList.contains('claimed-button')) return;
+        if (button.classList.contains('claimed-button')) {
+            debugLog(`Quest ${quest.id} button clicked but already claimed.`);
+            return;
+        }
 
+        debugLog(`Quest ${quest.id} button clicked.`, { isAdBased, canClaim });
         if (isAdBased && !canClaim) {
             await handleAdQuest(quest, adProgress, button, li);
         } else if (canClaim) {
@@ -682,6 +755,7 @@ function createQuestItem(quest, userData) {
     });
 
     li.appendChild(button);
+    debugLog(`Quest item created: ${quest.id}`);
     return li;
 }
 
@@ -695,14 +769,16 @@ async function handleAdQuest(quest, adProgress, button, li) {
             const adsRequired = quest.adsRequired || 1;
             adProgress.claimed = adProgress.watched >= adsRequired;
 
+            debugLog(`Updating adProgress for quest ${quest.id}`, adProgress);
             await db.collection('userData').doc(telegramUser.id.toString()).update({
                 [`adProgress.${quest.id}`]: adProgress
             });
 
             await fetchAndUpdateUserData();
             updateQuestItemUI(quest, li, button);
+            debugLog(`Ad quest ${quest.id} progress updated: ${adProgress.watched}/${adsRequired}`);
         } else {
-            debugLog(`Ad watch failed or was not completed for quest: ${quest.id}`);
+            debugLog(`Ad watch failed for quest: ${quest.id}`);
             alert("Ad was not completed. Please try again.");
         }
     } catch (error) {
@@ -722,7 +798,7 @@ async function showAd(questId) {
         return false;
     }
 
-    const adType = 'rewarded_interstitial'; // Default ad type
+    const adType = 'rewarded_interstitial';
     return new Promise((resolve) => {
         let adCompleted = false;
         const timeout = setTimeout(() => {
@@ -734,12 +810,8 @@ async function showAd(questId) {
 
         try {
             window.Monetag.show(adType, {
-                onReady: () => {
-                    debugLog(`Ad ready to display: ${adType} for quest: ${questId}`);
-                },
-                onImpression: () => {
-                    debugLog(`Ad impression recorded for quest: ${questId}`);
-                },
+                onReady: () => debugLog(`Ad ready to display: ${adType} for quest: ${questId}`),
+                onImpression: () => debugLog(`Ad impression recorded for quest: ${questId}`),
                 onComplete: () => {
                     clearTimeout(timeout);
                     adCompleted = true;
@@ -791,7 +863,7 @@ async function claimQuest(quest, button, li) {
             return;
         }
 
-        if (isAdBased && (!adProgress || adProgress.watched < (quest.adsRequired || 1))) {
+        if (isAdBased && adProgress.watched < (quest.adsRequired || 1)) {
             debugLog(`Quest ${quest.id} cannot be claimed: Insufficient ad progress.`);
             alert("You haven't watched enough ads to claim this quest.");
             return;
@@ -811,6 +883,7 @@ async function claimQuest(quest, button, li) {
             updates[`adProgress.${quest.id}`] = adProgress;
         }
 
+        debugLog(`Updating user data for quest claim: ${quest.id}`, updates);
         await userDocRef.update(updates);
         debugLog(`Quest ${quest.id} claimed successfully. Reward: ${quest.reward} gems`);
 
@@ -833,27 +906,26 @@ async function claimQuest(quest, button, li) {
 }
 
 function updateQuestItemUI(quest, li, button) {
+    debugLog(`Updating quest item UI: ${quest.id}`);
     const userData = currentUserData;
-    if (!userData) return;
+    if (!userData) {
+        debugLog("Quest item UI update skipped: No user data.");
+        return;
+    }
 
     const isRepeatable = quest.repeatable !== false;
     const isAdBased = quest.action === 'watch_ad';
-    const isClaimed = userData.claimedQuests?.includes(quest.id);
+    const isClaimed = userData.claimedQuests?.includes(quest.id) || false;
     let adProgress = userData.adProgress?.[quest.id] || { watched: 0, claimed: false, lastClaimed: null };
     const adsRequired = quest.adsRequired || 1;
 
-    const canClaimToday = isRepeatable || !isClaimed;
-    let canClaim = false;
-
-    if (isAdBased) {
-        const progressSpan = li.querySelector('.progress');
-        if (progressSpan) {
-            progressSpan.textContent = `${adProgress.watched}/${adsRequired}`;
-        }
-        canClaim = adProgress.watched >= adsRequired && !adProgress.claimed && canClaimToday;
-    } else {
-        canClaim = canClaimToday;
+    const progressSpan = li.querySelector('.progress');
+    if (isAdBased && progressSpan) {
+        progressSpan.textContent = `${adProgress.watched}/${adsRequired}`;
     }
+
+    const canClaimToday = isRepeatable || !isClaimed;
+    const canClaim = isAdBased ? adProgress.watched >= adsRequired && !adProgress.claimed && canClaimToday : canClaimToday;
 
     if (!canClaimToday || (isAdBased && adProgress.claimed)) {
         button.className = 'claimed-button';
@@ -868,6 +940,7 @@ function updateQuestItemUI(quest, li, button) {
         button.textContent = isAdBased ? 'Watch Ad' : 'Go';
         button.disabled = false;
     }
+    debugLog(`Quest item UI updated: ${quest.id}`);
 }
 
 // --- Wallet Section ---
@@ -1338,6 +1411,7 @@ async function initializeApp() {
     }
 
     await ensureFirebaseReady(async () => {
+        await fetchQuests(); // Fetch quests early
         await initializeUserData();
         setupNavigation();
         await initializeTONConnect();
