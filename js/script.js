@@ -1,4 +1,4 @@
-Console.log('[DEBUG] Script execution started.');
+console.log('[DEBUG] Script execution started.'); // Correct!
 
 // --- Global Variables ---
 let app, db, auth, storage, analytics;
