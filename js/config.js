@@ -1,7 +1,7 @@
 // js/config.js
 
 // Firebase Configuration
-const firebaseConfig = {
+export const firebaseConfig = { // Added export
     apiKey: "AIzaSyCUkEmFmJK2vr8k7M6JqYaxlcgBDf7WdJI", // Consider securing this (e.g., environment variables if possible)
     authDomain: "fourgo-cd98f.firebaseapp.com",
     projectId: "fourgo-cd98f",
@@ -12,7 +12,7 @@ const firebaseConfig = {
 };
 
 // Chest Data
-const CHESTS_DATA = [
+export const CHESTS_DATA = [ // Added export
      { name: "Wood Chest", next: "Bronze", image: "assets/graphics/wood-chest.png", gemCost: 200, vip: 0 },
      { name: "Bronze Chest", next: "Silver", image: "assets/graphics/bronze-chest.png", gemCost: 500, vip: 1 },
      { name: "Silver Chest", next: "Gold", image: "assets/graphics/silver-chest.png", gemCost: 1000, vip: 2 },
@@ -23,8 +23,8 @@ const CHESTS_DATA = [
 ];
 
 // Other constants if needed
-const REFERRAL_BOT_USERNAME = 'fourgobot'; // Replace with your actual bot username
-const REFERRAL_CREDIT_AMOUNT = 10;
-const CREDIT_CONVERSION_RATE = 10000; // 10,000 credits = 1 USDT
-const MINIMUM_CREDIT_CLAIM = 10000;
-const AD_QUEST_COOLDOWN_MS = 3600 * 1000; // 1 hour
+export const REFERRAL_BOT_USERNAME = 'fourgobot'; // Added export
+export const REFERRAL_CREDIT_AMOUNT = 10; // Added export
+export const CREDIT_CONVERSION_RATE = 10000; // Added export
+export const MINIMUM_CREDIT_CLAIM = 10000; // Added export
+export const AD_QUEST_COOLDOWN_MS = 3600 * 1000; // Added export
