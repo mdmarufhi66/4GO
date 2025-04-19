@@ -1,89 +1,104 @@
 // js/sections/earn.js
 
-// --- Earn Section (Quests) UI Update ---
-// This function is exposed globally for use by navigation.js/main.js
+debugLog("earn.js script loaded."); // <-- ADDED DEBUG LOG
+
+// Global state specific to chests (if not managed in main.js)
+// let currentChestIndex = 0; // This seems to be misplaced here, belongs in chest.js
+// const chests = CHESTS_DATA; // This belongs in chest.js
+
+// Function to update the Earn section UI with quests
+// This function is called by navigation.js's switchSection
 async function updateEarnSectionUI() {
-    // Uses debugLog from utils.js (globally available)
+    debugLog("[EARN] Starting Earn section UI update..."); // <-- ADDED DEBUG LOG
+
+    // Use debugLog from utils.js (globally available)
     // Uses firebaseInitialized, db from firebaseService.js (implicitly global)
     // Uses currentUserData, fetchAndUpdateUserData from uiUpdater.js (globally available)
     // Uses AD_QUEST_COOLDOWN_MS from config.js (globally available)
+    // Uses formatTimestamp from utils.js (globally available)
 
-     debugLog("[QUEST DEBUG] Starting Earn section UI update...");
-    // Get references to the DOM elements that need to be updated
     const dailyQuestList = document.getElementById('daily-quest-list');
     const basicQuestList = document.getElementById('basic-quest-list');
     const dailyQuestCountEl = document.getElementById('daily-quest-count');
     const basicQuestCountEl = document.getElementById('basic-quest-count');
 
-     // Validate that the necessary DOM elements exist
-     if (!dailyQuestList || !basicQuestList || !dailyQuestCountEl || !basicQuestCountEl) {
-         console.error("[QUEST ERROR] Required DOM elements for quests not found! Skipping UI update.");
-         debugLog("[QUEST ERROR] Quest list or count elements missing from DOM.");
-         return; // Stop the function if elements are missing
-     }
+    // Ensure all required DOM elements for quests are found
+    if (!dailyQuestList || !basicQuestList || !dailyQuestCountEl || !basicQuestCountEl) {
+        console.error("[EARN ERROR] Required DOM elements for quests not found!");
+        debugLog("[EARN ERROR] Quest list or count elements missing from DOM."); // <-- ADDED DEBUG LOG
+        // Display an error message in the section itself
+        if (dailyQuestList) dailyQuestList.innerHTML = `<li class="error"><p>UI elements missing.</p></li>`;
+        if (basicQuestList) basicQuestList.innerHTML = `<li class="error"><p>UI elements missing.</p></li>`;
+        return; // Stop the function if elements are missing
+    }
 
-     // Set initial loading state in the UI
-     dailyQuestList.innerHTML = `<li class="loading"><p>Loading daily quests...</p></li>`;
-     basicQuestList.innerHTML = `<li class="loading"><p>Loading basic quests...</p></li>`;
-     dailyQuestCountEl.textContent = '-'; // Show loading state for counts
-     basicQuestCountEl.textContent = '-';
+    // Set initial loading state in the UI
+    dailyQuestList.innerHTML = `<li class="loading"><p>Loading daily quests...</p></li>`;
+    basicQuestList.innerHTML = `<li class="loading"><p>Loading basic quests...</p></li>`;
+    dailyQuestCountEl.textContent = '-';
+    basicQuestCountEl.textContent = '-';
+    debugLog("[EARN] Set initial loading state in UI."); // <-- ADDED DEBUG LOG
+
 
     try {
-        // Ensure Firestore is initialized and accessible
+        // Ensure Firebase is initialized and the database instance is available
         if (!window.firebaseInitialized || !window.db) {
-           throw new Error("Firestore not initialized. Cannot fetch quest data.");
+           const errorMsg = "Firestore not initialized for updating Earn section.";
+           console.error("[EARN ERROR]", errorMsg);
+           debugLog("[EARN ERROR]", errorMsg); // <-- ADDED DEBUG LOG
+           throw new Error(errorMsg); // Throw to be caught below
         }
-        debugLog("[QUEST DEBUG] Firestore is ready for quest fetch.");
+        debugLog("[EARN] Firestore is initialized."); // <-- ADDED DEBUG LOG
 
-        // Use cached user data if available, otherwise fetch fresh data.
-        // The user data is needed to check quest claim status and ad progress.
-        let userData = window.currentUserData || await window.fetchAndUpdateUserData();
 
-        // Ensure user data is available before proceeding with rendering
+        // Use cached or fetch fresh user data
+        // This is needed to check claimed quests and ad progress
+        debugLog("[EARN] Fetching or using cached user data..."); // <-- ADDED DEBUG LOG
+        let userData = window.currentUserData || await window.fetchAndUpdateUserData(); // Use globals from uiUpdater.js
+
         if (!userData) {
-             throw new Error("User data not available. Cannot determine quest status.");
+             const errorMsg = "User data not available for quest checks.";
+             console.error("[EARN ERROR]", errorMsg);
+             debugLog("[EARN ERROR]", errorMsg); // <-- ADDED DEBUG LOG
+             throw new Error(errorMsg); // Throw to be caught below
         }
-        // Ensure sub-objects needed for quest tracking exist on the user data object
+        // Ensure sub-objects exist in user data to prevent errors later
         userData.adProgress = userData.adProgress || {};
         userData.claimedQuests = userData.claimedQuests || [];
-        debugLog("[QUEST DEBUG] User data loaded for quest checks.");
-        // debugLog("[QUEST DEBUG] User Data Snapshot:", JSON.stringify(userData)); // Careful, can be large
+        debugLog("[EARN] User data loaded for quest checks. Structure ensured."); // <-- ADDED DEBUG LOG
 
 
-        // --- Fetch Daily Quests from Firestore ---
-        debugLog("[QUEST DEBUG] Fetching daily quests from Firestore...");
-        // Fetch the 'daily' document from the 'quests' collection
-        // Use { source: 'server' } to ensure we get the latest data, not from cache
+        // --- Fetch Daily Quests ---
+        debugLog("[EARN] Attempting to fetch daily quests from Firestore..."); // <-- ADDED DEBUG LOG
+        // Ensure Firestore instance 'db' is available globally (from firebaseService.js)
         const dailyQuestsSnapshot = await window.db.collection('quests').doc('daily').get({ source: 'server' });
-        // Extract the 'tasks' array from the document data
+        debugLog("[EARN] Firestore query for daily quests finished."); // <-- ADDED DEBUG LOG
+
         const dailyQuestsRaw = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
-        const dailyQuests = dailyQuestsRaw.tasks || []; // Ensure it's an array, default to empty if missing
+        const dailyQuests = dailyQuestsRaw.tasks || []; // Get the tasks array, default to empty array
+        debugLog(`[EARN] Fetched ${dailyQuests.length} raw daily quests.`, dailyQuestsRaw); // <-- ADDED DEBUG LOG
 
-        debugLog(`[QUEST DEBUG] Fetched ${dailyQuests.length} daily quests.`);
 
-        // Update the daily quest count display
-        dailyQuestCountEl.textContent = dailyQuests.length;
-        // Check if any daily quests were found
+        // Render Daily Quests
+        dailyQuestCountEl.textContent = dailyQuests.length; // Update count display
         if (dailyQuests.length === 0) {
             dailyQuestList.innerHTML = `<li class="no-quests"><p>No daily quests available today.</p></li>`;
+            debugLog("[EARN] No daily quests found, displayed message."); // <-- ADDED DEBUG LOG
         } else {
-            // Generate and insert the HTML for each daily quest item
             dailyQuestList.innerHTML = dailyQuests.map(quest => {
-                // Validate the essential properties of the quest object
-                if (!quest || !quest.id || !quest.title || quest.reward === undefined) {
-                     console.warn("[QUEST WARN] Skipping rendering of invalid daily quest object:", quest);
-                     debugLog("[QUEST WARN] Skipping invalid daily quest object.");
-                     return ''; // Return empty string to skip this item
+                // Validate essential quest object structure
+                if (!quest || !quest.id || typeof quest.title !== 'string' || quest.reward === undefined) {
+                     console.warn("[EARN WARN] Skipping invalid daily quest object:", quest);
+                     debugLog("[EARN WARN] Skipping invalid daily quest object."); // <-- ADDED DEBUG LOG
+                     return ''; // Return empty string for invalid quest HTML
                 }
-                // Check if the quest has already been claimed by the user (using claimedQuests array)
                 const isClaimed = userData.claimedQuests.includes(quest.id);
-                // Determine button text and class based on claimed status
-                const buttonText = isClaimed ? 'Claimed' : (quest.action || 'GO'); // Default action text is 'GO'
+                const buttonText = isClaimed ? 'Claimed' : (quest.action || 'GO');
+                // Daily quests are typically non-repeatable link/action based, not ads
                 const buttonClass = isClaimed ? 'claimed-button' : 'go-button';
-                const buttonDisabled = isClaimed; // Disable button if already claimed
-                const reward = Number(quest.reward) || 0; // Ensure reward is a number, default to 0
+                const buttonDisabled = isClaimed;
+                const reward = Number(quest.reward) || 0; // Ensure reward is a number
 
-                // Return the HTML string for a single daily quest list item
                 return `
                     <li class="quest-item" data-quest-id="${quest.id}" data-quest-type="daily">
                         <img src="${quest.icon || 'assets/icons/quest_placeholder.png'}" alt="${quest.title}" onerror="this.src='assets/icons/quest_placeholder.png'">
@@ -100,607 +115,575 @@ async function updateEarnSectionUI() {
                         </div>
                     </li>
                 `;
-            }).join(''); // Join all the HTML strings into one large string to set innerHTML
+            }).join(''); // Join array of HTML strings into a single string
+            debugLog("[EARN] Daily quests rendered."); // <-- ADDED DEBUG LOG
         }
-        debugLog("[QUEST DEBUG] Daily quests HTML rendered.");
 
 
-        // --- Fetch Basic Quests from Firestore ---
-        debugLog("[QUEST DEBUG] Fetching basic quests from Firestore...");
-        // Fetch the 'basic' document from the 'quests' collection
+        // --- Fetch Basic Quests ---
+        debugLog("[EARN] Attempting to fetch basic quests from Firestore..."); // <-- ADDED DEBUG LOG
         const basicQuestsSnapshot = await window.db.collection('quests').doc('basic').get({ source: 'server' });
-        // Extract the 'tasks' array
+        debugLog("[EARN] Firestore query for basic quests finished."); // <-- ADDED DEBUG LOG
+
         const basicQuestsRaw = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
-        const basicQuests = basicQuestsRaw.tasks || []; // Ensure it's an array
+        const basicQuests = basicQuestsRaw.tasks || []; // Get the tasks array, default to empty array
+        debugLog(`[EARN] Fetched ${basicQuests.length} raw basic quests.`, basicQuestsRaw); // <-- ADDED DEBUG LOG
 
-
-         // --- Important: Initialize adProgress structure for NEW ad quests ---
-         // This loop ensures that every ad quest found in Firestore has an entry
-         // in the user's adProgress map in their user data document.
+         // Ensure adProgress structure is initialized for all ad quests if not present
+         // This updates user data in Firestore if new ad quests are found for the first time
          let adProgressUpdateNeeded = false;
-         const adProgressUpdate = {}; // Object to hold updates for Firestore
-
-         (basicQuestsRaw.tasks || []).forEach(quest => { // Iterate over raw quests from DB
-            // Check if it's an ad quest and if it has an ID
-            if (quest.type === 'ads' && quest.id) {
-                // Check if the user's adProgress map is missing an entry for this quest ID
-                if (!userData.adProgress[quest.id]) {
-                    // If missing, create a default progress object
-                    userData.adProgress[quest.id] = { watched: 0, claimed: false, lastClaimed: null };
-                    // Add this default object to the update object for Firestore
-                    adProgressUpdate[`adProgress.${quest.id}`] = userData.adProgress[quest.id];
-                    adProgressUpdateNeeded = true; // Flag that we need to update Firestore
-                    debugLog(`[QUEST DEBUG] Initializing default adProgress for new quest: ${quest.id}`);
-                }
+         const adProgressUpdate = {};
+         basicQuests.forEach(quest => {
+            // Ensure quest and quest.id are valid before checking type
+            if (quest && quest.id && quest.type === 'ads' && !userData.adProgress[quest.id]) {
+                // Initialize progress for this specific ad quest
+                userData.adProgress[quest.id] = { watched: 0, claimed: false, lastClaimed: null };
+                // Prepare update object for Firestore using dot notation
+                adProgressUpdate[`adProgress.${quest.id}`] = userData.adProgress[quest.id];
+                adProgressUpdateNeeded = true; // Flag that an update is needed
+                debugLog(`[EARN] Initializing adProgress structure for new quest: ${quest.id}`); // <-- ADDED DEBUG LOG
             }
          });
 
-         // If any new adProgress entries were initialized locally, update Firestore
-         if (adProgressUpdateNeeded && window.telegramUser?.id) { // Ensure user ID exists before updating
-            debugLog("[QUEST DEBUG] Ad progress updates needed. Writing to Firestore...");
+         // If new ad quests were found and user data needs updating in Firestore
+         if (adProgressUpdateNeeded && window.telegramUser?.id) { // Check user ID exists
+            debugLog("[EARN] Updating user data with initial adProgress structures..."); // <-- ADDED DEBUG LOG
             try {
-                // Use update to set the new adProgress structures. merge is automatic for nested objects.
-                 // Use window.db and window.telegramUser (globally available)
-                await window.db.collection('userData').doc(window.telegramUser.id.toString()).update(adProgressUpdate);
-                debugLog("[QUEST DEBUG] User data updated with initial adProgress structures in Firestore.");
-                // After updating Firestore, it's a good practice to refresh the local user data cache
-                // to ensure it reflects the latest state for subsequent operations.
-                userData = window.currentUserData || await window.fetchAndUpdateUserData(); // Refresh cache
-                if (!userData) throw new Error("User data unavailable after adProgress init update.");
-                 // Re-ensure adProgress structure locally from the refetched data
+                // Update the user document in Firestore
+                 await window.db.collection('userData').doc(window.telegramUser.id.toString()).update(adProgressUpdate);
+                 debugLog("[EARN] Firestore updated asynchronously for initial adProgress."); // <-- ADDED DEBUG LOG
+                 // Re-fetch user data to ensure local cache (currentUserData) is consistent
+                 // This fetch is important because the previous `userData` variable is based on potentially old data
+                 userData = await window.fetchAndUpdateUserData(); // Refresh data after update
+                 debugLog("[EARN] User data re-fetched after adProgress init update."); // <-- ADDED DEBUG LOG
+                 if (!userData) throw new Error("User data unavailable after adProgress init."); // Should not happen if fetchAndUpdateUserData works
+                 // Re-ensure structure just in case (belt and suspenders)
                  userData.adProgress = userData.adProgress || {};
-                 userData.claimedQuests = userData.claimedQuests || []; // Also ensure claimedQuests exists
+                 userData.claimedQuests = userData.claimedQuests || [];
             } catch (updateError) {
-                 console.error("[QUEST ERROR] Failed to update user data with initial adProgress:", updateError);
-                 debugLog(`[QUEST ERROR] Failed to update initial adProgress: ${updateError.message}`);
-                 // Decide how to handle this error - maybe alert user or continue with potentially stale local data?
-                 // For now, we log and continue, potentially rendering quests with missing progress info.
+                 console.error("[EARN ERROR] Failed Firestore update for initial adProgress:", updateError);
+                 debugLog(`[EARN ERROR] Failed Firestore update for initial adProgress: ${updateError.message}`); // <-- ADDED DEBUG LOG
+                 // Continue rendering with potentially stale adProgress for this cycle,
+                 // the next app load or UI refresh should pick up correct structure.
             }
-         } else {
-             debugLog("[QUEST DEBUG] No new ad progress structures needed or user ID missing.");
          }
-         // --- End Initialization of adProgress ---
+        debugLog("[EARN] Ad progress structures ensured."); // <-- ADDED DEBUG LOG
 
 
-         debugLog(`[QUEST DEBUG] Fetched ${basicQuests.length} basic quests.`);
+        // Render Basic Quests
+        basicQuestCountEl.textContent = basicQuests.length; // Update count display
+        if (basicQuests.length === 0) {
+            basicQuestList.innerHTML = `<li class="no-quests"><p>No basic quests available right now.</p></li>`;
+             debugLog("[EARN] No basic quests found, displayed message."); // <-- ADDED DEBUG LOG
+        } else {
+            // Get current time once for cooldown checks
+            const currentTime = new Date();
+            const cooldownPeriod = window.AD_QUEST_COOLDOWN_MS; // Use global constant from config.js
 
-         // Update the basic quest count display
-         basicQuestCountEl.textContent = basicQuests.length;
-         // Check if any basic quests were found
-         if (basicQuests.length === 0) {
-             basicQuestList.innerHTML = `<li class="no-quests"><p>No basic quests available right now.</p></li>`;
-         } else {
-             const currentTime = new Date(); // Get current time once for cooldown checks
-             // Use the cooldown constant from config.js (globally available)
-             const cooldownPeriod = window.AD_QUEST_COOLDOWN_MS;
+             if (userData?.adProgress) {
+                 debugLog("[EARN] adProgress data used for rendering basic quests:", JSON.stringify(userData.adProgress).substring(0, 200) + '...'); // Log start of data (can be large)
+             } else {
+                  debugLog("[EARN] adProgress data is null or undefined during basic quest render."); // <-- ADDED DEBUG LOG
+             }
 
-              // Log the user's ad progress data that will be used for rendering
-              if (userData?.adProgress) {
-                  debugLog("[QUEST DEBUG] User adProgress data used for rendering basic quests:", JSON.stringify(userData.adProgress));
-              } else {
-                   debugLog("[QUEST DEBUG] User adProgress data not available for rendering basic quests.");
-              }
+            basicQuestList.innerHTML = basicQuests.map(quest => {
+                // Validate essential quest object structure
+                if (!quest || !quest.id || typeof quest.title !== 'string' || quest.reward === undefined) {
+                     console.warn("[EARN WARN] Skipping invalid basic quest object:", quest);
+                      debugLog("[EARN WARN] Skipping invalid basic quest object."); // <-- ADDED DEBUG LOG
+                     return ''; // Return empty string for invalid quest HTML
+                }
 
+                const questId = quest.id;
+                const questType = quest.type || 'default';
+                const questTitle = quest.title;
+                const questIcon = quest.icon || 'assets/icons/quest_placeholder.png';
+                const questReward = Number(quest.reward) || 0; // Ensure reward is a number
+                const questAction = quest.action || 'GO';
+                const questLink = quest.link || '';
+                // Ensure adLimit is a positive number for 'ads' type
+                const adLimit = questType === 'ads' ? Math.max(1, Number(quest.adLimit) || 1) : 0;
+                const adType = quest.adType || 'rewarded_interstitial'; // Default if not specified
 
-             // Generate and insert the HTML for each basic quest item
-             basicQuestList.innerHTML = basicQuests.map(quest => {
-                 // Validate the essential properties of the quest object
-                 if (!quest || !quest.id || !quest.title || quest.reward === undefined) {
-                      console.warn("[QUEST WARN] Skipping rendering of invalid basic quest object:", quest);
-                      debugLog("[QUEST WARN] Skipping invalid basic quest object.");
-                      return ''; // Skip this item
-                 }
+                // debugLog(`[EARN] Processing Basic Quest: ${questTitle}`, { // Can be very noisy
+                //     id: questId, type: questType, adLimit: adLimit, reward: questReward, adType: adType
+                // });
 
-                 const questId = quest.id;
-                 const questType = quest.type || 'default'; // Default type
-                 const questTitle = quest.title;
-                 const questIcon = quest.icon || 'assets/icons/quest_placeholder.png';
-                 const questReward = Number(quest.reward) || 0;
-                 const questAction = quest.action || 'GO'; // Default action text
-                 // Ensure adLimit is treated as a number and is at least 1 for ad quests
-                 const adLimit = questType === 'ads' ? Math.max(1, Number(quest.adLimit) || 1) : 0;
-                 const adType = quest.adType || 'rewarded_interstitial'; // Default ad type for ads quest
+                let buttonText = questAction;
+                let buttonClass = 'go-button';
+                let buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);'; // Default GO style
+                let buttonDisabled = false;
+                let progressText = ''; // Text to show progress (e.g., 0/5)
 
-                 // Log details of the quest being processed before generating HTML
-                 debugLog(`[QUEST DEBUG] Processing Basic Quest: ${questTitle}`, {
-                     id: questId, type: questType, rawAdLimit: quest.adLimit, calculatedAdLimit: adLimit, reward: questReward, adType: adType
-                 });
+                if (questType === 'ads') {
+                    // Get ad progress for this specific quest from user data
+                    const adProgress = userData.adProgress?.[questId] || { watched: 0, claimed: false, lastClaimed: null };
+                     debugLog(`[EARN] Ad Quest ${questId} progress: watched=${adProgress.watched}, claimed=${adProgress.claimed}, lastClaimed=${adProgress.lastClaimed}`); // <-- ADDED DEBUG LOG
 
+                    // Display progress text (e.g., 3/5)
+                    progressText = `<span class="progress">${adProgress.watched}/${adLimit}</span>`;
 
-                 let buttonText = questAction; // Default button text
-                 let buttonClass = 'go-button'; // Default button class
-                 let buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);'; // Default GO style
-                 let buttonDisabled = false; // Button is enabled by default
-                 let progressText = ''; // Text for ad progress (e.g., 1/5)
+                    const isCompleted = adProgress.watched >= adLimit; // Is the required number of ads watched?
+                    let isClaimed = adProgress.claimed; // Has the reward been claimed?
 
-                 // --- Logic specific to 'ads' type quests ---
-                 if (questType === 'ads') {
-                     // Get the user's specific progress for this ad quest from the userData cache
-                     const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
-                     // Display current watched count / required watch count
-                     progressText = `<span class="progress">${adProgress.watched}/${adLimit}</span>`;
+                    const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed) : null; // Parse last claimed time
+                    // Calculate time since last claimed (handle null/invalid dates gracefully)
+                    const timeSinceLastClaim = lastClaimedTime instanceof Date && !isNaN(lastClaimedTime.getTime()) ? (currentTime.getTime() - lastClaimedTime.getTime()) : Infinity;
+                    let isCooldownOver = timeSinceLastClaim >= cooldownPeriod; // Is the cooldown period over?
 
-                     const isCompleted = adProgress.watched >= adLimit; // Check if watch limit is reached
-                     const isClaimed = adProgress.claimed; // Check if the reward has been claimed
-
-                     // Logic for cooldown on repeatable ad quests
-                     const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed) : null;
-                     const timeSinceLastClaim = lastClaimedTime ? currentTime.getTime() - lastClaimedTime.getTime() : Infinity; // Time in milliseconds since last claim
-                     let isCooldownOver = timeSinceLastClaim >= cooldownPeriod; // Check if cooldown period has passed
-
-                     // --- Cooldown Reset Logic (Handle repeatable quests) ---
-                     // If the quest is completed, claimed, AND the cooldown period is over, reset its progress.
-                     // This reset allows the user to watch ads and claim the reward again.
-                     // Note: This update is performed asynchronously and doesn't block UI rendering.
-                     if (isCompleted && isClaimed && isCooldownOver) {
-                         debugLog(`[QUEST DEBUG] Cooldown over for repeatable ad quest ${questId}. Resetting progress locally and asynchronously in Firestore.`);
-                         // Update the local 'adProgress' object immediately for correct rendering in this cycle.
-                         // This prevents the UI from showing "Claimed" or "Wait Xm" if the cooldown is actually over.
-                         adProgress.watched = 0;
-                         adProgress.claimed = false; // Reset claimed status
-                         adProgress.lastClaimed = null; // Clear last claimed time
-                         // Ensure the global cache reflects this local reset immediately
-                         if(window.currentUserData?.adProgress?.[questId]) {
-                             window.currentUserData.adProgress[questId] = { watched: 0, claimed: false, lastClaimed: null };
-                         }
+                     debugLog(`[EARN] Ad Quest ${questId} checks: Completed=${isCompleted}, Claimed=${isClaimed}, CooldownOver=${isCooldownOver}, TimeSinceLastClaim=${timeSinceLastClaim}`); // <-- ADDED DEBUG LOG
 
 
-                         // Perform the Firestore update asynchronously (don't 'await' it here)
-                         window.db.collection('userData').doc(window.telegramUser.id.toString()).update({
-                             [`adProgress.${questId}`]: { watched: 0, claimed: false, lastClaimed: null }
-                         }).then(() => {
-                             debugLog(`[QUEST DEBUG] Firestore updated asynchronously for repeatable quest ${questId} reset.`);
-                             // After the async update, you might consider refreshing the local cache again
-                             // to be absolutely sure it's in sync, though updating the local adProgress object
-                             // above should suffice for the immediate render.
-                             // window.fetchAndUpdateUserData(); // Optional: Re-fetch user data after async update
-                         }).catch(err => {
-                             console.error(`[QUEST ERROR] Failed asynchronous Firestore reset for repeatable ad quest ${questId}:`, err);
-                             debugLog(`[QUEST ERROR] Failed async Firestore reset for ${questId}: ${err.message}`);
-                             // If the async update fails, the local state might be reset but DB is not.
-                             // This could lead to inconsistencies. Robust error handling might require
-                             // alerting the user or preventing the local UI update if the async call fails.
-                             // For now, we proceed with the assumption the async update will eventually succeed or be retried.
-                         });
-                     }
+                    // --- Cooldown Reset Logic ---
+                    // If completed and claimed, and cooldown is over, reset the quest progress
+                    // This needs to happen *before* determining the button state for the next cycle
+                    if (isCompleted && isClaimed && isCooldownOver) {
+                        debugLog(`[EARN] Cooldown over for ad quest ${questId}. Attempting to reset progress in Firestore.`); // <-- ADDED DEBUG LOG
+                        try {
+                             // Asynchronously update Firestore to reset the ad progress for this quest
+                             // The UI will reflect the new state on the next render cycle (e.g., after a manual refresh or section switch)
+                             // We update the local `userData` *after* the async update call for THIS render cycle's logic
+                             const resetUpdate = { watched: 0, claimed: false, lastClaimed: null };
+                             window.db.collection('userData').doc(window.telegramUser.id.toString()).update({
+                                 [`adProgress.${questId}`]: resetUpdate
+                             }).then(() => {
+                                debugLog(`[EARN] Firestore reset successful for ${questId}.`);
+                                // Optionally update local cache more reliably AFTER promise resolves
+                                 if(window.currentUserData?.adProgress?.[questId]) {
+                                     window.currentUserData.adProgress[questId] = resetUpdate;
+                                 }
+                             }).catch(resetError => {
+                                 console.error(`[EARN ERROR] Failed Firestore reset for ${questId}:`, resetError);
+                                 debugLog(`[EARN ERROR] Failed Firestore reset for ${questId}: ${resetError.message}`); // <-- ADDED DEBUG LOG
+                                 // If reset fails, the UI might show 'Claimed' until a full refresh.
+                             });
 
+                            // --- Update local state *immediately* for correct button rendering THIS RENDER CYCLE ---
+                            // Assume the reset *will* succeed for the UI logic *now*.
+                            adProgress.watched = 0;
+                            adProgress.claimed = false;
+                            isClaimed = false; // Update variable used for button logic below
+                            adProgress.lastClaimed = null;
+                            isCooldownOver = false; // Reset cooldown status for UI logic
+                             debugLog(`[EARN] Local state reset for ${questId} for immediate UI render.`); // <-- ADDED DEBUG LOG
+                        } catch (resetErrorSync) {
+                             // Catch sync errors during the update call setup itself
+                             console.error(`[EARN ERROR] Synchronous error during Firestore reset setup for ${questId}:`, resetErrorSync);
+                             debugLog(`[EARN ERROR] Sync error during Firestore reset setup: ${resetErrorSync.message}`); // <-- ADDED DEBUG LOG
+                             // Do not reset local state if the update call setup failed
+                             isCooldownOver = false; // Pretend cooldown isn't over for UI consistency if reset failed
+                        }
+                    }
 
-                     // --- Button State Logic for 'ads' quests (using potentially reset adProgress) ---
-                     if (adProgress.claimed && !isCooldownOver) {
-                         // If already claimed and cooldown is NOT over, show wait time
+                    // --- Button State Logic (using potentially reset adProgress/isClaimed/isCooldownOver) ---
+                    if (isCompleted && isClaimed && !isCooldownOver) {
+                         // Already completed AND claimed, and still within cooldown period
                          const timeLeftMillis = cooldownPeriod - timeSinceLastClaim;
-                         // Calculate minutes left, round up, ensure minimum of 1 minute
+                         // Show minutes left, minimum 1 minute
                          const timeLeftMinutes = Math.max(1, Math.ceil(timeLeftMillis / 60000));
                          buttonText = `Wait ${timeLeftMinutes}m`;
-                         buttonClass = 'claimed-button'; // Use claimed-button class
-                         buttonStyle = 'background: #666; cursor: default;'; // Greyed out style
-                         buttonDisabled = true; // Disable the button during cooldown
-                     } else if (isCompleted && !adProgress.claimed) {
-                         // If ads are watched but not claimed yet
-                         buttonText = 'Claim'; // Button text is "Claim"
-                         buttonClass = 'claim-button active'; // Use claim-button, add 'active' for styling
-                         buttonStyle = 'background: linear-gradient(to right, #00ff00, #66ff66);'; // Green gradient style
-                         buttonDisabled = false; // Button is enabled to claim
-                     } else if (isCompleted && adProgress.claimed && isCooldownOver) {
-                         // If completed, claimed, and cooldown is OVER (after reset logic above runs)
-                         // This state should revert to the initial "Watch Ad" or "GO" state.
-                         buttonText = questAction; // Reset to the original action text
-                         buttonClass = 'go-button'; // Reset to go-button class
-                         buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);'; // Reset to go style
-                         buttonDisabled = false; // Button is enabled to start again
-                     }
-                     else { // If not completed (adProgress.watched < adLimit)
-                         buttonText = questAction; // Button text is the default action (e.g., "Watch Ad", "GO")
-                         buttonClass = 'go-button'; // Use go-button class
-                         buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);'; // Go style
-                         buttonDisabled = false; // Button is enabled to watch more ads
-                     }
-                 } else { // --- Logic for Default quest types (e.g., 'daily', link visits) ---
-                     // Check if the quest has been claimed using the general claimedQuests array
-                     const isClaimed = userData.claimedQuests.includes(questId);
-                     if (isClaimed) {
-                         buttonText = 'Claimed'; // Text is "Claimed"
-                         buttonClass = 'claimed-button'; // Use claimed-button class
-                         buttonStyle = 'background: #666; cursor: default;'; // Greyed out style
-                         buttonDisabled = true; // Button is disabled
-                     } else {
-                         buttonText = questAction; // Text is the default action (e.g., "GO", "Visit")
-                         buttonClass = 'go-button'; // Use go-button class
-                         buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);'; // Go style
-                         buttonDisabled = false; // Button is enabled
-                     }
-                 }
+                         buttonClass = 'claimed-button'; // Use 'claimed-button' style for cooldown
+                         buttonStyle = 'background: #ccc; cursor: default;'; // Grayed out
+                         buttonDisabled = true;
+                         debugLog(`[EARN] Ad quest ${questId} in cooldown state.`); // <-- ADDED DEBUG LOG
 
-                 // Return the HTML string for a single basic quest list item
-                 return `
-                     <li class="quest-item" data-quest-id="${questId}" data-quest-type="${questType}" data-ad-limit="${adLimit}" data-ad-type="${adType}">
-                         <img src="${questIcon}" alt="${questTitle}" onerror="this.src='assets/icons/quest_placeholder.png'">
-                         <span>${questTitle}</span>
-                         <div class="quest-reward">
-                             <img src="assets/icons/gem.png" alt="Gem">
-                             <span>+${questReward.toLocaleString()}</span>
-                             ${progressText} <button class="${buttonClass}"
-                                     data-quest-link="${questLink}"
-                                     data-quest-reward="${questReward}"
-                                     style="${buttonStyle}"
-                                     ${buttonDisabled ? 'disabled' : ''}>
-                                 ${buttonText}
-                             </button>
-                         </div>
-                     </li>
-                 `;
-             }).join(''); // Join all HTML strings
-         }
-         debugLog("[QUEST DEBUG] Basic quests HTML rendered.");
+                    } else if (isCompleted && !isClaimed) {
+                         // Completed, but not yet claimed
+                         buttonText = 'Claim';
+                         buttonClass = 'claim-button active'; // Use 'claim-button' style, make it active visually
+                         buttonStyle = 'background: linear-gradient(to right, #00ff00, #66ff66);'; // Green Claim button
+                         buttonDisabled = false; // Button is enabled
+                         debugLog(`[EARN] Ad quest ${questId} ready to claim.`); // <-- ADDED DEBUG LOG
+
+                    } else { // Not completed yet, or completed and claimed with cooldown over (handled by reset)
+                        buttonText = questAction; // 'Watch Ad' or 'GO' from quest config
+                        buttonClass = 'go-button'; // Use 'go-button' style
+                        buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);'; // Default purple/pink GO style
+                        // Button is enabled UNLESS it's an 'inApp' type which isn't manually triggered
+                        buttonDisabled = (adType === 'inApp');
+                         if (buttonDisabled) {
+                             buttonText = 'Automatic'; // Indicate it's automatic
+                             buttonStyle = 'background: #ccc; cursor: default;'; // Gray out automatic ones
+                         }
+                         debugLog(`[EARN] Ad quest ${questId} in GO state (watched < ${adLimit}). Disabled: ${buttonDisabled}`); // <-- ADDED DEBUG LOG
+                    }
+                } else { // Default quest type (e.g., visit link, join channel)
+                    // Check if the quest ID is in the user's claimedQuests array
+                    const isClaimed = userData.claimedQuests.includes(questId);
+                    if (isClaimed) {
+                        buttonText = 'Claimed'; // Already claimed
+                        buttonClass = 'claimed-button'; // Use 'claimed-button' style
+                        buttonStyle = 'background: #ccc; cursor: default;'; // Grayed out
+                        buttonDisabled = true; // Button is disabled
+                         debugLog(`[EARN] Default quest ${questId} already claimed.`); // <-- ADDED DEBUG LOG
+                    } else {
+                         buttonText = questAction; // 'GO', 'Join', etc. from quest config
+                         buttonClass = 'go-button'; // Use 'go-button' style
+                         buttonStyle = 'background: linear-gradient(to right, #ff00ff, #ff6666);'; // Default GO style
+                         buttonDisabled = false; // Button is enabled
+                         debugLog(`[EARN] Default quest ${questId} ready to go.`); // <-- ADDED DEBUG LOG
+                    }
+                }
+
+                // Return the HTML structure for this quest item
+                return `
+                    <li class="quest-item" data-quest-id="${questId}" data-quest-type="${questType}" data-ad-limit="${adLimit}" data-ad-type="${adType}">
+                        <img src="${questIcon}" alt="${questTitle}" onerror="this.src='assets/icons/quest_placeholder.png'">
+                        <span>${questTitle}</span>
+                        <div class="quest-reward">
+                            <img src="assets/icons/gem.png" alt="Gem">
+                            <span>+${questReward.toLocaleString()}</span>
+                            ${progressText} <button class="${buttonClass}"
+                                    data-quest-link="${questLink}"
+                                    data-quest-reward="${questReward}"
+                                    style="${buttonStyle}"
+                                    ${buttonDisabled ? 'disabled' : ''}>
+                                ${buttonText}
+                            </button>
+                        </div>
+                    </li>
+                `;
+            }).join(''); // Join array of HTML strings into a single string
+            debugLog("[EARN] Basic quests rendered."); // <-- ADDED DEBUG LOG
+        }
+
+        debugLog("--- [EARN] Earn section UI update finished successfully ---"); // <-- ADDED DEBUG LOG
 
     } catch (error) {
-        // Handle any errors that occurred during the fetch or rendering process
-        console.error("[QUEST ERROR] Failed to update Earn section UI:", error);
-        debugLog(`[QUEST ERROR] Failed to update Earn section UI: ${error.message}\n${error.stack}`);
-        // Display user-friendly error messages in the UI lists
+        // Handle errors that occur during the UI update process (fetching, processing, rendering)
+        console.error("[EARN ERROR] Failed to update Earn section UI:", error);
+        debugLog(`[EARN ERROR] Failed to update Earn section UI: ${error.message}\n${error.stack}`); // <-- ADDED DEBUG LOG
+        // Display error messages in the UI where quests would normally show
         dailyQuestList.innerHTML = `<li class="error"><p>Failed to load daily quests. Please try again later.</p></li>`;
         basicQuestList.innerHTML = `<li class="error"><p>Failed to load basic quests. Please try again later.</p></li>`;
-        // Update counts to indicate error
-        dailyQuestCountEl.textContent = 'ERR';
-        basicQuestCountEl.textContent = 'ERR';
+        dailyQuestCountEl.textContent = 'ERR'; // Indicate error in count
+        basicQuestCountEl.textContent = 'ERR'; // Indicate error in count
+         debugLog("[EARN] Displayed error messages in UI."); // <-- ADDED DEBUG LOG
     }
 }
 
-// --- Quest Interaction Logic (Called by Global Event Listener in main.js) ---
-// This function handles the click events on quest buttons
-// This function is exposed globally for use by main.js's delegated event listener
-async function handleQuestClick(button) {
-    // Uses debugLog from utils.js (globally available)
-    // Uses firebaseInitialized, db, firebase, analytics from firebaseService.js (implicitly global)
-    // Uses telegramUser from telegramService.js (globally available)
-    // Uses currentUserData, fetchAndUpdateUserData, updateUserStatsUI from uiUpdater.js (globally available)
-    // Uses showAd from adService.js (globally available)
-    // Uses AD_QUEST_COOLDOWN_MS from config.js (globally available)
-    // Uses openTelegramLink from telegramService.js (globally available)
-    // Calls updateEarnSectionUI from this file (implicitly global)
 
-    // Find the parent quest item element
-    const taskItem = button.closest('.quest-item');
-    // If no parent quest item is found, this click wasn't on a quest button we handle here
+// --- Quest Interaction Logic ---
+// This function is called by the global delegated click listener in main.js
+async function handleQuestClick(button) {
+     // Uses debugLog from utils.js (globally available)
+     // Uses firebaseInitialized, db, firebase, analytics from firebaseService.js (implicitly global)
+     // Uses telegramUser from telegramService.js (globally available)
+     // Uses fetchAndUpdateUserData, updateUserStatsUI from uiUpdater.js (globally available)
+     // Uses showAd from adService.js (globally available)
+     // Uses AD_QUEST_COOLDOWN_MS from config.js (globally available)
+     // Calls openTelegramLink from telegramService.js (globally available)
+     // Calls updateEarnSectionUI from this file (implicitly global)
+
+
+    const taskItem = button.closest('.quest-item'); // Find the parent quest item element
     if (!taskItem) {
-        debugLog("[QUEST ACTION] Clicked button is not inside a quest item. Ignoring.");
-        return;
+        debugLog("[EARN ACTION] Quest button click - Parent quest item not found."); // <-- ADDED DEBUG LOG
+        return; // Exit if parent item not found
     }
 
-    // Extract data attributes from the quest item and the button
+    // Extract data attributes from the quest item and button
     const questId = taskItem.dataset.questId;
     const questType = taskItem.dataset.questType;
-    const reward = parseInt(button.dataset.questReward || '0'); // Ensure reward is a number
-    const link = button.dataset.questLink || ''; // Get the link for link-based quests
-    const adLimit = parseInt(taskItem.dataset.adLimit || '0'); // Get ad limit for ad quests
-    const adType = taskItem.dataset.adType || 'rewarded_interstitial'; // Get ad type for ad quests
+    const reward = parseInt(button.dataset.questReward || '0'); // Ensure reward is an integer
+    const link = button.dataset.questLink || '';
+    // Ensure adLimit is an integer, default to 0 or 1 for ads
+    const adLimit = parseInt(taskItem.dataset.adLimit || (questType === 'ads' ? '1' : '0'));
+    const adType = taskItem.dataset.adType || 'rewarded_interstitial'; // Default ad type
 
-    // Log details of the quest button click
-    debugLog(`[QUEST ACTION] Button clicked for quest: ${questId}`, { type: questType, reward, link: link || 'N/A', adLimit, adType });
+    debugLog(`[EARN ACTION] Button clicked for quest: ${questId}`, { type: questType, reward, link: link || 'N/A', adLimit, adType }); // <-- ADDED DEBUG LOG
 
-    // --- Critical Check: Ensure Firebase, DB, and User are ready ---
-    if (!window.firebaseInitialized || !window.db) {
-        alert("Initialization error: Database connection not ready. Please reload.");
-        debugLog("[QUEST ACTION ERROR] Firestore not ready for quest action.");
-        return; // Stop if Firebase/DB isn't ready
+
+    // Ensure Firebase and User are ready before proceeding with any action
+     if (!window.firebaseInitialized || !window.db || !window.telegramUser || !window.telegramUser.id) {
+        const errorMsg = "Initialization error or user not identified. Please reload.";
+        console.error("[EARN ACTION ERROR]", errorMsg);
+        debugLog("[EARN ACTION ERROR]", errorMsg); // <-- ADDED DEBUG LOG
+        alert(errorMsg);
+        // Re-enable button or ensure UI updates to reflect non-actionable state
+        button.disabled = false; // Attempt to re-enable the clicked button
+        updateEarnSectionUI(); // Refresh the list state
+        return; // Stop action
      }
-     if (!window.telegramUser || !window.telegramUser.id) {
-         alert("Initialization error: User not identified. Please reload.");
-         debugLog("[QUEST ACTION ERROR] User not identified.");
-         return; // Stop if user isn't identified
-     }
-     debugLog("[QUEST ACTION] Firebase, DB, and User confirmed ready.");
+     debugLog("[EARN ACTION] Firebase and User ready."); // <-- ADDED DEBUG LOG
 
-    // Get a reference to the user's document in Firestore
-    const userDocRef = window.db.collection('userData').doc(window.telegramUser.id.toString());
+
+    const userDocRef = window.db.collection('userData').doc(window.telegramUser.id.toString()); // Reference to the user's document
 
     // --- IMPORTANT: Fetch the latest user data *before* processing the click ---
-    // This is crucial, especially for ad quests, to get the most up-to-date watch count and claimed status.
-    let userData = await window.fetchAndUpdateUserData(); // Fetch fresh data and update cache
+    // This ensures we have the most up-to-date state for claimed quests and ad progress
+    debugLog("[EARN ACTION] Fetching latest user data before processing..."); // <-- ADDED DEBUG LOG
+    let userData = await window.fetchAndUpdateUserData(); // Use global function
     if (!userData) {
-        alert("Could not load your data to process the quest. Please try again.");
-        debugLog("[QUEST ACTION ERROR] Failed to fetch user data before action.");
-        return; // Stop if user data cannot be fetched
+        const errorMsg = "Could not load your data. Please try again.";
+        console.error("[EARN ACTION ERROR]", errorMsg);
+        debugLog("[EARN ACTION ERROR]", errorMsg); // <-- ADDED DEBUG LOG
+        alert(errorMsg);
+         button.disabled = false; // Attempt to re-enable button
+         updateEarnSectionUI(); // Refresh the list state
+        return; // Stop action
     }
-    // Ensure sub-objects exist on the fetched user data
+    // Ensure sub-objects exist after fetching for safety
     userData.adProgress = userData.adProgress || {};
     userData.claimedQuests = userData.claimedQuests || [];
-    debugLog("[QUEST ACTION] User data fetched successfully before action.");
-    // debugLog("[QUEST ACTION] User Data Snapshot before action:", JSON.stringify(userData)); // Can be verbose
+    debugLog("[EARN ACTION] Latest user data fetched and structure ensured."); // <-- ADDED DEBUG LOG
 
 
     // --- Handle CLAIM button clicks (specifically for completed ad quests) ---
     if (button.classList.contains('claim-button') && questType === 'ads') {
-        debugLog(`[QUEST ACTION] Handling CLAIM for ad quest: ${questId}`);
-        // Get the current ad progress for this specific quest
+        debugLog(`[EARN ACTION] Handling CLAIM for ad quest: ${questId}`); // <-- ADDED DEBUG LOG
         const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
 
-        // Validate if the quest is actually completed and not yet claimed
+        // Double-check if the quest is actually completed and not yet claimed based on latest data
         if (adProgress.watched < adLimit) {
-            debugLog(`[QUEST ACTION WARN] Claim clicked but not enough ads watched for ${questId} (${adProgress.watched}/${adLimit}).`);
-            alert("Please watch the required number of ads first before claiming.");
-            return; // Stop if not completed
+            debugLog(`[EARN ACTION WARN] Claim clicked but not enough ads watched for ${questId} (${adProgress.watched}/${adLimit}). Aborting claim.`); // <-- ADDED DEBUG LOG
+            alert("Please watch the required number of ads first.");
+             button.disabled = false; // Re-enable the button
+             updateEarnSectionUI(); // Refresh UI state
+            return; // Stop action
         }
         if (adProgress.claimed) {
-            debugLog(`[QUEST ACTION WARN] Claim clicked but already claimed for ${questId}.`);
-            // The UI should ideally prevent this by disabling the button, but this is a safety check.
-            alert("Reward for this quest has already been claimed.");
-            return; // Stop if already claimed
+            debugLog(`[EARN ACTION WARN] Claim clicked but already claimed for ${questId}. Aborting claim.`); // <-- ADDED DEBUG LOG
+            // UI should ideally prevent this, but safety check here.
+             button.disabled = false; // Re-enable the button
+             updateEarnSectionUI(); // Refresh UI state
+            return; // Stop action
         }
 
-        // Disable the claim button and show processing text
-        button.disabled = true;
-        button.textContent = 'Claiming...';
+        // Disable button and show claiming state while processing
+        button.disabled = true; button.textContent = 'Claiming...';
+        debugLog("[EARN ACTION] Claim button disabled, text set to Claiming."); // <-- ADDED DEBUG LOG
 
         try {
-            debugLog(`[QUEST ACTION] Attempting to claim reward for quest ${questId}. Awarding ${reward} gems.`);
-            const currentTimeISO = new Date().toISOString(); // Get current time in ISO format for timestamp
-
-            // --- Update Firestore atomically ---
-            // Use Firestore update to atomically increment gems and update the specific ad progress field.
+            const currentTimeISO = new Date().toISOString(); // Get current time in ISO format
+            debugLog(`[EARN ACTION] Updating Firestore for ad quest ${questId} claim...`); // <-- ADDED DEBUG LOG
+            // Update user document: increment gems and update the specific ad progress entry
             await userDocRef.update({
-                gems: firebase.firestore.FieldValue.increment(reward), // Increment user's gem balance
-                [`adProgress.${questId}`]: { // Update the specific ad progress object for this quest
-                    watched: adProgress.watched, // Keep the watched count as it was when claiming
+                gems: firebase.firestore.FieldValue.increment(reward), // Use global firebase object
+                [`adProgress.${questId}`]: { // Update the specific ad progress object
+                    watched: adProgress.watched, // Keep the watched count as it was when claimed
                     claimed: true, // Mark as claimed
-                    lastClaimed: currentTimeISO // Record the time of claiming for cooldown
+                    lastClaimed: currentTimeISO // Record claim time for cooldown
                  }
             });
-            debugLog(`[QUEST ACTION] Ad quest ${questId} claimed successfully in Firestore.`);
+            debugLog(`[EARN ACTION] Ad quest ${questId} claimed successfully. Awarded ${reward} gems. Firestore updated.`); // <-- ADDED DEBUG LOG
 
             // Log analytics event for the claim
-            // Uses analytics from firebaseService.js (implicitly global)
-            if (window.analytics) window.analytics.logEvent('ads_quest_claimed', { userId: window.telegramUser.id, questId, reward });
+            if (window.analytics) window.analytics.logEvent('ads_quest_claimed', { userId: window.telegramUser.id, questId, reward }); // Use global analytics
 
-            // Inform the user about the successful claim
+            // Inform the user
             alert(`Reward claimed! You earned ${reward.toLocaleString()} gems.`);
 
-             // --- Update UI after successful claim ---
-             // Fetch the latest user data to update the cache with new gem balance and claimed status
-             await window.fetchAndUpdateUserData(); // Refresh cache
-             debugLog("[QUEST ACTION] User data refreshed after claim.");
+             // Refresh local user data cache with the latest changes
+             await window.fetchAndUpdateUserData();
+             debugLog("[EARN ACTION] User data re-fetched after claim."); // <-- ADDED DEBUG LOG
 
-             // Update the user stats display in the header
-             await window.updateUserStatsUI(); // Update header/stats UI
-             debugLog("[QUEST ACTION] User stats UI updated after claim.");
-
-            // Refresh the Earn section UI to show the updated state (e.g., "Claimed" button, start cooldown timer)
-            await updateEarnSectionUI(); // Re-render the quest list
-            debugLog("[QUEST ACTION] Earn section UI updated after claim.");
-
+            // Update UI elements: header stats and the quest list state
+            await window.updateUserStatsUI(); // Update header stats
+            await updateEarnSectionUI(); // Refresh the quest list specifically to show 'Claimed' state
 
         } catch (error) {
-             // Handle errors during the Firestore update
-             console.error("[QUEST ERROR] Error claiming ad reward:", error);
-             debugLog(`[QUEST ERROR] Error claiming ad reward for ${questId}: ${error.message}`);
-             alert("Failed to claim reward. Please try again."); // Inform the user
-
-             // --- Update UI on claim failure ---
-             // Re-enable the claim button
-             button.disabled = false;
-             button.textContent = 'Claim'; // Reset button text to "Claim"
-
-             // It's important to refresh the UI to reflect the state *before* the failed attempt
-             // in case any local state was changed incorrectly.
-             // Re-fetching data and updating the UI ensures consistency.
-             await window.fetchAndUpdateUserData(); // Refresh cache
-             await updateEarnSectionUI(); // Re-render the quest list
-
+             // Handle errors during the Firestore update for claiming
+             console.error("[EARN ERROR] Error claiming ad reward:", error);
+             debugLog(`[EARN ERROR] Error claiming ad reward for ${questId}: ${error.message}`); // <-- ADDED DEBUG LOG
+             alert(`Failed to claim reward: ${error.message}. Please try again.`);
+             // Ensure button is re-enabled and UI reflects the correct state (likely still claimable if update failed)
+             button.disabled = false; button.textContent = 'Claim'; // Reset button text
+             updateEarnSectionUI(); // Refresh UI state
         }
-         // No finally block needed as button state and UI updates are handled in try/catch blocks
     }
     // --- Handle GO button clicks ---
     else if (button.classList.contains('go-button')) {
-        debugLog(`[QUEST ACTION] Handling GO for quest: ${questId}`);
+        debugLog(`[EARN ACTION] Handling GO for quest: ${questId}`); // <-- ADDED DEBUG LOG
 
-        // --- GO for Ad Quests (Manual Trigger via button) ---
+        // --- GO for Ad Quests (Manual Trigger) ---
         if (questType === 'ads') {
-             debugLog(`[QUEST ACTION] Processing GO for ad quest: ${questId}`);
-            // Get the current ad progress for this specific quest from the userData cache
+            debugLog(`[EARN ACTION] GO clicked for Ad Quest: ${questId}`); // <-- ADDED DEBUG LOG
             const adProgress = userData.adProgress[questId] || { watched: 0, claimed: false, lastClaimed: null };
-             debugLog(`[QUEST ACTION] Current ad progress for ${questId}: ${adProgress.watched}/${adLimit}, Claimed: ${adProgress.claimed}`);
 
-            // Validate if the quest is already completed or claimed (should be prevented by UI state, but safety check)
+            // Check if already completed or claimed and in cooldown
             if (adProgress.watched >= adLimit) {
-                debugLog(`[QUEST ACTION] Ad quest ${questId} already completed (${adProgress.watched}/${adLimit}). Ignoring GO click.`);
-                alert("You have already watched the required ads for this quest. Please click 'Claim' if available.");
-                // Update UI to ensure button state is correct (should be "Claim" or "Claimed")
-                await updateEarnSectionUI();
-                return;
+                debugLog(`[EARN ACTION] Ad quest ${questId} already completed (${adProgress.watched}/${adLimit}). Ignoring GO click.`); // <-- ADDED DEBUG LOG
+                alert("You have already watched the required ads. Click 'Claim' if available.");
+                updateEarnSectionUI(); // Refresh UI state
+                return; // Stop action
              }
             if (adProgress.claimed) {
-                 debugLog(`[QUEST ACTION] Ad quest ${questId} already claimed. Ignoring GO click.`);
-                 alert("This quest has already been claimed.");
-                 // Update UI to ensure button state is correct ("Claimed" or "Wait Xm")
-                 await updateEarnSectionUI();
-                 return;
+                 const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed) : null;
+                 const timeSinceLastClaim = lastClaimedTime ? (new Date() - lastClaimedTime) : Infinity;
+                 // Check if still within cooldown period
+                 if (timeSinceLastClaim < window.AD_QUEST_COOLDOWN_MS) {
+                     const timeLeftMinutes = Math.max(1, Math.ceil((window.AD_QUEST_COOLDOWN_MS - timeSinceLastClaim) / 60000));
+                     alert(`Quest is on cooldown. Please wait ${timeLeftMinutes}m.`);
+                     debugLog(`[EARN ACTION] Ad quest ${questId} on cooldown. Ignoring GO click.`); // <-- ADDED DEBUG LOG
+                     updateEarnSectionUI(); // Refresh UI state
+                    return; // Stop action
+                 } else {
+                    // Cooldown finished, but somehow button wasn't updated?
+                     debugLog(`[EARN ACTION WARN] Cooldown finished for ${questId}, but GO button was clicked. UI might be out of sync. Proceeding as if reset.`); // <-- ADDED DEBUG LOG
+                     // Proceed to show ad as if reset occurred - the UI update after ad will handle the reset logic if it wasn't done prior.
+                 }
             }
 
-            // Check if the adType is 'inApp' - these are handled automatically and should not be triggered by a manual button click
+            // Check if the adType is 'inApp' - these are handled automatically, reject manual trigger
             if (adType === 'inApp') {
-                debugLog("[QUEST ACTION] Manual trigger attempted for 'inApp' ad type. This type is handled automatically by the ad service.");
+                debugLog("[EARN ACTION WARN] Manual trigger attempted for 'inApp' ad type. This type is automatic."); // <-- ADDED DEBUG LOG
                 alert("This ad reward is handled automatically as you use the app.");
-                // Update UI to ensure button state is correct (maybe disabled or different text?)
-                await updateEarnSectionUI();
+                updateEarnSectionUI(); // Refresh UI state
                 return; // Prevent manual trigger
             }
 
-            debugLog(`[QUEST ACTION] Attempting to show ad (${adType}) for quest: ${questId}`);
-            // Disable the button and show loading text while the ad is loading/playing
-            button.disabled = true;
-            button.textContent = 'Loading Ad...';
+            // Attempt to show the ad
+            debugLog(`[EARN ACTION] Attempting to show ad (${adType}) for quest: ${questId}`); // <-- ADDED DEBUG LOG
+            button.disabled = true; button.textContent = 'Loading Ad...'; // Disable button and show loading state
+            debugLog("[EARN ACTION] GO button disabled, text set to Loading Ad."); // <-- ADDED DEBUG LOG
 
             try {
-                 // Call the showAd function from adService.js (globally available)
-                 // This function returns a Promise that resolves when the ad is finished (watched, closed)
-                 // or rejects if there was an error or the ad was closed early.
-                await window.showAd(adType); // Pass the adType from the quest data
-                debugLog(`[QUEST ACTION] showAd Promise resolved for quest: ${questId}. Ad finished.`);
+                // Call the showAd function from adService.js (globally available)
+                // This promise resolves when the ad is shown or closed.
+                await window.showAd(adType);
+                debugLog(`[EARN ACTION] Ad shown successfully (or closed/skipped) for quest: ${questId}.`); // <-- ADDED DEBUG LOG
 
-                 // --- IMPORTANT: Re-fetch user data *after* the ad interaction ---
-                 // This is critical because the ad progress might have been updated by the ad service SDK
-                 // or another background process (less likely, but safe practice).
-                 // Fetching fresh data ensures we get the correct 'watched' count before incrementing it.
-                 const userDataAfterAd = await window.fetchAndUpdateUserData(); // Fetch fresh data
-                 if (!userDataAfterAd) {
-                     // If user data disappears after the ad, something is seriously wrong.
-                     throw new Error("User data not found after ad completion.");
-                 }
-                 debugLog("[QUEST ACTION] User data refreshed after showAd resolved.");
+                // --- IMPORTANT: Re-fetch user data *after* ad interaction, *before* updating Firestore ---
+                // This gets the absolute latest state, crucial if other ads/quests were completed concurrently
+                debugLog("[EARN ACTION] Re-fetching user data after ad interaction..."); // <-- ADDED DEBUG LOG
+                const userDataAfterAd = await window.fetchAndUpdateUserData(); // Use global function
+                if (!userDataAfterAd) {
+                     const errorMsg = "User data disappeared after ad.";
+                     console.error("[EARN ACTION ERROR]", errorMsg);
+                     debugLog("[EARN ACTION ERROR]", errorMsg); // <-- ADDED DEBUG LOG
+                     throw new Error(errorMsg); // Propagate error
+                }
+                 // Ensure structure exists in the re-fetched data
+                userDataAfterAd.adProgress = userDataAfterAd.adProgress || {};
 
-                 // Use the LATEST known progress from the refreshed data before applying the increment
-                 const currentAdProgress = userDataAfterAd.adProgress?.[questId] || { watched: 0, claimed: false, lastClaimed: null };
-                 const newWatchedCount = currentAdProgress.watched + 1; // Calculate the new watched count
+                // Get the LATEST known progress for THIS specific quest
+                const currentAdProgress = userDataAfterAd.adProgress?.[questId] || { watched: 0, claimed: false, lastClaimed: null };
+                const newWatchedCount = currentAdProgress.watched + 1;
+                 debugLog(`[EARN ACTION] Ad watched. Current watched count: ${currentAdProgress.watched}, New count: ${newWatchedCount}`); // <-- ADDED DEBUG LOG
 
-                 debugLog(`[QUEST ACTION] Updating ad progress in Firestore for ${questId}: watched ${newWatchedCount}/${adLimit}`);
 
-                 // --- Update Firestore atomically ---
-                 // Use Firestore update to increment the specific ad progress field for this quest.
-                 // This update needs to be carefully structured to only update the 'watched' count
-                 // and leave 'claimed' and 'lastClaimed' as they were.
-                 // Using a simple update on a nested object like this works IF the nested object exists.
-                 // If it might not exist, a transaction or ensure check is needed.
-                 // Based on updateEarnSectionUI init logic, adProgress[questId] should exist now.
-                 await userDocRef.update({
-                     // Update just the 'watched' count using FieldValue.increment
-                     // Note: Firestore increment on a nested field requires specifying the full path
-                     [`adProgress.${questId}.watched`]: firebase.firestore.FieldValue.increment(1) // Use firebase global object
-                     // Do NOT update 'claimed' or 'lastClaimed' here, that's for the CLAIM action.
-                 });
-                 debugLog(`[QUEST ACTION] Ad progress updated in Firestore for ${questId}: watched count is now ${newWatchedCount}.`);
+                // --- Update Firestore: Increment the watched count ---
+                debugLog(`[EARN ACTION] Updating Firestore: Incrementing adProgress.${questId}.watched by 1.`); // <-- ADDED DEBUG LOG
+                // Use firebase.firestore.FieldValue.increment for an atomic update
+                await userDocRef.update({
+                    [`adProgress.${questId}.watched`]: firebase.firestore.FieldValue.increment(1)
+                    // Only update watched count here. Claim status/time handled by the CLAIM action.
+                });
+                debugLog(`[EARN ACTION] Ad progress updated in Firestore for ${questId}.`); // <-- ADDED DEBUG LOG
 
-                  // *** === THIS IS THE FIX FOR SYNC === ***
-                  // Explicitly refresh the local cache *immediately* AFTER the successful Firestore update.
-                  // This ensures that the subsequent updateEarnSectionUI call uses the very latest data,
-                  // preventing the UI from showing the wrong watched count or enabling the Claim button prematurely.
-                  await window.fetchAndUpdateUserData(); // Refresh global currentUserData cache
-                  debugLog(`[QUEST ACTION] Refreshed local user data cache after Firestore update.`);
-                  // *** ================================ ***
 
-                 // Log analytics event for watching an ad
-                 // Uses analytics from firebaseService.js (implicitly global)
-                 if (window.analytics) window.analytics.logEvent('ads_quest_watch', { userId: window.telegramUser.id, questId, adType });
+                 // *** Refresh the local cache AFTER the successful Firestore update ***
+                 // This ensures window.currentUserData is consistent with the database
+                 await window.fetchAndUpdateUserData(); // Use global function
+                 debugLog(`[EARN ACTION] Refreshed local user data cache after Firestore update.`); // <-- ADDED DEBUG LOG
 
-                 // Inform the user about their progress or if they can now claim
-                 if (newWatchedCount >= adLimit) {
-                     alert(`Ad watched! (${newWatchedCount}/${adLimit}) You have completed this quest. Click 'Claim' to get your reward.`);
+
+                // Log analytics event for the ad watch
+                if (window.analytics) window.analytics.logEvent('ads_quest_watch', { userId: window.telegramUser.id, questId, adType }); // Use global analytics
+
+
+                // Inform the user about their progress or completion
+                // Use the `userDataAfterAd` (or refetched currentUserData) for the most accurate count to show the user
+                const latestUserData = window.currentUserData || userDataAfterAd; // Prefer latest cache
+                const latestWatchedCount = latestUserData?.adProgress?.[questId]?.watched ?? newWatchedCount; // Use updated count or fallback
+
+                if (latestWatchedCount >= adLimit) {
+                    alert(`Ad watched! (${latestWatchedCount}/${adLimit}) You can now claim your reward.`);
+                } else {
+                    alert(`Ad watched! Progress: ${latestWatchedCount}/${adLimit}`);
+                }
+
+                // --- Update UI (Now uses the refreshed cache) ---
+                debugLog("[EARN ACTION] Calling updateEarnSectionUI() to refresh quest list."); // <-- ADDED DEBUG LOG
+                await updateEarnSectionUI(); // Refresh the quest list to show updated progress or Claim button state
+
+            } catch (error) {
+                // Handle errors during ad showing or progress updating
+                console.error("[EARN ERROR] Failed to show ad or update progress:", error);
+                debugLog(`[EARN ERROR] Failed showing ad/updating progress for ${questId}: ${error.message}`); // <-- ADDED DEBUG LOG
+                 // Check if the error message indicates the user closed the ad early vs a technical failure
+                 if (error.message.includes("closed early")) {
+                     alert("Ad skipped or closed early. Progress not updated.");
                  } else {
-                     alert(`Ad watched! Progress: ${newWatchedCount}/${adLimit}`);
+                    alert(`Failed to show ad: ${error.message || 'Unknown error'}. Please try again.`); // Show specific error if possible
                  }
-
-                 // --- Update UI after successful ad watch and progress update ---
-                 // Refresh the entire Earn section UI to reflect the new watched count and potentially updated button state ("Claim")
-                 await updateEarnSectionUI(); // Re-render the quest list
-
-
-             } catch (error) {
-                 // Handle errors that occur while showing the ad or updating progress
-                 console.error("[QUEST ERROR] Failed to show ad or update progress:", error);
-                 debugLog(`[QUEST ERROR] Failed showing ad/updating progress for ${questId}: ${error.message}`);
-
-                  // Inform the user about the failure
-                  // Check the error message to provide more specific feedback if possible
-                  const userFacingError = error.message.includes("closed early")
-                     ? "Ad skipped or closed early. Progress not updated."
-                     : `Failed to show ad: ${error.message || 'Unknown error'}. Please try again.`;
-                  alert(userFacingError);
-
-                 // --- Update UI on ad watch failure ---
-                 // It's crucial to refresh the Earn section UI on failure to reset the button state
-                 // (e.g., from "Loading Ad..." back to "Watch Ad" or "GO") based on the actual
-                 // state in the database (which shouldn't have changed if the update failed).
-                 await updateEarnSectionUI(); // Re-render the quest list
-
-             }
-             // No finally block needed as button state and UI updates are handled in both try and catch blocks.
+                 // Refresh UI to reset button state based on actual state after failure
+                 debugLog("[EARN ACTION] Calling updateEarnSectionUI() after ad error."); // <-- ADDED DEBUG LOG
+                await updateEarnSectionUI(); // Re-enable button and update UI
+            }
+             // No finally needed as updateEarnSectionUI is called in both try and catch paths after ad attempt
         }
         // --- GO for Daily/Default Link Quests ---
         else { // questType is 'daily' or 'default'
-             debugLog(`[QUEST ACTION] Processing GO for daily/default quest: ${questId}`);
-            // Check if the quest has already been claimed using the general claimedQuests array
+            debugLog(`[EARN ACTION] GO clicked for Default/Daily Quest: ${questId}`); // <-- ADDED DEBUG LOG
+            // Check if the quest is already claimed based on latest data
             if (userData.claimedQuests.includes(questId)) {
-                debugLog(`[QUEST ACTION WARN] GO clicked but default quest ${questId} already claimed. Ignoring.`);
-                 // The UI should ideally prevent this by disabling the button.
-                 alert("This quest has already been completed.");
-                 // Update UI to ensure button state is correct ("Claimed")
-                 await updateEarnSectionUI();
-                return;
+                debugLog(`[EARN ACTION WARN] GO clicked but default quest ${questId} already claimed. Aborting.`); // <-- ADDED DEBUG LOG
+                 // UI should ideally prevent this
+                alert("This quest has already been claimed.");
+                 button.disabled = false; // Re-enable button
+                 updateEarnSectionUI(); // Refresh UI state
+                return; // Stop action
              }
             // Check if a link is provided for link-based quests
             if (!link) {
-                alert("No link or action associated with this quest.");
-                debugLog(`[QUEST ACTION WARN] GO clicked for ${questId} but no link found.`);
-                // Update UI to ensure button state is correct
-                await updateEarnSectionUI();
-                return;
+                debugLog(`[EARN ACTION WARN] GO clicked for ${questId} but no link found.`); // <-- ADDED DEBUG LOG
+                alert("No link associated with this quest.");
+                 button.disabled = false; // Re-enable button
+                 updateEarnSectionUI(); // Refresh UI state
+                return; // Stop action
              }
 
-            debugLog(`[QUEST ACTION] Attempting to complete link/action quest ${questId}. Awarding ${reward} gems.`);
-            // Disable the button and show processing text
-            button.disabled = true;
-            button.textContent = 'Processing...';
+            debugLog(`[EARN ACTION] Processing link/action for quest ${questId}: ${link}`); // <-- ADDED DEBUG LOG
+            button.disabled = true; button.textContent = 'Processing...'; // Disable button and show processing state
+            debugLog("[EARN ACTION] GO button disabled, text set to Processing."); // <-- ADDED DEBUG LOG
 
             try {
-                 // --- Update Firestore atomically ---
-                 // Use Firestore update to atomically increment gems and add the quest ID to the claimedQuests array.
+                debugLog(`[EARN ACTION] Updating Firestore for default quest ${questId} completion...`); // <-- ADDED DEBUG LOG
+                // Update user document: increment gems and add quest ID to claimedQuests array
                 await userDocRef.update({
-                    gems: firebase.firestore.FieldValue.increment(reward), // Increment user's gem balance
-                    claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId) // Add the quest ID to the claimedQuests array
+                    gems: firebase.firestore.FieldValue.increment(reward), // Use global firebase object
+                    claimedQuests: firebase.firestore.FieldValue.arrayUnion(questId) // Use global firebase object
                 });
-                debugLog(`[QUEST ACTION] Default/Daily quest ${questId} marked complete in Firestore. Awarded ${reward} gems.`);
+                debugLog(`[EARN ACTION] Default/Daily quest ${questId} marked complete. Awarded ${reward} gems. Firestore updated.`); // <-- ADDED DEBUG LOG
 
-                // Log analytics event for completing a quest
-                // Uses analytics from firebaseService.js (implicitly global)
-                if (window.analytics) window.analytics.logEvent('quest_completed', { userId: window.telegramUser.id, questId, reward });
+                // Log analytics event for the completion
+                if (window.analytics) window.analytics.logEvent('quest_completed', { userId: window.telegramUser.id, questId, reward }); // Use global analytics
 
-                 // --- Open the link AFTER successfully updating the database ---
-                 // This prevents awarding rewards if opening the link fails.
-                 // Use openTelegramLink from telegramService.js (globally available)
-                 window.openTelegramLink(link);
+                 // Open the link AFTER successfully updating the database
+                 debugLog(`[EARN ACTION] Opening Telegram link: ${link}`); // <-- ADDED DEBUG LOG
+                 window.openTelegramLink(link); // Use global function from telegramService.js
 
-                // Inform the user about the successful completion and reward
+                // Inform the user
                 alert(`Quest completed! You earned ${reward.toLocaleString()} gems.`);
 
-                // --- Update UI after successful completion ---
-                // Fetch the latest user data to update the cache with new gem balance and claimed status
+                // Refresh local user data cache and update UI elements
                 await window.fetchAndUpdateUserData(); // Refresh cache
-                debugLog("[QUEST ACTION] User data refreshed after default quest completion.");
-
-                // Update the user stats display in the header
-                await window.updateUserStatsUI(); // Update header/stats UI
-                debugLog("[QUEST ACTION] User stats UI updated after default quest completion.");
-
-                // Refresh the Earn section UI to show the updated state (e.g., "Claimed" button)
-                await updateEarnSectionUI(); // Re-render the quest list
-                debugLog("[QUEST ACTION] Earn section UI updated after default quest completion.");
-
+                debugLog("[EARN ACTION] User data re-fetched after default quest completion."); // <-- ADDED DEBUG LOG
+                await window.updateUserStatsUI(); // Update header stats
+                await updateEarnSectionUI(); // Refresh the quest list to show 'Claimed' state
 
             } catch (error) {
-                // Handle errors during the Firestore update
-                console.error("[QUEST ERROR] Error completing default/daily quest:", error);
-                debugLog(`[QUEST ERROR] Error completing quest ${questId}: ${error.message}`);
-                alert("Failed to complete quest. Please try again."); // Inform the user
-
-                // --- Update UI on completion failure ---
-                // Re-enable the button and reset its text
-                button.disabled = false;
-                button.textContent = questAction; // Reset text to the original action (e.g., "GO")
-
-                // It's important to refresh the UI to reflect the state *before* the failed attempt.
-                await window.fetchAndUpdateUserData(); // Refresh cache
-                await updateEarnSectionUI(); // Re-render the quest list
+                // Handle errors during the Firestore update for completing the quest
+                console.error("[EARN ERROR] Error completing default/daily quest:", error);
+                debugLog(`[EARN ERROR] Error completing quest ${questId}: ${error.message}`); // <-- ADDED DEBUG LOG
+                alert(`Failed to complete quest: ${error.message}. Please try again.`);
+                // Re-enable button and update UI on failure
+                 button.disabled = false; button.textContent = questAction; // Reset to original action text
+                 updateEarnSectionUI(); // Refresh UI state
             }
-             // No finally block needed as button state and UI updates are handled in try/catch blocks.
         }
     }
-    // If the click is on a button that is already disabled (e.g., "Claimed" or "Wait Xm"),
-    // or if it's not a button within a quest-reward div, the click is silently ignored
-    // by the initial `if (!button) return;` and `if (button.classList.contains('claimed-button') || button.disabled)` checks
+    // Ignore clicks on 'Claimed' or disabled/waiting buttons silently
     else if (button.classList.contains('claimed-button') || button.disabled) {
-        debugLog(`[QUEST ACTION] Click ignored on disabled/claimed button for quest: ${questId}`);
+        debugLog(`[EARN ACTION] Click ignored on disabled/claimed button for quest: ${questId}`); // <-- ADDED DEBUG LOG
     }
 }
 
-// Make the Earn section UI update and quest click handler functions globally available
+// Make updateEarnSectionUI available globally for navigation.js
 window.updateEarnSectionUI = updateEarnSectionUI;
-window.handleQuestClick = handleQuestClick; // This function will be called by the global listener in main.js
+// handleQuestClick is called by the global event listener in main.js, no need to globalize it explicitly
+// window.handleQuestClick = handleQuestClick; // Not strictly needed if only called by delegated listener
+
+
