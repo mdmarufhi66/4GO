@@ -63,8 +63,9 @@ function loadScript(src, retries = 3, delay = 1000) {
             };
             script.onerror = () => {
                 attempts++;
+                debugLog(`Failed to load script: ${src}. Attempt ${attempts}/${retries}`);
                 if (attempts < retries) {
-                    console.warn(`Failed to load script: ${src}. Retrying (${attempts}/${retries})...`);
+                    console.warn(`Retrying (${attempts}/${retries})...`);
                     setTimeout(tryLoad, delay);
                 } else {
                     const errorMsg = `Failed to load script after ${retries} attempts: ${src}`;
@@ -97,13 +98,20 @@ async function initializeFirebase(maxRetries = 3) {
         debugLog("Firebase already initialized.");
         return true;
     }
+
+    // Check if Firebase is already loaded in the global scope
     if (window.firebase && window.firebase.apps && window.firebase.apps.length > 0) {
         debugLog("Firebase detected in global scope, reusing existing instance.");
         app = window.firebase.apps[0];
         db = app.firestore();
         auth = app.auth();
         storage = app.storage();
-        try { analytics = app.analytics(); } catch (e) { console.warn("Analytics setup failed:", e.message); }
+        try {
+            analytics = app.analytics();
+        } catch (e) {
+            console.warn("Analytics setup failed:", e.message);
+            debugLog(`Analytics setup failed: ${e.message}`);
+        }
         firebaseInitialized = true;
         return true;
     }
@@ -122,11 +130,18 @@ async function initializeFirebase(maxRetries = 3) {
             debugLog(`Attempt ${attempts + 1}/${maxRetries} to initialize Firebase...`);
             validateFirebaseConfig(firebaseConfig);
 
-            await Promise.all(scriptUrls.map(url => loadScript(url, 1)));
+            // Load Firebase scripts sequentially to avoid race conditions
+            for (const url of scriptUrls) {
+                await loadScript(url, 3, 1000);
+                debugLog(`Loaded script: ${url}`);
+            }
+
+            // Verify Firebase is defined
             if (typeof firebase === 'undefined' || typeof firebase.initializeApp === 'undefined') {
                 throw new Error("Firebase SDK core not loaded correctly.");
             }
 
+            // Initialize Firebase app
             if (firebase.apps.length === 0) {
                 app = firebase.initializeApp(firebaseConfig);
                 debugLog("Firebase app initialized.");
@@ -135,15 +150,35 @@ async function initializeFirebase(maxRetries = 3) {
                 debugLog("Reusing existing Firebase app instance.");
             }
 
+            // Initialize Firebase services
             db = firebase.firestore();
+            if (typeof db === 'undefined') {
+                throw new Error("Firestore initialization failed.");
+            }
             auth = firebase.auth();
+            if (typeof auth === 'undefined') {
+                throw new Error("Auth initialization failed.");
+            }
             storage = firebase.storage();
-            try { analytics = firebase.analytics(); } catch (e) { console.warn("Analytics setup failed:", e.message); }
+            if (typeof storage === 'undefined') {
+                throw new Error("Storage initialization failed.");
+            }
+            try {
+                analytics = firebase.analytics();
+                if (typeof analytics === 'undefined') {
+                    throw new Error("Analytics initialization failed.");
+                }
+            } catch (e) {
+                console.warn("Analytics setup failed:", e.message);
+                debugLog(`Analytics setup failed: ${e.message}`);
+            }
 
+            // Test Firestore connectivity
             await db.collection('internal_status').doc('init_test').set({
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                 status: 'ok'
             }, { merge: true });
+            debugLog("Firestore connectivity test passed.");
 
             firebaseInitialized = true;
             debugLog("Firebase fully initialized and connected.");
@@ -466,6 +501,39 @@ async function initializeUserData() {
             debugLog("New user data initialized in userData and users collections.");
             if (analytics) analytics.logEvent('user_signup', { userId: userIdStr });
         } else {
+            debugLog(`User$newUser = {
+                gems: 0,
+                usdt: 0,
+                ton: 0,
+                referrals: 0,
+                referralCredits: 0,
+                inviteRecords: [],
+                claimHistory: [],
+                landPieces: 0,
+                foxMedals: 0,
+                vipLevel: 0,
+                isReferred: false,
+                referredBy: null,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
+                claimedQuests: [],
+                adProgress: {},
+                walletAddress: null,
+                transactions: []
+            };
+            await userDocRef.set(newUser);
+
+            const rankingEntry = {
+                username: telegramUser.username || telegramUser.first_name || `User_${userIdStr.slice(-4)}`,
+                foxMedals: 0,
+                photoUrl: telegramUser.photo_url || 'assets/icons/user-avatar.png',
+                userId: userIdStr
+            };
+            await rankingDocRef.set(rankingEntry, { merge: true });
+
+            debugLog("New user data initialized in userData and users collections.");
+            if (analytics) analytics.logEvent('user_signup', { userId: userIdStr });
+        } else {
             debugLog(`User ${userIdStr} found. Updating last login.`);
             const updates = {
                 lastLogin: firebase.firestore.FieldValue.serverTimestamp()
@@ -622,7 +690,7 @@ async function updateEarnSectionUI() {
         basicQuestList.innerHTML = '<li class="error"><p>Error: User data not loaded.</p></li>';
         return;
     }
-    debugLog("User data available for Earn section.");
+    debugLog("User data available for Earn section.", userData);
 
     // Check Firebase initialization
     if (!firebaseInitialized || !db) {
@@ -644,18 +712,24 @@ async function updateEarnSectionUI() {
 
         // Use global quest arrays
         debugLog("Rendering quests from global arrays.", { dailyQuests, basicQuests });
-        dailyQuestCount.textContent = dailyQuests.length;
-        basicQuestCount.textContent = basicQuests.length;
+        dailyQuestCount.textContent = dailyQuests.length.toString();
+        basicQuestCount.textContent = basicQuests.length.toString();
 
         dailyQuestList.innerHTML = '';
         if (dailyQuests.length === 0) {
             dailyQuestList.innerHTML = '<li class="no-quests"><p>No daily quests available.</p></li>';
             debugLog("No daily quests to render.");
         } else {
-            dailyQuests.forEach(quest => {
-                debugLog(`Rendering daily quest: ${quest.id}`);
-                const li = createQuestItem(quest, userData);
-                dailyQuestList.appendChild(li);
+            dailyQuests.forEach((quest, index) => {
+                debugLog(`Rendering daily quest ${index + 1}/${dailyQuests.length}: ${quest.id}`, quest);
+                try {
+                    const li = createQuestItem(quest, userData);
+                    dailyQuestList.appendChild(li);
+                    debugLog(`Daily quest ${quest.id} appended to DOM.`);
+                } catch (error) {
+                    console.error(`Error rendering daily quest ${quest.id}:`, error);
+                    debugLog(`Error rendering daily quest ${quest.id}: ${error.message}`);
+                }
             });
             debugLog("Daily quests rendered.");
         }
@@ -665,10 +739,16 @@ async function updateEarnSectionUI() {
             basicQuestList.innerHTML = '<li class="no-quests"><p>No basic quests available.</p></li>';
             debugLog("No basic quests to render.");
         } else {
-            basicQuests.forEach(quest => {
-                debugLog(`Rendering basic quest: ${quest.id}`);
-                const li = createQuestItem(quest, userData);
-                basicQuestList.appendChild(li);
+            basicQuests.forEach((quest, index) => {
+                debugLog(`Rendering basic quest ${index + 1}/${basicQuests.length}: ${quest.id}`, quest);
+                try {
+                    const li = createQuestItem(quest, userData);
+                    basicQuestList.appendChild(li);
+                    debugLog(`Basic quest ${quest.id} appended to DOM.`);
+                } catch (error) {
+                    console.error(`Error rendering basic quest ${quest.id}:`, error);
+                    debugLog(`Error rendering basic quest ${quest.id}: ${error.message}`);
+                }
             });
             debugLog("Basic quests rendered.");
         }
@@ -696,14 +776,34 @@ function createQuestItem(quest, userData) {
     const title = quest.title || 'Untitled Quest';
     const reward = quest.reward || 0;
 
-    li.innerHTML = `
-        <img src="${icon}" alt="${title}">
-        <span>${title}</span>
-        <div class="quest-reward">
-            <img src="assets/icons/gem.png" alt="Gem">
-            <span>${reward}</span>
-        </div>
-    `;
+    // Sanitize title to prevent HTML injection
+    const titleElement = document.createElement('span');
+    titleElement.textContent = title;
+
+    const iconImg = document.createElement('img');
+    iconImg.src = icon;
+    iconImg.alt = title;
+    iconImg.onerror = () => {
+        debugLog(`Failed to load quest icon for ${quest.id}: ${icon}`);
+        iconImg.src = 'assets/icons/quest_placeholder.png';
+    };
+
+    const rewardDiv = document.createElement('div');
+    rewardDiv.className = 'quest-reward';
+    const gemImg = document.createElement('img');
+    gemImg.src = 'assets/icons/gem.png';
+    gemImg.alt = 'Gem';
+    gemImg.onerror = () => {
+        debugLog(`Failed to load gem icon for quest ${quest.id}`);
+    };
+    const rewardSpan = document.createElement('span');
+    rewardSpan.textContent = reward;
+    rewardDiv.appendChild(gemImg);
+    rewardDiv.appendChild(rewardSpan);
+
+    li.appendChild(iconImg);
+    li.appendChild(titleElement);
+    li.appendChild(rewardDiv);
 
     const isRepeatable = quest.repeatable !== false;
     const isAdBased = quest.action === 'watch_ad';
@@ -712,7 +812,10 @@ function createQuestItem(quest, userData) {
     const adsRequired = quest.adsRequired || 1;
 
     if (isAdBased) {
-        li.innerHTML += `<span class="progress">${adProgress.watched}/${adsRequired}</span>`;
+        const progressSpan = document.createElement('span');
+        progressSpan.className = 'progress';
+        progressSpan.textContent = `${adProgress.watched}/${adsRequired}`;
+        li.appendChild(progressSpan);
         li.dataset.adType = 'rewarded_interstitial';
         li.dataset.adLimit = adsRequired;
     }
@@ -1411,7 +1514,8 @@ async function initializeApp() {
     }
 
     await ensureFirebaseReady(async () => {
-        await fetchQuests(); // Fetch quests early
+        debugLog("Firebase ready, proceeding with app setup...");
+        await fetchQuests(); // Fetch quests after Firebase is confirmed ready
         await initializeUserData();
         setupNavigation();
         await initializeTONConnect();
