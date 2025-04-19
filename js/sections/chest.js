@@ -1,8 +1,11 @@
 // js/sections/chest.js
 
+import { CHESTS_DATA } from '../config.js';
+
 // Global state specific to chests (if not managed in main.js)
 let currentChestIndex = 0;
-const chests = CHESTS_DATA; // Use constant from config.js
+const chests = CHESTS_DATA; // This line will now work
+
 
 function renderChests() {
     debugLog("[CHEST] Rendering chests...");
