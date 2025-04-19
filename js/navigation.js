@@ -1,5 +1,7 @@
 // js/navigation.js
 
+console.log("--- TOP OF navigation.js script ---"); // <-- ADDED DEBUG LOG
+
 function setupNavigation() {
     debugLog('[NAV] Setting up navigation...');
     const sections = document.querySelectorAll('.main-content .section'); // Be more specific
