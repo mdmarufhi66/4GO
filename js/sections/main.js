@@ -36,14 +36,13 @@ async function initApp() {
     debugLog("--- App Initialization Sequence Start ---");
 
     // 1. Initialize Telegram Interface
-    // Calls initializeTelegram from telegramService.js (globally available)
-    // This should happen early to get user data
-    window.initializeTelegram(); // Note: This is not async in your provided code
+    debugLog("initApp step 1: Initializing Telegram Interface..."); // <-- ADDED DEBUG LOG
+    window.initializeTelegram(); // Calls initializeTelegram from telegramService.js (globally available)
+    debugLog("initApp step 1: Telegram Interface initialized."); // <-- ADDED DEBUG LOG
+
 
     // 2. Ensure Firebase is ready and initialized
-    // Calls ensureFirebaseReady from firebaseService.js (globally available)
-    // This will load Firebase SDKs and initialize the app if needed.
-    // Most subsequent steps that interact with Firebase need this to be complete.
+    debugLog("initApp step 2: Ensuring Firebase is ready..."); // <-- ADDED DEBUG LOG
     const firebaseReady = await window.ensureFirebaseReady(() => {}, 'main.js: Initial Firebase Check');
     if (!firebaseReady) {
         debugLog("App Init Failed: Firebase could not be initialized. Stopping init sequence.");
@@ -51,81 +50,73 @@ async function initApp() {
         // You could add more specific error handling here if needed.
         return; // Stop initialization if Firebase failed
     }
-    debugLog("Firebase is confirmed ready.");
+    debugLog("initApp step 2: Firebase is confirmed ready."); // <-- ADDED DEBUG LOG
 
 
     // 3. Initialize User Data (create/fetch user document in Firestore)
-    // Calls initializeUserData from uiUpdater.js (globally available)
-    // This depends on Firebase being ready and Telegram user data being available.
-    // initializeUserData also performs the initial fetch and populates currentUserData cache.
-    await window.initializeUserData();
-    debugLog("User data initialization complete.");
+    debugLog("initApp step 3: Initializing User Data..."); // <-- ADDED DEBUG LOG
+    await window.initializeUserData(); // Calls initializeUserData from uiUpdater.js (globally available)
+    debugLog("initApp step 3: User data initialization complete."); // <-- ADDED DEBUG LOG
 
 
     // 4. Handle Incoming Referrals (check start parameter and update referrer/user)
-    // Calls handleReferral from invite.js (globally available)
-    // This depends on Telegram start parameter and Firebase user data being available.
-    // Ensure user data is fetched BEFORE handling referral, so handleReferral can update it.
-    await window.handleReferral(); // handleReferral also fetches user data, but calling after initializeUserData is safe
-    debugLog("Referral handling complete.");
+    debugLog("initApp step 4: Handling Incoming Referrals..."); // <-- ADDED DEBUG LOG
+    await window.handleReferral(); // Calls handleReferral from invite.js (globally available)
+    debugLog("initApp step 4: Referral handling complete."); // <-- ADDED DEBUG LOG
 
 
     // 5. Generate User's Referral Link (prepares the link for invite/copy buttons)
-    // Calls generateReferralLink from invite.js (globally available)
-    // This depends on Telegram user data being available.
-    window.generateReferralLink(); // This doesn't need to be awaited unless it performs async tasks
-    debugLog("Referral link generation complete.");
+    debugLog("initApp step 5: Generating Referral Link..."); // <-- ADDED DEBUG LOG
+    window.generateReferralLink(); // Calls generateReferralLink from invite.js (globally available)
+    debugLog("initApp step 5: Referral link generation complete."); // <-- ADDED DEBUG LOG
 
 
      // 6. Initialize TON Connect UI instance
-     // Calls initializeTonConnect from walletService.js (globally available)
-     // This loads the TON Connect SDK and creates the instance.
-     window.tonConnectUI = await window.initializeTonConnect(); // Store the instance globally
+     debugLog("initApp step 6: Initializing TON Connect UI..."); // <-- ADDED DEBUG LOG
+     window.tonConnectUI = await window.initializeTonConnect(); // Calls initializeTonConnect from walletService.js (globally available)
      if (!window.tonConnectUI || typeof window.tonConnectUI.onStatusChange !== 'function') {
           debugLog("App Init Failed: TON Connect UI could not be initialized.");
           // initializeTonConnect should handle user alerts.
           // We continue, but wallet features will be unavailable.
      } else {
-         debugLog("TON Connect UI initialization complete.");
+         debugLog("initApp step 6: TON Connect UI initialization complete."); // <-- ADDED DEBUG LOG
      }
 
 
      // 7. Setup Wallet System Listeners & Initial UI State
+     debugLog("initApp step 7: Setting up Wallet System..."); // <-- ADDED DEBUG LOG
      // Calls initWalletSystem from walletService.js (globally available)
-     // This depends on tonConnectUI being initialized and DOM elements existing.
-     // initWalletSystem registers status change listeners and button clicks.
+     // This is where the ReferenceError was previously reported
      await window.initWalletSystem(); // Await because it might do async UI updates
-     debugLog("Wallet system initialization complete.");
+     debugLog("initApp step 7: Wallet system setup complete."); // <-- ADDED DEBUG LOG
 
 
     // 8. Render Dynamic Components (Chests)
-    // Calls renderChests from chest.js (globally available)
-    // This renders the initial HTML structure for chests based on config data.
-    window.renderChests(); // This doesn't fetch data, just renders structure
-    debugLog("Initial chest rendering complete.");
+    debugLog("initApp step 8: Rendering Dynamic Components (Chests)..."); // <-- ADDED DEBUG LOG
+    window.renderChests(); // Calls renderChests from chest.js (globally available)
+    debugLog("initApp step 8: Initial chest rendering complete."); // <-- ADDED DEBUG LOG
 
     // 9. Setup Chest Section Listeners (Navigation arrows, Open button)
-    // Calls setupChestListeners from chest.js (globally available)
-    // This depends on the chest elements being rendered in the previous step.
-    window.setupChestListeners();
-    debugLog("Chest section listeners setup complete.");
+    debugLog("initApp step 9: Setting up Chest Section Listeners..."); // <-- ADDED DEBUG LOG
+    window.setupChestListeners(); // Calls setupChestListeners from chest.js (globally available)
+    debugLog("initApp step 9: Chest section listeners setup complete."); // <-- ADDED DEBUG LOG
 
 
     // 10. Initialize Automatic Ads (e.g., In-App ads via Monetag SDK)
-    // Calls initializeAutomaticAds from adService.js (globally available)
-    // This depends on the Ad SDK being loaded in index.html <head>.
-    window.initializeAutomaticAds();
-    debugLog("Automatic ads initialization complete.");
+    debugLog("initApp step 10: Initializing Automatic Ads..."); // <-- ADDED DEBUG LOG
+    window.initializeAutomaticAds(); // Calls initializeAutomaticAds from adService.js (globally available)
+    debugLog("initApp step 10: Automatic ads initialization complete."); // <-- ADDED DEBUG LOG
 
 
     // 11. Setup Main Navigation
+    debugLog("initApp step 11: Setting up Main Navigation..."); // <-- ADDED DEBUG LOG
     // Calls setupNavigation from navigation.js (globally available)
     // This function sets up listeners for the bottom nav buttons.
     // CRITICALLY, setupNavigation also calls switchSection for the default section ('earn').
     // The switchSection function then calls the appropriate section-specific UI update function (e.g., updateEarnSectionUI).
     // This means the initial loading and display of the default section happens as part of this step.
     window.setupNavigation(); // This should be the LAST UI setup step as it activates the default section
-    debugLog("Main navigation setup complete. Default section activated.");
+    debugLog("initApp step 11: Main navigation setup complete. Default section activated."); // <-- ADDED DEBUG LOG
 
 
     // 12. Initial UI Updates for other sections that might not be the default
@@ -137,10 +128,10 @@ async function initApp() {
     // Based on your provided code, the section update calls are *inside* switchSection in navigation.js,
     // so they will be called when the default section is activated, and then on subsequent button clicks.
     // No extra update calls needed here based on your current logic flow.
-    debugLog("Initial UI updates for non-default sections handled by navigation.");
+    debugLog("initApp step 12: Initial UI updates for non-default sections handled by navigation."); // <-- ADDED DEBUG LOG
 
 
-    debugLog("--- App Initialization Sequence Finished ---");
+    debugLog("--- App Initialization Sequence Finished ---"); // <-- ADDED DEBUG LOG
 }
 
 
