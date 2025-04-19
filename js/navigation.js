@@ -1,6 +1,7 @@
 // js/navigation.js
 
 console.log("--- TOP OF navigation.js script ---"); // <-- ADDED DEBUG LOG
+alert("Navigation script is running!"); // <-- ADDED ALERT
 
 function setupNavigation() {
     debugLog('[NAV] Setting up navigation...');
