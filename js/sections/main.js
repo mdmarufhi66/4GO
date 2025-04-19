@@ -86,7 +86,6 @@ async function initApp() {
      // 7. Setup Wallet System Listeners & Initial UI State
      debugLog("initApp step 7: Setting up Wallet System..."); // <-- ADDED DEBUG LOG
      // Calls initWalletSystem from walletService.js (globally available)
-     // This is where the ReferenceError was previously reported
      await window.initWalletSystem(); // Await because it might do async UI updates
      debugLog("initApp step 7: Wallet system setup complete."); // <-- ADDED DEBUG LOG
 
@@ -109,14 +108,15 @@ async function initApp() {
 
 
     // 11. Setup Main Navigation
-    debugLog("initApp step 11: Setting up Main Navigation..."); // <-- ADDED DEBUG LOG
+    debugLog("initApp step 11: Setting up Main Navigation - Calling setupNavigation()..."); // <-- ADDED DEBUG LOG
     // Calls setupNavigation from navigation.js (globally available)
     // This function sets up listeners for the bottom nav buttons.
     // CRITICALLY, setupNavigation also calls switchSection for the default section ('earn').
     // The switchSection function then calls the appropriate section-specific UI update function (e.g., updateEarnSectionUI).
     // This means the initial loading and display of the default section happens as part of this step.
     window.setupNavigation(); // This should be the LAST UI setup step as it activates the default section
-    debugLog("initApp step 11: Main navigation setup complete. Default section activated."); // <-- ADDED DEBUG LOG
+    debugLog("initApp step 11: setupNavigation() call completed."); // <-- ADDED DEBUG LOG
+    debugLog("initApp step 11: Main navigation setup complete. Default section activated."); // <-- This line executes *after* setupNavigation potentially calls switchSection
 
 
     // 12. Initial UI Updates for other sections that might not be the default
@@ -232,4 +232,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // Start the main application initialization process
     initApp();
 });
-
