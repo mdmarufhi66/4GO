@@ -5,11 +5,11 @@ let app, db, auth, storage, analytics;
 let firebaseInitialized = false;
 let telegramUser;
 let tonConnectUI = null;
-let currentChestIndex = 0;
+let currentChestIndex = 0; // Keep track of chest slider
 
 // Firebase Configuration
 const firebaseConfig = {
-    apiKey: "AIzaSyCUkEmFmJK2vr8k7M6JqYaxlcgBDf7WdJI",
+    apiKey: "AIzaSyCUkEmFmJK2vr8k7M6JqYaxlcgBDf7WdJI", // WARNING: Exposing API key is insecure for production
     authDomain: "fourgo-cd98f.firebaseapp.com",
     projectId: "fourgo-cd98f",
     storageBucket: "fourgo-cd98f.firebasestorage.app",
@@ -18,7 +18,7 @@ const firebaseConfig = {
     measurementId: "G-DC7E6ECF2L"
 };
 
-// Chest Data
+// Chest Data (Consider fetching from Firestore later)
 const chests = [
     { name: "Wood Chest", next: "Bronze", image: "assets/graphics/wood-chest.png", gemCost: 200, vip: 0 },
     { name: "Bronze Chest", next: "Silver", image: "assets/graphics/bronze-chest.png", gemCost: 500, vip: 1 },
@@ -30,6 +30,8 @@ const chests = [
 ];
 
 // --- Utility Functions ---
+
+// Debug Logging Helper
 function debugLog(message, data = null) {
     const timestamp = new Date().toLocaleTimeString();
     console.log(`[DEBUG] ${timestamp}: ${message}`, data !== null ? data : '');
@@ -38,10 +40,12 @@ function debugLog(message, data = null) {
         const entry = document.createElement('div');
         entry.textContent = `${timestamp}: ${message}${data ? ` - ${JSON.stringify(data)}` : ''}`;
         debugConsole.appendChild(entry);
+        // Auto-scroll to bottom
         debugConsole.scrollTop = debugConsole.scrollHeight;
     }
 }
 
+// Dynamically load a script and return a Promise
 function loadScript(src, retries = 3, delay = 1000) {
     debugLog(`Attempting to load script: ${src}`);
     return new Promise((resolve, reject) => {
@@ -72,6 +76,7 @@ function loadScript(src, retries = 3, delay = 1000) {
     });
 }
 
+// Validate Firebase Configuration
 function validateFirebaseConfig(config) {
     const requiredFields = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
     for (const field of requiredFields) {
@@ -156,6 +161,7 @@ async function initializeFirebase(maxRetries = 3) {
     return false;
 }
 
+// Helper to ensure Firebase is ready before running a callback
 async function ensureFirebaseReady(callback, callbackName = 'Unnamed Callback') {
     debugLog(`Ensuring Firebase is ready for: ${callbackName}`);
     if (!firebaseInitialized || !db) {
@@ -526,22 +532,9 @@ async function fetchAndUpdateUserData() {
     }
 }
 
-function setupUserStatsListener() {
-    if (!telegramUser || !telegramUser.id || !db) return;
-    const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-    userDocRef.onSnapshot(doc => {
-        if (doc.exists) {
-            currentUserData = doc.data();
-            updateUserStatsUI();
-        }
-    }, error => {
-        console.error("Error in user stats listener:", error);
-        debugLog(`Error in user stats listener: ${error.message}`);
-    });
-}
-
 async function updateUserStatsUI() {
     const data = currentUserData || await fetchAndUpdateUserData();
+
     if (!data) {
         debugLog("Stats UI update skipped: No user data available.");
         document.getElementById('gems').textContent = 0;
@@ -549,7 +542,8 @@ async function updateUserStatsUI() {
         document.getElementById('ton').textContent = '0.0000';
         return;
     }
-    document.getElementById('gems').textContent = data.gems?.toLocaleString() || 0;
+
+    document.getElementById('gems').textContent = data.gems || 0;
     document.getElementById('usdt').textContent = (data.usdt || 0).toFixed(4);
     document.getElementById('ton').textContent = (data.ton || 0).toFixed(4);
 }
@@ -590,6 +584,7 @@ async function updateEarnSectionUI() {
         dailyQuestCount.textContent = dailyQuests.length;
         basicQuestCount.textContent = basicQuests.length;
 
+        // Initialize adProgress if not exists
         if (!userData.adProgress) {
             userData.adProgress = {};
             await db.collection('userData').doc(telegramUser.id.toString()).update({ adProgress: {} });
@@ -727,7 +722,7 @@ async function showAd(questId) {
         return false;
     }
 
-    const adType = 'rewarded_interstitial';
+    const adType = 'rewarded_interstitial'; // Default ad type
     return new Promise((resolve) => {
         let adCompleted = false;
         const timeout = setTimeout(() => {
@@ -1334,28 +1329,6 @@ async function updateTopSectionUI() {
     }
 }
 
-// --- Header Interactions ---
-function setupHeaderInteractions() {
-    document.querySelector('.back-arrow').addEventListener('click', () => {
-        window.Telegram.WebApp.BackButton.show();
-        window.Telegram.WebApp.BackButton.onClick(() => {
-            window.Telegram.WebApp.close();
-        });
-    });
-
-    document.querySelector('.menu-dots').addEventListener('click', () => {
-        const menuOptions = ['Settings', 'Logout'];
-        window.Telegram.WebApp.showPopup({
-            title: 'Menu',
-            buttons: menuOptions.map(option => ({ text: option }))
-        }, (buttonId) => {
-            if (menuOptions[buttonId] === 'Logout') {
-                window.Telegram.WebApp.close();
-            }
-        });
-    });
-}
-
 // --- Initialize App ---
 async function initializeApp() {
     debugLog("Starting app initialization...");
@@ -1366,9 +1339,7 @@ async function initializeApp() {
 
     await ensureFirebaseReady(async () => {
         await initializeUserData();
-        setupUserStatsListener();
         setupNavigation();
-        setupHeaderInteractions();
         await initializeTONConnect();
         await updateEarnSectionUI();
         await updateWalletSectionUI();
