@@ -1,1 +1,14 @@
+/* Updated body structure */
+body {
+    background: linear-gradient(to bottom, #330033, #000000);
+    color: white;
+    /* ... (all other CSS rules) ... */
+}
 
+/* Debug Console Style */
+ #debugConsole {
+     /* ... */
+ }
+ #toggleDebugButton {
+     /* ... */
+ }
