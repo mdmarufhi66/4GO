@@ -507,7 +507,7 @@ async function confirmWithdraw(currency, balance, fee) {
             debugLog(`[WITHDRAW TRANSACTION] Balance deduction prepared: -${totalDeduction} ${currency}`);
 
             // 2. Add the pending transaction record to the user's subcollection
-            const txRef = userDocRef.collection('userData').doc(window.telegramUser.id.toString()).collection('transactions').doc(transactionId); // Use generated ID as doc ID
+            const txRef = userDocRef.collection('transactions').doc(transactionId); // Use generated ID as doc ID
             transaction.set(txRef, transactionRecord); // Use set() within transaction
             debugLog(`[WITHDRAW TRANSACTION] Pending transaction record prepared: ${transactionId}`);
 
@@ -682,39 +682,6 @@ async function updateTransactionHistory() {
         debugLog(`[WALLET HISTORY ERROR] Error updating history: ${error.message}`);
         elements.transactionList.innerHTML = `<li><p class="error">Failed to load transaction history. Please try again.</p></li>`; // Show error message
     }
-}
-
-// Update the entire wallet section UI
-// This function is called by navigation.js/main.js when switching to the wallet section
-// It orchestrates updates of connection status, balances, and transaction history
-// This function is exposed globally for use by navigation.js
-async function updateWalletSectionUI() {
-    // Uses debugLog from utils.js (globally available)
-    // Uses currentUserData, fetchAndUpdateUserData, updateUserStatsUI from uiUpdater.js (globally available)
-    // Calls updateWalletConnectionStatusUI, updateTransactionHistory from this file (implicitly global)
-    // Depends on getWalletElements from this file (implicitly global)
-
-    debugLog("[WALLET] Starting Wallet section UI update...");
-
-    // Ensure user data is available for displaying balances and history
-    // Fetch fresh data or use cache if it exists
-    const userData = window.currentUserData || await window.fetchAndUpdateUserData();
-
-    // Update overall user stats (including balances in header AND wallet section cards)
-    // Calling updateUserStatsUI here ensures balances are synced with the latest data
-    window.updateUserStatsUI();
-    debugLog("[WALLET] User stats UI (including balances) updated.");
-
-    // Update wallet connection status display (Connect/Disconnect button, status text)
-    // This function also checks TON Connect state and enables/disables withdraw buttons
-    await updateWalletConnectionStatusUI();
-    debugLog("[WALLET] Wallet connection status UI updated.");
-
-    // Update the transaction history list
-    await updateTransactionHistory();
-    debugLog("[WALLET] Transaction history UI updated.");
-
-    debugLog("[WALLET] Wallet section UI update complete.");
 }
 
 
