@@ -357,10 +357,11 @@ function setupNavigation() {
             return;
         }
 
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (event) => {
             debugLog(`[NAV] Click detected on button: ${sectionId}`);
             switchSection(sectionId);
         });
+        debugLog(`[NAV] Listener attached for button ${index}: ${sectionId}`);
 
         button.style.visibility = 'visible';
         button.style.opacity = '1';
@@ -469,39 +470,6 @@ async function initializeUserData() {
         if (!doc.exists) {
             debugLog(`User ${userIdStr} not found in userData, creating new record.`);
             const newUser = {
-                gems: 0,
-                usdt: 0,
-                ton: 0,
-                referrals: 0,
-                referralCredits: 0,
-                inviteRecords: [],
-                claimHistory: [],
-                landPieces: 0,
-                foxMedals: 0,
-                vipLevel: 0,
-                isReferred: false,
-                referredBy: null,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
-                claimedQuests: [],
-                adProgress: {},
-                walletAddress: null,
-                transactions: []
-            };
-            await userDocRef.set(newUser);
-
-            const rankingEntry = {
-                username: telegramUser.username || telegramUser.first_name || `User_${userIdStr.slice(-4)}`,
-                foxMedals: 0,
-                photoUrl: telegramUser.photo_url || 'assets/icons/user-avatar.png',
-                userId: userIdStr
-            };
-            await rankingDocRef.set(rankingEntry, { merge: true });
-
-            debugLog("New user data initialized in userData and users collections.");
-            if (analytics) analytics.logEvent('user_signup', { userId: userIdStr });
-        } else {
-            debugLog(`User$newUser = {
                 gems: 0,
                 usdt: 0,
                 ton: 0,
@@ -838,7 +806,8 @@ function createQuestItem(quest, userData) {
         button.textContent = isAdBased ? 'Watch Ad' : 'Go';
     }
 
-    button.addEventListener('click', async () => {
+    button.addEventListener('click', async (event) => {
+        debugLog(`Quest ${quest.id} button clicked.`, { isAdBased, canClaim });
         if (button.classList.contains('claimed-button')) {
             debugLog(`Quest ${quest.id} button clicked but already claimed.`);
             return;
@@ -856,6 +825,7 @@ function createQuestItem(quest, userData) {
             }
         }
     });
+    debugLog(`Quest ${quest.id} button listener attached.`);
 
     li.appendChild(button);
     debugLog(`Quest item created: ${quest.id}`);
@@ -1062,7 +1032,8 @@ async function initializeTONConnect() {
 
         const connectButton = document.querySelector('.connect-button');
         if (connectButton) {
-            connectButton.addEventListener('click', async () => {
+            connectButton.addEventListener('click', async (event) => {
+                debugLog("Connect/Disconnect Wallet button clicked.");
                 try {
                     await tonConnectUI.connectWallet();
                     debugLog("Wallet connection initiated.");
@@ -1072,6 +1043,9 @@ async function initializeTONConnect() {
                     alert("Failed to connect wallet.");
                 }
             });
+            debugLog("Connect/Disconnect Wallet button listener attached.");
+        } else {
+            debugLog("Connect/Disconnect Wallet button not found in DOM.");
         }
 
         tonConnectUI.onStatusChange(wallet => {
@@ -1192,25 +1166,32 @@ function setupWithdrawModal() {
         amountInput.max = availableBalance;
     };
 
-    usdtWithdrawButton.addEventListener('click', () => {
+    usdtWithdrawButton.addEventListener('click', (event) => {
+        debugLog("USDT Withdraw button clicked.");
         const userData = currentUserData;
         if (userData && userData.usdt > 0) {
             showModal('USDT', userData.usdt);
         }
     });
+    debugLog("USDT Withdraw button listener attached.");
 
-    tonWithdrawButton.addEventListener('click', () => {
+    tonWithdrawButton.addEventListener('click', (event) => {
+        debugLog("TON Withdraw button clicked.");
         const userData = currentUserData;
         if (userData && userData.ton > 0) {
             showModal('TON', userData.ton);
         }
     });
+    debugLog("TON Withdraw button listener attached.");
 
-    cancelButton.addEventListener('click', () => {
+    cancelButton.addEventListener('click', (event) => {
+        debugLog("Withdraw Cancel button clicked.");
         withdrawModal.style.display = 'none';
     });
+    debugLog("Withdraw Cancel button listener attached.");
 
-    confirmButton.addEventListener('click', async () => {
+    confirmButton.addEventListener('click', async (event) => {
+        debugLog("Withdraw Confirm button clicked.");
         const amount = parseFloat(amountInput.value);
         const currency = currencySpan.textContent;
         const fee = parseFloat(feeSpan.textContent);
@@ -1244,6 +1225,7 @@ function setupWithdrawModal() {
             alert("Error processing withdrawal.");
         }
     });
+    debugLog("Withdraw Confirm button listener attached.");
 }
 
 // --- Invite Section ---
@@ -1316,12 +1298,15 @@ function setupInviteButtons() {
     const copyLinkButton = document.querySelector('.copy-link');
     const claimButton = document.querySelector('.claim-button');
 
-    inviteButton.addEventListener('click', () => {
+    inviteButton.addEventListener('click', (event) => {
+        debugLog("Invite Friend button clicked.");
         const inviteLink = `https://t.me/FourMetasBot?start=${telegramUser.id}`;
         window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(inviteLink)}`);
     });
+    debugLog("Invite Friend button listener attached.");
 
-    copyLinkButton.addEventListener('click', () => {
+    copyLinkButton.addEventListener('click', (event) => {
+        debugLog("Copy Link button clicked.");
         const inviteLink = `https://t.me/FourMetasBot?start=${telegramUser.id}`;
         navigator.clipboard.writeText(inviteLink).then(() => {
             alert("Invite link copied to clipboard!");
@@ -1330,8 +1315,10 @@ function setupInviteButtons() {
             alert("Failed to copy link.");
         });
     });
+    debugLog("Copy Link button listener attached.");
 
-    claimButton.addEventListener('click', async () => {
+    claimButton.addEventListener('click', async (event) => {
+        debugLog("Claim Credits button clicked.");
         const userData = currentUserData || await fetchAndUpdateUserData();
         if (!userData || userData.referralCredits < 10000) {
             alert("Not enough credits to claim (minimum 10,000 credits).");
@@ -1362,6 +1349,7 @@ function setupInviteButtons() {
             alert("Error claiming credits.");
         }
     });
+    debugLog("Claim Credits button listener attached.");
 }
 
 // --- Chest Section ---
@@ -1398,6 +1386,7 @@ function updateChestUI() {
 }
 
 function prevChest() {
+    debugLog("Prev Chest button clicked.");
     if (currentChestIndex > 0) {
         currentChestIndex--;
         updateChestUI();
@@ -1405,6 +1394,7 @@ function prevChest() {
 }
 
 function nextChest() {
+    debugLog("Next Chest button clicked.");
     if (currentChestIndex < chests.length - 1) {
         currentChestIndex++;
         updateChestUI();
@@ -1531,4 +1521,14 @@ async function initializeApp() {
     }, 'initializeApp');
 }
 
-document.addEventListener('DOMContentLoaded', initializeApp);
+// Ensure DOM is fully loaded before initializing
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    debugLog("DOM already loaded, initializing app immediately.");
+    setTimeout(initializeApp, 0); // Run asynchronously to ensure DOM is fully ready
+} else {
+    debugLog("Waiting for DOMContentLoaded to initialize app.");
+    document.addEventListener('DOMContentLoaded', () => {
+        debugLog("DOMContentLoaded fired, initializing app.");
+        initializeApp();
+    });
+}
