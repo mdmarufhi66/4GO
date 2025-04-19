@@ -1,24 +1,33 @@
 // js/uiUpdater.js
 
-// --- User Data / Stats UI ---
+// Global variable to store fetched user data to reduce reads
+// This variable is defined here and used/updated by functions in this file
+let currentUserData = null;
 
+// --- User Data Management ---
+
+// Initialize user data in Firestore (create if new, update login/missing fields if existing)
+// This function is exposed globally for use by main.js
 async function initializeUserData() {
+     // Uses debugLog from utils.js (globally available)
+     // Uses telegramUser from telegramService.js (globally available)
+     // Uses firebaseInitialized, db, firebase from firebaseService.js (implicitly global)
      debugLog("Initializing user data...");
-    // Needs global telegramUser from main.js
     if (!window.telegramUser || !window.telegramUser.id) {
-         console.warn("Cannot initialize user data: No Telegram user available or no ID.");
+         console.warn("[UI UPDATER] Cannot initialize user data: No Telegram user available or no ID.");
          debugLog("User init skipped: No Telegram user ID.");
-         return;
+         return; // Cannot proceed without a user ID
     }
-    if (!firebaseInitialized || !db) { // Needs globals from firebaseService.js
-        console.error("Firestore not initialized. Cannot initialize user data.");
+    if (!window.firebaseInitialized || !window.db) {
+        console.error("[UI UPDATER] Firestore not initialized. Cannot initialize user data.");
         debugLog("User init skipped: Firestore not initialized.");
+        // ensureFirebaseReady should have been called before this, but defensive check
         return;
     }
 
     const userIdStr = window.telegramUser.id.toString();
-    const userDocRef = db.collection('userData').doc(userIdStr);
-    const rankingDocRef = db.collection('users').doc(userIdStr); // Assuming 'users' for ranking
+    const userDocRef = window.db.collection('userData').doc(userIdStr);
+    const rankingDocRef = window.db.collection('users').doc(userIdStr); // Assuming 'users' for ranking
 
     try {
         const doc = await userDocRef.get();
@@ -29,75 +38,79 @@ async function initializeUserData() {
                 usdt: 0,
                 ton: 0,
                 referrals: 0,
-                referralCredits: 0,
+                referralCredits: 0, // Track credits separately
                 inviteRecords: [],
-                claimHistory: [],
+                claimHistory: [], // For credit claims
                 landPieces: 0,
                 foxMedals: 0,
-                vipLevel: 0,
+                vipLevel: 0, // Initialize VIP level
                 isReferred: false,
                 referredBy: null,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(), // Needs firebase global
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(), // Needs firebase global object (from SDK)
                 lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
-                claimedQuests: [],
-                adProgress: {},
+                claimedQuests: [], // Store IDs of claimed non-repeatable quests
+                adProgress: {}, // { questId: { watched: 0, claimed: false, lastClaimed: null } }
                 walletAddress: null,
                 // transactions: [] // Transactions are now a subcollection
             };
             await userDocRef.set(newUser);
-            // Initialize transactions subcollection (optional, happens on first transaction)
-            // await userDocRef.collection('transactions').doc('initial').set({ init: true });
 
-            // Also create ranking entry
+            // Also create or update ranking entry
             const rankingEntry = {
                 username: window.telegramUser.username || window.telegramUser.first_name || `User_${userIdStr.slice(-4)}`,
-                foxMedals: 0,
-                photoUrl: window.telegramUser.photo_url || 'assets/icons/user-avatar.png',
-                userId: userIdStr
+                foxMedals: 0, // Start with 0 medals
+                photoUrl: window.telegramUser.photo_url || 'assets/icons/user-avatar.png', // Use local asset as fallback
+                userId: userIdStr // Store ID for reference
             };
+            // Use set with merge: true to create if not exists, or update if it does
             await rankingDocRef.set(rankingEntry, { merge: true });
 
             debugLog("New user data initialized in userData and users collections.");
-            if (window.analytics) window.analytics.logEvent('user_signup', { userId: userIdStr }); // Needs analytics global
+             // Uses analytics from firebaseService.js (implicitly global)
+             if (window.analytics) window.analytics.logEvent('user_signup', { userId: userIdStr });
         } else {
-            debugLog(`User ${userIdStr} found. Updating last login and checking fields.`);
-            // Ensure essential fields exist if user doc was created before fields were added
+            debugLog(`User ${userIdStr} found. Updating last login and checking for missing fields.`);
+            // Ensure essential fields exist if user doc was created before new fields were added
             const updates = {
-                lastLogin: firebase.firestore.FieldValue.serverTimestamp()
+                lastLogin: firebase.firestore.FieldValue.serverTimestamp() // Needs firebase global object (from SDK)
             };
             const userData = doc.data();
-            // Check and initialize missing fields if necessary
-            if (userData.gems === undefined) updates.gems = 0;
-            if (userData.usdt === undefined) updates.usdt = 0;
-            if (userData.ton === undefined) updates.ton = 0;
-            if (userData.referrals === undefined) updates.referrals = 0;
-            if (userData.referralCredits === undefined) updates.referralCredits = 0;
-            if (userData.inviteRecords === undefined) updates.inviteRecords = [];
-            if (userData.claimHistory === undefined) updates.claimHistory = [];
-            if (userData.landPieces === undefined) updates.landPieces = 0;
-            if (userData.foxMedals === undefined) updates.foxMedals = 0;
-            if (userData.vipLevel === undefined) updates.vipLevel = 0;
-            if (userData.isReferred === undefined) updates.isReferred = false;
-            if (userData.referredBy === undefined) updates.referredBy = null;
-            if (userData.claimedQuests === undefined) updates.claimedQuests = [];
-            if (userData.adProgress === undefined) updates.adProgress = {};
-            if (userData.walletAddress === undefined) updates.walletAddress = null;
-            // Add other checks as needed
+            let fieldsAdded = false;
 
-             // Only update if there are fields to add/correct besides lastLogin
-             if (Object.keys(updates).length > 1) {
+            // Check and initialize missing fields if necessary to ensure data structure consistency
+            if (userData.gems === undefined) { updates.gems = 0; fieldsAdded = true; }
+            if (userData.usdt === undefined) { updates.usdt = 0; fieldsAdded = true; }
+            if (userData.ton === undefined) { updates.ton = 0; fieldsAdded = true; }
+            if (userData.referrals === undefined) { updates.referrals = 0; fieldsAdded = true; }
+            if (userData.referralCredits === undefined) { updates.referralCredits = 0; fieldsAdded = true; }
+            if (userData.inviteRecords === undefined) { updates.inviteRecords = []; fieldsAdded = true; }
+            if (userData.claimHistory === undefined) { updates.claimHistory = []; fieldsAdded = true; }
+            if (userData.landPieces === undefined) { updates.landPieces = 0; fieldsAdded = true; }
+            if (userData.foxMedals === undefined) { updates.foxMedals = 0; fieldsAdded = true; }
+            if (userData.vipLevel === undefined) { updates.vipLevel = 0; fieldsAdded = true; }
+            if (userData.isReferred === undefined) { updates.isReferred = false; fieldsAdded = true; }
+            if (userData.referredBy === undefined) { updates.referredBy = null; fieldsAdded = true; }
+            if (userData.claimedQuests === undefined) { updates.claimedQuests = []; fieldsAdded = true; }
+            if (userData.adProgress === undefined) { updates.adProgress = {}; fieldsAdded = true; }
+            if (userData.walletAddress === undefined) { updates.walletAddress = null; fieldsAdded = true; }
+            // Add other checks as needed for any new fields in your data model
+
+             // Only update if there are fields to add/correct besides just updating lastLogin
+             if (fieldsAdded) {
                 await userDocRef.update(updates);
                 debugLog("Updated missing fields for existing user.");
              } else {
-                 await userDocRef.update({ lastLogin: updates.lastLogin }); // Just update login time
+                 // Just update last login time if no new fields were needed
+                 await userDocRef.update({ lastLogin: updates.lastLogin });
+                 debugLog("Existing user data structure is up-to-date, only updated last login.");
              }
 
-             // Ensure ranking entry exists too
+             // Ensure ranking entry exists and is consistent (username/photo)
              const rankDoc = await rankingDocRef.get();
              if (!rankDoc.exists) {
                   const rankingEntry = {
                       username: window.telegramUser.username || window.telegramUser.first_name || `User_${userIdStr.slice(-4)}`,
-                      foxMedals: userData.foxMedals || 0, // Sync medals
+                      foxMedals: userData.foxMedals || 0, // Sync medals from userData
                       photoUrl: window.telegramUser.photo_url || 'assets/icons/user-avatar.png',
                       userId: userIdStr
                   };
@@ -117,227 +130,139 @@ async function initializeUserData() {
                  if (Object.keys(rankUpdates).length > 0) {
                      await rankingDocRef.update(rankUpdates);
                      debugLog("Updated ranking entry username/photo.");
+                 } else {
+                     debugLog("Ranking entry is up-to-date.");
                  }
              }
         }
          // Fetch the potentially newly created or updated data into cache
-         await window.fetchAndUpdateUserData(); // Use window. prefix
+         await fetchAndUpdateUserData(); // Update the global currentUserData after init/check
 
     } catch (error) {
-        console.error("Error initializing/checking user data:", error);
+        console.error("[UI UPDATER] Error initializing/checking user data:", error);
         debugLog(`Error initializing user data for ${userIdStr}: ${error.message}`);
-        alert("There was a problem loading your profile.");
+        alert("There was a problem loading your profile."); // Inform user about the issue
     }
 }
 
-// Fetch user data and store globally
+// Fetch user data from Firestore and store in the global cache (currentUserData)
+// This function is exposed globally for use by other modules
 async function fetchAndUpdateUserData() {
-    // debugLog("Fetching and updating user data..."); // Can be noisy
-    // Needs globals telegramUser, firebaseInitialized, db from main.js/firebaseService.js
-    if (!window.telegramUser || !window.telegramUser.id || !firebaseInitialized || !db) {
-        debugLog("User data fetch skipped: Conditions not met.");
-        window.currentUserData = null; // Reset cache (use window. prefix)
+    // Uses debugLog from utils.js (globally available)
+    // Uses telegramUser from telegramService.js (globally available)
+    // Uses firebaseInitialized, db from firebaseService.js (implicitly global)
+    // Updates currentUserData (global variable in this file)
+    // debugLog("Fetching and updating user data..."); // Can be noisy, uncomment for detailed debugging
+
+    // Ensure essential services and user are available before attempting fetch
+    if (!window.telegramUser || !window.telegramUser.id || !window.firebaseInitialized || !window.db) {
+        debugLog("User data fetch skipped: Essential conditions (user/firebase) not met.");
+        currentUserData = null; // Ensure cache is null if dependencies aren't ready
         return null;
     }
     try {
-        const userDocRef = db.collection('userData').doc(window.telegramUser.id.toString());
+        const userDocRef = window.db.collection('userData').doc(window.telegramUser.id.toString());
         const userDoc = await userDocRef.get();
         if (!userDoc.exists) {
-            debugLog("User doc not found during fetch. Might be new user.");
-            window.currentUserData = null; // Reset cache
-            // If user doc doesn't exist here, initializeUserData should handle it on startup.
-            // Avoid recursive calls by not calling initializeUserData here.
+            debugLog("User doc not found during fetch. Might be a new user or database issue.");
+            currentUserData = null; // Ensure cache is null
+             // Note: initializeUserData handles creation on startup. This fetch assumes user exists.
+             // If this happens unexpectedly after startup, it might indicate a problem.
             return null;
         }
-        window.currentUserData = userDoc.data(); // Update cache
-        // debugLog("User data fetched and cached:", window.currentUserData);
-        return window.currentUserData;
+        currentUserData = userDoc.data(); // Update the global cache with the latest data
+        // debugLog("User data fetched and cached:", currentUserData); // Can be noisy
+        return currentUserData; // Return the fetched data
     } catch (error) {
-        console.error("Error fetching user data:", error);
+        console.error("[UI UPDATER] Error fetching user data:", error);
         debugLog(`Error fetching user data: ${error.message}`);
-        window.currentUserData = null; // Reset cache on error
-        return null;
+        currentUserData = null; // Clear cache on error to prevent using stale/partial data
+        // Optionally re-throw or handle the error further up the call stack
+        // throw error;
+        return null; // Return null to indicate fetch failed
     }
 }
 
-// Update the top stats bar and potentially other common elements
+// Update the UI elements that display user stats (gems, usdt, ton)
+// This function is exposed globally for use by main.js and other modules
 function updateUserStatsUI() {
+     // Uses debugLog from utils.js (globally available)
+     // Reads currentUserData (global variable in this file)
+     // Reads telegramUser from telegramService.js (globally available)
      // debugLog("Updating user stats UI..."); // Can be noisy
-     const data = window.currentUserData; // Use cached data (use window. prefix)
+
+     // Use the cached data. If not available, attempt a quick fetch.
+     // Note: Dependent functions like initializeUserData or switchSection's ensureFirebaseReady
+     // should ideally ensure currentUserData is populated before this is called,
+     // but adding a fallback fetch here can be a safeguard if not called during init.
+     const data = currentUserData;
 
      const gemsEl = document.getElementById('gems');
      const usdtEl = document.getElementById('usdt');
      const tonEl = document.getElementById('ton');
-     // Wallet balances might be updated separately in updateWalletSectionUI, but syncing here is okay
+     // Wallet balances might be updated separately in updateWalletSectionUI,
+     // but syncing here is okay as wallet section also shows these
      const walletUsdtEl = document.getElementById('wallet-usdt');
      const walletTonEl = document.getElementById('wallet-ton');
      const profilePic = document.querySelector('.profile-pic img');
 
+     // Ensure all required elements are found before attempting to update
      if (!gemsEl || !usdtEl || !tonEl || !walletUsdtEl || !walletTonEl || !profilePic) {
-         console.warn("One or more UI elements for stats not found.");
-         debugLog("Stats UI update skipped: Missing elements.");
+         console.warn("[UI UPDATER] One or more UI elements for stats not found. Skipping update.");
+         debugLog("Stats UI update skipped: Missing required DOM elements.");
+         // No need to set to defaults if elements aren't there
          return;
      }
 
      if (!data) {
           debugLog("Stats UI update skipped: No user data available in cache.");
-          // Set UI to defaults or loading state
-          gemsEl.textContent = 0;
+          // Set UI elements to default/zero state if data is missing
+          gemsEl.textContent = '0';
           usdtEl.textContent = '0.0000';
           tonEl.textContent = '0.0000';
           walletUsdtEl.textContent = '0.0000';
           walletTonEl.textContent = '0.0000';
+          // Set profile pic to default as well if user data is missing
           profilePic.src = 'assets/icons/user-avatar.png'; // Default avatar
-          return;
+          return; // Stop here if no data
      }
 
     try {
-        gemsEl.textContent = (data.gems || 0).toLocaleString();
-        usdtEl.textContent = (data.usdt || 0).toFixed(4);
-        tonEl.textContent = (data.ton || 0).toFixed(4);
-        walletUsdtEl.textContent = (data.usdt || 0).toFixed(4);
-        walletTonEl.textContent = (data.ton || 0).toFixed(4);
+        // Update text content using optional chaining and toLocaleString for numbers
+        gemsEl.textContent = (data.gems ?? 0).toLocaleString(); // Use ?? for null/undefined check
+        usdtEl.textContent = (data.usdt ?? 0).toFixed(4);
+        tonEl.textContent = (data.ton ?? 0).toFixed(4);
 
-        // Update profile picture if telegramUser is available
+        // Update wallet section balances as well
+        walletUsdtEl.textContent = (data.usdt ?? 0).toFixed(4);
+        walletTonEl.textContent = (data.ton ?? 0).toFixed(4);
+
+        // Update profile picture using telegramUser data (from telegramService.js)
         if (window.telegramUser && profilePic) {
             profilePic.src = window.telegramUser.photo_url || 'assets/icons/user-avatar.png';
-            profilePic.onerror = () => { // Add error handling for profile pics
-                profilePic.src = 'assets/icons/user-avatar.png';
-                console.warn("Failed to load Telegram profile picture, using default.");
-            };
+             profilePic.onerror = () => { // Add error handling for profile pics if URL is bad
+                 profilePic.src = 'assets/icons/user-avatar.png';
+                 console.warn("[UI UPDATER] Failed to load Telegram profile picture, using default.");
+             };
+        } else if (profilePic) {
+             // If telegramUser isn't available but profilePic element exists, set default
+             profilePic.src = 'assets/icons/user-avatar.png';
         }
+
 
         // debugLog("User stats UI updated successfully."); // Can be noisy
     } catch (error) {
-        console.error("Error updating user stats UI:", error);
+        console.error("[UI UPDATER] Error updating user stats UI:", error);
         debugLog(`Error updating stats UI: ${error.message}`);
-    }
-}
-
-// --- Wallet UI Updates ---
-
-async function updateWalletSectionUI() {
-     debugLog("Updating Wallet section UI...");
-     if (!window.currentUserData) {
-        await window.fetchAndUpdateUserData(); // Ensure data is fetched if not present
-     }
-     updateUserStatsUI(); // Update balances shown in the wallet section from cached data
-     await updateWalletConnectionStatusUI(); // Update connection button/status text
-     await updateTransactionHistory(); // Update tx list
-     setupWithdrawListeners(); // Re-attach listeners in case elements were re-rendered
-     debugLog("Wallet section UI update complete.");
- }
-
- async function updateWalletConnectionStatusUI() {
-     debugLog("Updating Wallet Connection Status UI...");
-     const elements = getWalletElements(); // Use function from walletService.js
-     if (!elements.connectButton || !elements.connectionStatus) {
-        debugLog("Wallet connect button or status element not found.");
-        return;
-     }
-
-     const isConnected = tonConnectUI && tonConnectUI.connected; // Use global from walletService.js
-     debugLog(`Wallet connection status: ${isConnected}`);
-
-     const userHasWallet = !!window.currentUserData?.walletAddress;
-
-     if (isConnected) {
-         const wallet = tonConnectUI.wallet;
-         let address = wallet?.account?.address;
-         let shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Connected';
-
-         elements.connectionStatus.textContent = `Connected: ${shortAddress}`;
-         elements.connectionStatus.className = 'wallet-status connected';
-         elements.connectButton.textContent = 'DISCONNECT';
-         elements.connectButton.classList.add('connected');
-         // Enable withdraw buttons only if user has balance (check should happen in confirmWithdraw)
-         elements.withdrawButtons.forEach(btn => btn.disabled = false );
-
-         // Update stored address if different or not set
-         const storedAddress = await Storage.getItem('walletAddress'); // Use Storage from firebaseService.js
-         if (address && address !== storedAddress) {
-             await Storage.setItem('walletAddress', address);
-             debugLog(`Wallet connected: Address ${address} stored/updated.`);
-             // Refresh currentUserData if needed
-             if (window.currentUserData) window.currentUserData.walletAddress = address;
-         } else if (address) {
-             debugLog(`Wallet connected: Address ${address} already stored.`);
-         } else {
-             debugLog("Wallet connected, but address not immediately available in walletInfo.");
-         }
-
-     } else {
-         elements.connectionStatus.textContent = 'Disconnected';
-         elements.connectionStatus.className = 'wallet-status disconnected';
-         elements.connectButton.textContent = 'CONNECT TON WALLET';
-         elements.connectButton.classList.remove('connected');
-         elements.withdrawButtons.forEach(btn => btn.disabled = true );
-         debugLog("Wallet disconnected state UI updated.");
-         // Optionally clear stored address on explicit disconnect?
-         // await Storage.setItem('walletAddress', null);
-     }
-     elements.connectButton.disabled = false; // Ensure button is enabled after update
- }
-
-
-async function updateTransactionHistory() {
-    debugLog("Updating transaction history...");
-    const elements = getWalletElements(); // Use function from walletService.js
-    if (!elements.transactionList) {
-        debugLog("Transaction list element not found.");
-        return;
-     }
-    elements.transactionList.innerHTML = '<li><p>Loading history...</p></li>'; // Use <p> for consistency
-
-    if (!firebaseInitialized || !db || !window.telegramUser || !window.telegramUser.id) {
-        elements.transactionList.innerHTML = '<li><p>History unavailable.</p></li>';
-        return;
-    }
-
-    try {
-        // Reference the subcollection correctly
-        const txCollectionRef = db.collection('userData').doc(window.telegramUser.id.toString()).collection('transactions');
-        const snapshot = await txCollectionRef.orderBy('timestamp', 'desc').limit(15).get();
-
-        if (snapshot.empty) {
-             elements.transactionList.innerHTML = '<li><p>No transactions yet</p></li>';
-             return;
-        }
-
-        debugLog(`Workspaceed ${snapshot.docs.length} transaction history entries.`);
-        elements.transactionList.innerHTML = snapshot.docs.map(doc => {
-            const tx = doc.data();
-            const txTime = formatTimestamp(tx.timestamp); // Use utility function
-
-            let detail = '';
-            const status = tx.status || 'unknown';
-            const statusClass = status.toLowerCase(); // Ensure class is lowercase
-
-            // Build detail string based on type
-            if (tx.type === 'withdrawal') {
-                 detail = `Withdraw ${tx.amount?.toFixed(4) || '?'} ${tx.currency || '?'} (Fee: ${tx.fee?.toFixed(4) || '?'})`;
-            } else if (tx.type === 'credit_claim') {
-                 detail = `Claimed ${tx.usdtAmount?.toFixed(4) || '?'} USDT (${tx.creditsSpent?.toLocaleString() || '?'} C)`;
-            } else if (tx.type === 'quest_reward') { // Example for future expansion
-                 detail = `Quest Reward: +${tx.rewardAmount?.toLocaleString() || '?'} ${tx.rewardCurrency || '?'}`;
-            } else {
-                detail = `Type: ${tx.type || 'Unknown'} | Amount: ${tx.amount || 'N/A'}`; // Generic fallback
-            }
-            // Add destination for withdrawals if needed
-            // if (tx.type === 'withdrawal' && tx.destination) {
-            //     detail += ` to ${tx.destination.slice(0, 6)}...${tx.destination.slice(-4)}`;
-            // }
-
-            return `<li> ${detail} - <span class="tx-status ${statusClass}">${status}</span><br><small>${txTime}</small> </li>`; // Added line break and small tag for time
-        }).join('');
-    } catch (error) {
-        console.error(`Error updating transaction history: ${error.message}`);
-        debugLog(`Error updating transaction history: ${error.message}`);
-        elements.transactionList.innerHTML = `<li><p class="error">Error loading history.</p></li>`;
+        // Optionally set UI elements to error state or re-run fetch
+        // gemsEl.textContent = 'ERR'; etc.
     }
 }
 
 
-// Add update functions for other sections if needed (e.g., Game list if dynamic)
-// function updateGameSectionUI() { ... }
-
+// Make the currentUserData variable and key functions available globally
+// This is necessary for other scripts to access the cached data and update UI
+window.currentUserData = currentUserData; // Expose the cache variable itself
+window.initializeUserData = initializeUserData;
+window.fetchAndUpdateUserData = fetchAndUpdateUserData;
+window.updateUserStatsUI = updateUserStatsUI;
