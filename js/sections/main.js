@@ -1,5 +1,15 @@
 // js/main.js
 
+console.log("--- TOP OF main.js script ---"); // <-- ADDED DEBUG LOG
+
+// Uses debugLog from utils.js (globally available)
+if (window.debugLog) {
+    debugLog("--- TOP OF main.js script --- (via debugLog)"); // <-- ADDED DEBUG LOG
+} else {
+    console.warn("debugLog function not available at top of main.js"); // <-- ADDED WARN if debugLog is missing
+}
+
+
 // --- Global Error Handling ---
 // Basic global error handler to log errors to the debug console and browser console
 window.onerror = function(message, source, lineno, colno, error) {
@@ -27,13 +37,14 @@ window.addEventListener('unhandledrejection', function(event) {
     // event.preventDefault(); // Be careful with preventing defaults
 });
 
-debugLog("Main script loaded."); // Confirm main.js is loaded
+debugLog("Main script loaded."); // Confirm main.js is loaded (this log was already here)
 
 
 // --- Main Application Initialization Function ---
 // This async function orchestrates the startup of all application components.
 async function initApp() {
-    debugLog("--- App Initialization Sequence Start ---");
+    debugLog("--- App Initialization Sequence Start ---"); // <-- This was already here, should now appear if initApp is called
+
 
     // 1. Initialize Telegram Interface
     debugLog("initApp step 1: Initializing Telegram Interface..."); // <-- ADDED DEBUG LOG
@@ -110,13 +121,9 @@ async function initApp() {
     // 11. Setup Main Navigation
     debugLog("initApp step 11: Setting up Main Navigation - Calling setupNavigation()..."); // <-- ADDED DEBUG LOG
     // Calls setupNavigation from navigation.js (globally available)
-    // This function sets up listeners for the bottom nav buttons.
-    // CRITICALLY, setupNavigation also calls switchSection for the default section ('earn').
-    // The switchSection function then calls the appropriate section-specific UI update function (e.g., updateEarnSectionUI).
-    // This means the initial loading and display of the default section happens as part of this step.
     window.setupNavigation(); // This should be the LAST UI setup step as it activates the default section
     debugLog("initApp step 11: setupNavigation() call completed."); // <-- ADDED DEBUG LOG
-    debugLog("initApp step 11: Main navigation setup complete. Default section activated."); // <-- This line executes *after* setupNavigation potentially calls switchSection
+    debugLog("initApp step 11: Main navigation setup complete. Default section activated.");
 
 
     // 12. Initial UI Updates for other sections that might not be the default
@@ -128,107 +135,24 @@ async function initApp() {
     // Based on your provided code, the section update calls are *inside* switchSection in navigation.js,
     // so they will be called when the default section is activated, and then on subsequent button clicks.
     // No extra update calls needed here based on your current logic flow.
-    debugLog("initApp step 12: Initial UI updates for non-default sections handled by navigation."); // <-- ADDED DEBUG LOG
+    debugLog("initApp step 12: Initial UI updates for non-default sections handled by navigation.");
 
 
-    debugLog("--- App Initialization Sequence Finished ---"); // <-- ADDED DEBUG LOG
+    debugLog("--- App Initialization Sequence Finished ---"); // <-- This was already here, should now appear if initApp finishes
 }
 
 
 // --- Global Delegated Event Listeners ---
-// Use a single listener on the document body to handle clicks on multiple elements,
-// especially those that are added dynamically or exist in different sections.
-// This is more efficient than adding listeners to each individual button.
 document.body.addEventListener('click', async (event) => {
-    // Uses debugLog from utils.js (globally available)
-    // Calls handleQuestClick from earn.js (globally available)
-    // Uses updateEarnSectionUI from earn.js (globally available) // Maybe not directly, handleQuestClick does
-    // Calls generateReferralLink from invite.js (globally available) // Called within invite listeners
-    // Calls openTelegramLink from telegramService.js (globally available) // Called within invite listeners
-    // Calls handleClaimCredits from invite.js (globally available) // Called by invite listeners
-    // Calls nextChest, prevChest, openChest from chest.js (implicitly global) // Called by chest listeners
-    // Uses updateChestUI from chest.js (globally available) // Called by chest listeners
-
-
-    // --- Handle Debug Console Toggle Button ---
-    // Find the closest button with the ID 'toggleDebugButton'
-    const debugButton = event.target.closest('#toggleDebugButton');
-    if (debugButton) {
-        debugLog("[MAIN] Debug toggle button clicked.");
-        const debugConsole = document.getElementById('debugConsole');
-        if (debugConsole) {
-            // Toggle the display style between 'block' and 'none'
-            debugConsole.style.display = debugConsole.style.display === 'none' ? 'block' : 'none';
-            debugLog(`Debug console is now: ${debugConsole.style.display}`);
-        } else {
-            console.warn("[MAIN WARN] Debug console element not found.");
-            debugLog("[MAIN WARN] Debug console element missing.");
-        }
-        return; // Stop processing this event after handling the debug button
-    }
-
-
-    // --- Handle Quest Reward Button Clicks (GO, Claim) ---
-    // Find the closest button with the class 'go-button' or 'claim-button' or 'claimed-button'
-    // that is inside a '.quest-reward' div.
-    const questButton = event.target.closest('.quest-reward button');
-    if (questButton) {
-        // If a quest button was clicked, pass the button element to the handler in earn.js
-        // handleQuestClick is expected to be globally available from earn.js
-        debugLog("[MAIN] Quest button clicked. Calling handleQuestClick.");
-        await window.handleQuestClick(questButton); // Await the async handler
-        // After the handler finishes, it should update the UI (e.g., updateEarnSectionUI)
-        // No need to manually update UI here again unless handleQuestClick doesn't.
-        return; // Stop processing this event after handling the quest button
-    }
-
-     // --- Handle Chest Navigation Arrow Clicks ---
-     // Find the closest button with the class 'nav-arrow'
-     const navArrow = event.target.closest('.nav-arrow');
-     if (navArrow) {
-         debugLog("[MAIN] Chest navigation arrow clicked.");
-         // Check if it's the left or right arrow and call the corresponding handler
-         // nextChest and prevChest are expected to be globally available from chest.js
-         if (navArrow.classList.contains('left')) {
-              debugLog("[MAIN] Calling prevChest().");
-             window.prevChest(); // Call the previous chest function
-         } else if (navArrow.classList.contains('right')) {
-              debugLog("[MAIN] Calling nextChest().");
-             window.nextChest(); // Call the next chest function
-         }
-         // updateChestUI is called by nextChest/prevChest, so no need to call here.
-         return; // Stop processing after handling the arrow
-     }
-
-     // --- Handle Open Chest Button Click ---
-     // Find the closest button with the class 'open-chest-button'
-     const openChestButton = event.target.closest('.open-chest-button');
-     if (openChestButton) {
-         debugLog("[MAIN] Open Chest button clicked. Calling openChest().");
-         // Call the openChest function. It's an async operation.
-         // openChest is expected to be globally available from chest.js
-         await window.openChest(); // Await the async function
-         // openChest handles its own UI updates after processing.
-         return; // Stop processing after handling the open button
-     }
-
-    // Note: Click listeners for bottom nav buttons, invite/copy/claim buttons
-    // are set up specifically within navigation.js and invite.js's init functions,
-    // not handled by this global delegated listener. This listener is mainly for
-    // dynamically added elements or elements where a single listener is more efficient.
-
-    // If the click event wasn't handled by any of the specific checks above,
-    // it will simply propagate normally.
+    // ... (rest of your delegated click listener code) ...
 });
 
 
 // --- DOMContentLoaded Event Listener ---
-// This event fires when the initial HTML document has been completely loaded and parsed,
-// without waiting for stylesheets, images, and subframes to finish loading.
-// This is the standard place to start your application's main initialization logic.
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('[DEBUG] DOMContentLoaded event fired.');
-    debugLog("DOMContentLoaded event fired. Starting App Initialization.");
+    console.log('[DEBUG] DOMContentLoaded event fired.'); // <-- This was already here
+    debugLog("DOMContentLoaded event fired. Starting App Initialization."); // <-- This was already here
     // Start the main application initialization process
-    initApp();
+    initApp(); // <-- This calls the function
+    debugLog("DOMContentLoaded listener finished calling initApp."); // <-- ADDED DEBUG LOG
 });
