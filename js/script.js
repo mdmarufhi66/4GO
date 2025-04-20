@@ -7,6 +7,8 @@ let telegramUser;
 let tonConnectUI = null;
 let currentChestIndex = 0; // Keep track of chest slider
 let currentUserData = null; // Global cache for user data
+let activeCooldownInterval = null; // Holds the interval ID for quest cooldown updates
+const cooldownTrackedItems = {}; // Stores { questId: { element: listItemElement, endTime: timestamp, type: 'ad' | 'quest' } }
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -112,6 +114,117 @@ function safeConvertToDate(timestamp) {
     }
 }
 
+// Helper to format milliseconds into MM:SS string
+function formatMillisecondsToMMSS(ms) {
+    if (ms <= 0) {
+        return '0:00';
+    }
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+// --- Cooldown Timer Management Functions --- (NEW)
+
+// Starts the main interval checker if not already running
+function startCooldownUpdater() {
+    if (activeCooldownInterval) return; // Already running
+    debugLog('[TIMER] Starting cooldown update interval.');
+    activeCooldownInterval = setInterval(checkAndUpdateCooldowns, 1000); // Check every second
+}
+
+// Stops the main interval checker
+function stopCooldownUpdater() {
+    if (activeCooldownInterval) {
+        debugLog('[TIMER] Stopping cooldown update interval.');
+        clearInterval(activeCooldownInterval);
+        activeCooldownInterval = null;
+    }
+    // Clear tracked items when stopping (e.g., navigating away)
+    // Optional: Keep tracked items if you want timers to persist across navigation?
+    // For simplicity, let's clear them when the interval stops.
+    // Clear tracked items without deleting the object itself
+     for (const key in cooldownTrackedItems) {
+        delete cooldownTrackedItems[key];
+     }
+     debugLog('[TIMER] Cleared tracked cooldown items.');
+}
+
+// Adds or updates a quest item being tracked for cooldown
+function trackCooldownItem(questId, listItemElement, endTime, cooldownType) {
+    // debugLog(`[TIMER] Tracking cooldown for ${questId}. End: ${new Date(endTime).toLocaleTimeString()}, Type: ${cooldownType}`); // Reduce noise
+    cooldownTrackedItems[questId] = {
+        element: listItemElement,
+        endTime: endTime,
+        type: cooldownType // 'ad' or 'quest'
+    };
+    startCooldownUpdater(); // Ensure the interval is running
+}
+
+// Removes a quest item from tracking
+function untrackCooldownItem(questId) {
+    if (cooldownTrackedItems[questId]) {
+        // debugLog(`[TIMER] Untracking cooldown for ${questId}.`); // Reduce noise
+        delete cooldownTrackedItems[questId];
+        // Optional: Stop interval if no items are left?
+        // if (Object.keys(cooldownTrackedItems).length === 0) {
+        //    stopCooldownUpdater();
+        //}
+    }
+}
+
+// The core function called by setInterval
+function checkAndUpdateCooldowns() {
+    const now = Date.now();
+    let hasActiveTimers = false;
+
+    // Use Object.entries for easier iteration
+    Object.entries(cooldownTrackedItems).forEach(([questId, itemData]) => {
+        if (!itemData || !itemData.element) {
+             debugLog(`[TIMER WARN] Invalid item data or element for quest ${questId}, removing.`);
+             untrackCooldownItem(questId);
+             return; // Skip this item
+        }
+
+        const button = itemData.element.querySelector('.quest-action-container button');
+        if (!button) {
+             debugLog(`[TIMER WARN] Button not found for tracked quest ${questId}, removing.`);
+             untrackCooldownItem(questId);
+             return; // Skip this item
+        }
+
+        const remainingMs = itemData.endTime - now;
+
+        if (remainingMs <= 0) {
+            // Cooldown finished!
+            debugLog(`[TIMER] Cooldown finished for ${questId}. Triggering full UI update.`);
+            // Call the *full* update function to reset state correctly (GO/Claim)
+            // Pass null for userData to force fetch latest state if needed, or rely on cached data
+            updateQuestItemUI(questId, itemData.element, null);
+            // updateQuestItemUI will call untrackCooldownItem if state changes from 'Wait'
+        } else {
+            // Cooldown still active, update MM:SS display
+            const formattedTime = formatMillisecondsToMMSS(remainingMs);
+            // Only update if the text needs changing to avoid unnecessary DOM manipulation
+            if (button.textContent !== `Wait ${formattedTime}`) {
+                 button.textContent = `Wait ${formattedTime}`;
+            }
+            button.disabled = true; // Ensure it stays disabled
+            hasActiveTimers = true; // Mark that at least one timer is still running
+        }
+    });
+
+    // Optional: Stop the interval if no timers are left to track
+     if (!hasActiveTimers && Object.keys(cooldownTrackedItems).length === 0) {
+        // Add a small delay before stopping, in case trackCooldownItem is called immediately after an update
+        setTimeout(() => {
+             if (Object.keys(cooldownTrackedItems).length === 0) {
+                 stopCooldownUpdater();
+             }
+         }, 100);
+     }
+}
 
 // --- Firebase Initialization ---
 async function initializeFirebase(maxRetries = 3) {
@@ -402,10 +515,18 @@ function setupNavigation() {
     debugLog('[NAV] Navigation setup complete.');
 }
 
+// --- MODIFIED switchSection Function ---
 async function switchSection(sectionId, isInitialLoad = false) {
     debugLog(`[NAV] Attempting to switch to section: ${sectionId}`);
     const sections = document.querySelectorAll('.section');
     const navButtons = document.querySelectorAll('nav.bottom-nav .nav-button'); // Select potentially new buttons
+
+    // --- Stop cooldown timer if navigating AWAY from Earn section ---
+    const currentActiveSection = document.querySelector('.section.active');
+    if (currentActiveSection && currentActiveSection.id === 'earn' && sectionId !== 'earn') {
+        stopCooldownUpdater(); // Stop the timer manager
+    }
+    // --- End Timer Stop ---
 
     let foundSection = false;
     sections.forEach(section => {
@@ -455,7 +576,13 @@ async function switchSection(sectionId, isInitialLoad = false) {
 
     debugLog(`[NAV] Loading data for section: ${sectionId}`);
     // Use ensureFirebaseReady for all section load functions
-    if (sectionId === 'earn') await ensureFirebaseReady(updateEarnSectionUI, 'updateEarnSectionUI');
+    if (sectionId === 'earn') {
+        await ensureFirebaseReady(updateEarnSectionUI, 'updateEarnSectionUI');
+        // --- Start cooldown timer AFTER Earn section UI is updated ---
+        // This ensures items are rendered before the timer starts checking them
+        startCooldownUpdater(); // Start the timer manager
+        // --- End Timer Start ---
+    }
     else if (sectionId === 'invite') await ensureFirebaseReady(updateInviteSectionUI, 'updateInviteSectionUI');
     else if (sectionId === 'top') await ensureFirebaseReady(updateTopSectionUI, 'updateTopSectionUI');
     else if (sectionId === 'wallet') await ensureFirebaseReady(updateWalletSectionUI, 'updateWalletSectionUI');
@@ -466,6 +593,7 @@ async function switchSection(sectionId, isInitialLoad = false) {
         debugLog(`[NAV] No specific data load function for section: ${sectionId}`);
     }
 }
+
 
 // --- User Data Management ---
 async function initializeUserData() {
@@ -919,11 +1047,16 @@ function createQuestItem(quest, userData) {
     return li;
 }
 
-// --- Update Quest Item UI Helper ---
+// --- MODIFIED Update Quest Item UI Helper ---
 // Now takes optional userData to avoid redundant fetches when called directly after creation
+// Incorporates MM:SS timer logic
 function updateQuestItemUI(questId, listItemElement, currentLocalUserData = null) {
     // debugLog(`[QUEST UI UPDATE] Updating specific quest item UI for: ${questId}`); // Reduce noise
     const userData = currentLocalUserData || currentUserData; // Use provided data or global cache
+
+    // Stop tracking this item initially. If it's still on cooldown, it will be re-tracked below.
+    // This handles cases where the state changes from 'Wait' to something else.
+    untrackCooldownItem(questId);
 
     if (!userData || !listItemElement) {
         debugLog("[QUEST UI UPDATE] Skipped: No user data or list item element.", { questId, hasUserData: !!userData, hasElement: !!listItemElement });
@@ -952,7 +1085,6 @@ function updateQuestItemUI(questId, listItemElement, currentLocalUserData = null
     if (isAdBased && userData.adProgress && userData.adProgress[questId]) {
         adProgress = userData.adProgress[questId];
     } else if (isAdBased) {
-        // If adProgress doesn't exist for this ID yet, treat as initial state
         debugLog(`[QUEST UI UPDATE] No adProgress found for ${questId}, using default state.`);
     }
 
@@ -968,43 +1100,52 @@ function updateQuestItemUI(questId, listItemElement, currentLocalUserData = null
     const isQuestCompleted = isAdBased ? adProgress.watched >= adLimit : true; // Non-ad quests are 'complete' if not claimed yet
     const isQuestClaimed = isAdBased ? adProgress.claimed : isNonAdClaimed;
 
-    // --- Check Cooldowns ---
-
-    // 1. Quest Repeat Cooldown (1 hour for Ad Quests after claim)
+    // --- Check Cooldowns & Calculate Remaining MS ---
     let isQuestOnCooldown = false;
-    let questCooldownRemainingMinutes = 0;
+    let questCooldownEndTime = 0;
+    let questCooldownRemainingMs = 0; // NEW: Store remaining MS
+
     if (isAdBased && isQuestClaimed) {
         const questLastClaimedTime = safeConvertToDate(adProgress.lastClaimed)?.getTime() || 0;
-        const timeSinceQuestLastClaim = questLastClaimedTime ? Date.now() - questLastClaimedTime : Infinity;
-        if (timeSinceQuestLastClaim < QUEST_REPEAT_COOLDOWN_MS) {
-            isQuestOnCooldown = true;
-            questCooldownRemainingMinutes = Math.ceil((QUEST_REPEAT_COOLDOWN_MS - timeSinceQuestLastClaim) / 60000);
+        if (questLastClaimedTime > 0) { // Ensure lastClaimed is a valid time
+            const timeSinceQuestLastClaim = Date.now() - questLastClaimedTime;
+            if (timeSinceQuestLastClaim < QUEST_REPEAT_COOLDOWN_MS) {
+                isQuestOnCooldown = true;
+                questCooldownRemainingMs = QUEST_REPEAT_COOLDOWN_MS - timeSinceQuestLastClaim;
+                questCooldownEndTime = Date.now() + questCooldownRemainingMs; // Calculate end time
+            }
         }
-        // If quest cooldown is over (isQuestClaimed is true but timeSince > 1hr),
-        // isQuestOnCooldown remains false, allowing the logic below to show the 'GO' button again.
     }
 
-    // 2. Ad Type Cooldown (3 minutes between watching ads of the same type)
     let isAdTypeOnCooldown = false;
-    let adTypeCooldownRemainingMinutes = 0;
+    let adTypeCooldownEndTime = 0;
+    let adTypeCooldownRemainingMs = 0; // NEW: Store remaining MS
+
     if (isAdBased && (adType === 'rewarded_popup' || adType === 'rewarded_interstitial')) {
-        // Use optional chaining for safer access
         const adTypeLastWatched = safeConvertToDate(userData.adCooldowns?.[adType])?.getTime() || 0;
-        const timeSinceAdTypeLastWatched = adTypeLastWatched ? Date.now() - adTypeLastWatched : Infinity;
-        if (timeSinceAdTypeLastWatched < REWARDED_AD_COOLDOWN_MS) {
-            isAdTypeOnCooldown = true;
-            adTypeCooldownRemainingMinutes = Math.ceil((REWARDED_AD_COOLDOWN_MS - timeSinceAdTypeLastWatched) / 60000);
+        if (adTypeLastWatched > 0) { // Ensure lastWatched is a valid time
+             const timeSinceAdTypeLastWatched = Date.now() - adTypeLastWatched;
+             if (timeSinceAdTypeLastWatched < REWARDED_AD_COOLDOWN_MS) {
+                 isAdTypeOnCooldown = true;
+                 adTypeCooldownRemainingMs = REWARDED_AD_COOLDOWN_MS - timeSinceAdTypeLastWatched;
+                 adTypeCooldownEndTime = Date.now() + adTypeCooldownRemainingMs; // Calculate end time
+            }
         }
     }
+    // --- End Cooldown Checks ---
+
 
     // --- Set Button State based on combined logic ---
     button.disabled = false; // Default to enabled, disable below if needed
 
     if (isQuestOnCooldown) {
         // Ad Quest is claimed AND within its 1-hour cooldown period.
+        const formattedTime = formatMillisecondsToMMSS(questCooldownRemainingMs); // Format time
         button.className = 'claimed-button'; // Visually distinct from GO/Claim
-        button.textContent = `Wait ${questCooldownRemainingMinutes}m`;
+        button.textContent = `Wait ${formattedTime}`; // Use formatted time
         button.disabled = true;
+        // Track this item for the 1-hour quest cooldown
+        trackCooldownItem(questId, listItemElement, questCooldownEndTime, 'quest');
         // debugLog(`[QUEST UI UPDATE ${questId}] State: Ad Quest ON 1hr Cooldown`);
     } else if (isQuestClaimed && !isAdBased) {
         // Non-ad quest is permanently claimed.
@@ -1024,8 +1165,11 @@ function updateQuestItemUI(questId, listItemElement, currentLocalUserData = null
         button.className = 'go-button';
         if (isAdBased && isAdTypeOnCooldown) {
             // Ad quest is ready for action, BUT the 3-minute Ad TYPE cooldown is active.
-            button.textContent = `Wait ${adTypeCooldownRemainingMinutes}m`;
+            const formattedTime = formatMillisecondsToMMSS(adTypeCooldownRemainingMs); // Format time
+            button.textContent = `Wait ${formattedTime}`; // Use formatted time
             button.disabled = true;
+            // Track this item for the 3-minute ad type cooldown
+            trackCooldownItem(questId, listItemElement, adTypeCooldownEndTime, 'ad');
             // debugLog(`[QUEST UI UPDATE ${questId}] State: GO (Ad Type Cooldown Active)`);
         } else {
             // Ad quest is ready AND Ad TYPE cooldown is NOT active, OR it's a Non-ad quest ready for 'GO'.
@@ -1037,6 +1181,7 @@ function updateQuestItemUI(questId, listItemElement, currentLocalUserData = null
     // debugLog(`[QUEST UI UPDATE ${questId}] Final State -> Class: ${button.className}, Text: ${button.textContent}, Disabled: ${button.disabled}`);
 }
 
+
 // --- Unified Quest Button Click Handler ---
 async function handleQuestButtonClick(event) {
     const button = event.target;
@@ -1044,6 +1189,11 @@ async function handleQuestButtonClick(event) {
 
     // Ensure we have the necessary elements and the button isn't disabled
     if (!li || !button || button.disabled) {
+         // Add specific check for "Wait" text to prevent clicks while timer active
+         if (button && button.textContent.startsWith('Wait ')) {
+              debugLog("[QUEST ACTION] Click ignored: Button is in 'Wait' state.");
+              return;
+         }
          debugLog("[QUEST ACTION] Click ignored: Missing element or button disabled.", { hasLi: !!li, hasButton: !!button, isDisabled: button?.disabled });
         return;
     }
@@ -1091,8 +1241,13 @@ async function handleQuestButtonClick(event) {
         }
     } else if (button.classList.contains('claimed-button')) {
         // This class now also covers the "Wait Xm" state for cooldowns.
-        // No action needed, but log for clarity.
-        debugLog(`[QUEST ACTION] Clicked on claimed/waiting button for quest: ${questId}. Text: ${button.textContent}`);
+        // No action needed if it starts with "Wait", but log for clarity.
+        if (!button.textContent.startsWith('Wait ')) {
+            debugLog(`[QUEST ACTION] Clicked on permanently claimed button for quest: ${questId}.`);
+        } else {
+            // If somehow clicked while showing "Wait", log it but do nothing else.
+             debugLog(`[QUEST ACTION] Clicked on waiting button for quest: ${questId}. Text: ${button.textContent}`);
+        }
     } else {
          debugLog(`[QUEST ACTION WARN] Clicked button with unexpected class for quest ${questId}: ${button.className}`);
     }
@@ -1162,7 +1317,7 @@ async function claimQuestReward(questId, reward, questType, button, li, userData
         // --- Update UI ---
         await fetchAndUpdateUserData(); // Refresh cache with new gem count and claim status/timestamp
         await updateUserStatsUI(); // Update global stats display
-        updateQuestItemUI(questId, li); // Update the specific item's UI (will now show 1hr cooldown)
+        updateQuestItemUI(questId, li); // Update the specific item's UI (will now show 1hr cooldown timer)
 
     } catch (error) {
         console.error(`[QUEST ERROR] Error claiming reward for ${questId}:`, error);
@@ -1192,9 +1347,10 @@ async function watchAdForQuest(questId, adType, adLimit, button, li, initialUser
 
         if (timeSinceAdTypeLastWatched < REWARDED_AD_COOLDOWN_MS) {
             const remainingMs = REWARDED_AD_COOLDOWN_MS - timeSinceAdTypeLastWatched;
-            const remainingMinutes = Math.ceil(remainingMs / 60000);
-            alert(`Please wait ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''} before watching another ${adType.replace('_', ' ')} ad.`);
-            debugLog(`[AD COOLDOWN] Blocked ${adType} for quest ${questId}. Remaining: ${remainingMinutes} min.`);
+            // Use the formatter for the alert message too
+            const formattedWaitTime = formatMillisecondsToMMSS(remainingMs);
+            alert(`Please wait ${formattedWaitTime} before watching another ${adType.replace('_', ' ')} ad.`);
+            debugLog(`[AD COOLDOWN] Blocked ${adType} for quest ${questId}. Remaining: ${formattedWaitTime}.`);
             updateQuestItemUI(questId, li); // Update UI to show correct wait time
             return; // Stop execution
         }
@@ -1275,7 +1431,7 @@ async function watchAdForQuest(questId, adType, adLimit, button, li, initialUser
         }
 
         // Update the UI for this specific quest item
-        updateQuestItemUI(questId, li);
+        updateQuestItemUI(questId, li); // This will now trigger the 3-min ad type cooldown timer
 
     } catch (error) {
         console.error(`[QUEST ERROR] Failed to show ad or update progress for ${questId} (${adType}):`, error);
@@ -2221,7 +2377,7 @@ function generateReferralLink() {
          return null; // Return null if no link can be generated
     }
     // !!! IMPORTANT: REPLACE 'YourBotUsername' with your actual Telegram bot's username !!!
-    const botUsername = 'FourMetasBot'; // <--- REPLACE THIS
+    const botUsername = 'FourMetasBot'; // <--- REPLACE THIS (IF NOT ALREADY DONE)
     if (botUsername === 'YourBotUsername') {
         console.warn("CRITICAL: Please replace 'YourBotUsername' in generateReferralLink function!");
         debugLog("[WARN] Bot username not set in generateReferralLink.");
@@ -2911,7 +3067,7 @@ async function initializeApp() {
 
         // 8. Setup Main Navigation (attaches listeners, sets default view)
         // This implicitly triggers the data load for the default section (e.g., 'earn') via switchSection
-        setupNavigation();
+        setupNavigation(); // This will call switchSection, which now handles starting the timer for 'earn'
 
         // 9. Automatic Ad Initialization (In-App Interstitial)
         // Run this after main UI is likely set up
