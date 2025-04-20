@@ -61,16 +61,12 @@ header h1 {
     height: 40px;
     border-radius: 50%;
 }
-
-/* CRITICAL STYLES FOR SECTION VISIBILITY */
 .section {
     display: none; /* Sections hidden by default */
 }
 .section.active {
     display: block; /* Active section is visible */
 }
-/* END CRITICAL STYLES */
-
 .banner-placeholder {
     background: #1a1a3d;
     border-radius: 10px;
@@ -102,8 +98,8 @@ header h1 {
 }
 /* Style for error messages in lists */
 .quest-list .error p {
-     color: #ffcc00; /* Yellow/Orange for errors */
-     font-style: italic;
+    color: #ffcc00; /* Yellow/Orange for errors */
+    font-style: italic;
 }
 .quest-item {
     display: flex;
@@ -152,7 +148,7 @@ header h1 {
     margin-left: 10px;
 }
 .claim-button.active {
-     background: linear-gradient(to right, #00ff00, #66ff66); /* Active (ready to claim) state */
+    background: linear-gradient(to right, #00ff00, #66ff66); /* Active (ready to claim) state */
 }
 .wallet-section h2 {
     font-size: 18px;
@@ -187,9 +183,9 @@ header h1 {
     border-radius: 15px;
     cursor: pointer;
 }
- .withdraw-button:not(:disabled) {
-     background: #00ff00; /* Enabled color */
- }
+.withdraw-button:not(:disabled) {
+    background: #00ff00; /* Enabled color */
+}
 .warning-button {
     background: #ffcc00;
     border: none;
@@ -324,10 +320,10 @@ header h1 {
     border-radius: 10px;
     margin-bottom: 20px;
 }
- .total-credit .credit-info { /* Wrapper for text */
-     display: flex;
-     flex-direction: column; /* Stack text */
- }
+.total-credit .credit-info { /* Wrapper for text */
+    display: flex;
+    flex-direction: column; /* Stack text */
+}
 .total-credit small {
     font-size: 12px;
     color: #ccc;
@@ -362,9 +358,9 @@ header h1 {
     margin-bottom: 10px;
     padding: 0 10px; /* Align with items */
 }
- .record-list { /* Container for items or no-frens message */
-     /* Optional: Add styling if needed */
- }
+.record-list { /* Container for items or no-frens message */
+    /* Optional: Add styling if needed */
+}
 .record-item {
     display: flex;
     justify-content: space-between;
@@ -384,8 +380,8 @@ header h1 {
     margin-left: 10px;
 }
 .record-item .user-info span {
-     display: block; /* Ensure username is on its own line */
- }
+    display: block; /* Ensure username is on its own line */
+}
 .record-item .user-info small {
     color: #ccc;
     font-size: 12px;
@@ -509,11 +505,11 @@ header h1 {
     list-style: none;
     padding: 0;
 }
- .no-rankings {
-     text-align: center;
-     color: #ccc;
-     padding: 20px 0;
- }
+.no-rankings {
+    text-align: center;
+    color: #ccc;
+    padding: 20px 0;
+}
 .ranking-item {
     display: flex;
     align-items: center;
@@ -609,23 +605,23 @@ nav.bottom-nav .nav-button span {
 .tx-status.unknown { color: #ccc; } /* Added for safety */
 
 /* Debug Console Style */
- #debugConsole {
-     position: fixed;
-     bottom: 70px; /* Above nav bar */
-     left: 0;
-     right: 0;
-     background: rgba(0,0,0,0.85); /* Slightly more opaque */
-     color: #0f0; /* Green text */
-     padding: 10px;
-     font-family: monospace;
-     font-size: 10px; /* Smaller font */
-     max-height: 150px; /* Adjust height */
-     overflow-y: auto;
-     z-index: 99999; /* Below nav bar but high */
-     display: none; /* Hidden by default */
-     border-top: 1px solid #0f0;
- }
- #toggleDebugButton { /* Style the toggle button */
+#debugConsole {
+    position: fixed;
+    bottom: 70px; /* Above nav bar */
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.85); /* Slightly more opaque */
+    color: #0f0; /* Green text */
+    padding: 10px;
+    font-family: monospace;
+    font-size: 10px; /* Smaller font */
+    max-height: 150px; /* Adjust height */
+    overflow-y: auto;
+    z-index: 99999; /* Below nav bar but high */
+    display: none; /* Hidden by default */
+    border-top: 1px solid #0f0;
+}
+#toggleDebugButton { /* Style the toggle button */
     position: fixed;
     bottom: 80px; /* Position relative to debug console */
     right: 10px;
@@ -637,14 +633,4 @@ nav.bottom-nav .nav-button span {
     border-radius: 5px;
     font-size: 10px;
     cursor: pointer;
- }
-
-/* Add this rule if it's somehow missing */
-.section.earn-section.active,
-.section.wallet-section.active,
-.section.game-section.active,
-.section.invite-section.active,
-.section.chest-section.active,
-.section.top-section.active {
-    display: block !important; /* Force active sections to display */
 }
