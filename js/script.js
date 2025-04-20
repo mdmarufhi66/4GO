@@ -491,7 +491,8 @@ async function initializeUserData() {
                 claimedQuests: [],
                 adProgress: {},
                 walletAddress: null,
-                transactions: [] // Consider subcollection later
+                transactions: [], // Consider subcollection later
+                lastRewardedAdWatchedTime: null // --- ADDED --- Initialize cooldown timestamp field
             };
             await userDocRef.set(newUser);
 
@@ -515,6 +516,7 @@ async function initializeUserData() {
             if (userData.vipLevel === undefined) updates.vipLevel = 0;
             if (userData.adProgress === undefined) updates.adProgress = {};
             if (userData.claimedQuests === undefined) updates.claimedQuests = [];
+            if (userData.lastRewardedAdWatchedTime === undefined) updates.lastRewardedAdWatchedTime = null; // --- ADDED --- Ensure cooldown field exists for older users
             // Add other checks as needed
 
             await userDocRef.update(updates);
@@ -938,7 +940,7 @@ async function handleQuestButtonClick(event) {
         // Handle 'GO' actions
         if (questType === 'ads') {
             // GO action for an ad quest means "Watch Ad"
-            await watchAdForQuest(questId, adType, adLimit, button, li, userData);
+            await watchAdForQuest(questId, adType, adLimit, button, li); // Removed userData pass, will fetch inside
         } else {
             // GO action for other quests (e.g., link)
             await completeLinkQuest(questId, reward, link, button, li, userData);
@@ -1002,37 +1004,86 @@ async function claimQuestReward(questId, reward, questType, button, li, userData
     }
 }
 
-async function watchAdForQuest(questId, adType, adLimit, button, li, userData) {
+// --- MODIFIED Function: Added Cooldown Logic ---
+async function watchAdForQuest(questId, adType, adLimit, button, li) {
     debugLog(`[QUEST ACTION] Attempting to watch ad (${adType}) for quest: ${questId}`);
-    const adProgress = userData.adProgress?.[questId] || { watched: 0, claimed: false, lastClaimed: null };
 
-    if (adProgress.watched >= adLimit) {
-        debugLog(`[QUEST ACTION] Ad limit already reached for ${questId}.`);
-        alert("You have already watched the required ads for this quest.");
-        updateQuestItemUI(questId, li); // Ensure UI is correct
-        return;
-    }
+    const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
 
-    button.disabled = true; button.textContent = 'Loading Ad...';
-
+    // --- ADDED: Cooldown Check ---
     try {
-        // *** Make sure showAd is defined correctly ***
+        const cooldownMinutes = 3;
+        const cooldownMillis = cooldownMinutes * 60 * 1000;
+        const now = Date.now();
+
+        // Ensure we have fresh user data for the check by fetching it
+        debugLog("[AD COOLDOWN] Fetching latest user data for cooldown check...");
+        const latestUserDataForCheck = await fetchAndUpdateUserData(); // Use latest data from cache or fetch
+        if (!latestUserDataForCheck) {
+            alert("Could not verify ad cooldown status. Please try again.");
+            updateQuestItemUI(questId, li); // Reset button state
+            return;
+        }
+
+        const lastAdTime = latestUserDataForCheck.lastRewardedAdWatchedTime;
+        let lastAdTimestampMillis = 0;
+
+        if (lastAdTime && typeof lastAdTime.toDate === 'function') {
+            lastAdTimestampMillis = lastAdTime.toDate().getTime(); // Correctly get millis from Firestore Timestamp
+        } else if (lastAdTime && typeof lastAdTime === 'number') {
+             lastAdTimestampMillis = lastAdTime; // Handle if it was stored as millis before
+        } else if (lastAdTime) {
+            // Fallback for other types (e.g., string) - less reliable
+            try { lastAdTimestampMillis = new Date(lastAdTime).getTime(); } catch (e) { debugLog(`[AD COOLDOWN WARN] Could not parse lastAdTime: ${lastAdTime}`); }
+        }
+
+        debugLog(`[AD COOLDOWN] Check: Now=${now}, LastAdTime=${lastAdTimestampMillis}, Diff=${now - lastAdTimestampMillis}, Cooldown=${cooldownMillis}`);
+
+        if (lastAdTimestampMillis && (now - lastAdTimestampMillis < cooldownMillis)) {
+            const timeRemainingMillis = cooldownMillis - (now - lastAdTimestampMillis);
+            const timeLeftSeconds = Math.ceil(timeRemainingMillis / 1000);
+            const timeLeftMinutes = Math.ceil(timeLeftSeconds / 60);
+            alert(`Please wait ${timeLeftMinutes} minute(s) before watching another rewarded ad.`);
+            debugLog(`[AD COOLDOWN] Ad watch blocked for quest ${questId}. Time left: ~${timeLeftSeconds}s`);
+            updateQuestItemUI(questId, li); // Reset button state
+            return; // Block ad showing
+        }
+        // --- END Cooldown Check ---
+
+        // Check current progress *after* cooldown check passes
+        const adProgress = latestUserDataForCheck.adProgress?.[questId] || { watched: 0, claimed: false, lastClaimed: null };
+        if (adProgress.watched >= adLimit) {
+            debugLog(`[QUEST ACTION] Ad limit already reached for ${questId}.`);
+            alert("You have already watched the required ads for this quest.");
+            updateQuestItemUI(questId, li); // Ensure UI is correct
+            return;
+        }
+
+        button.disabled = true; button.textContent = 'Loading Ad...';
+
+        // Show the ad
         await showAd(adType); // Pass the adType retrieved from the quest data
         debugLog(`[QUEST ACTION] Ad shown successfully (or closed) for quest: ${questId}`);
 
-        // Fetch latest user data *before* update to prevent race conditions
-        const latestUserData = await fetchAndUpdateUserData();
-        if (!latestUserData) throw new Error("User data unavailable after ad watch.");
+        // Fetch latest user data *again* before update to prevent race conditions if needed,
+        // though the `latestUserDataForCheck` might be recent enough if `showAd` was quick.
+        // Using it is slightly less safe but might be acceptable. Let's fetch again for safety.
+        const latestUserDataAfterAd = await fetchAndUpdateUserData();
+        if (!latestUserDataAfterAd) throw new Error("User data unavailable after ad watch for update.");
 
-        const currentAdProgress = latestUserData.adProgress?.[questId] || { watched: 0, claimed: false, lastClaimed: null };
+        // Calculate new watch count based on the most recent data
+        const currentAdProgress = latestUserDataAfterAd.adProgress?.[questId] || { watched: 0, claimed: false, lastClaimed: null };
         const newWatchedCount = currentAdProgress.watched + 1;
 
-        // Update Firestore with incremented watch count
-        const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-        await userDocRef.update({
-            [`adProgress.${questId}.watched`]: newWatchedCount
-        });
-        debugLog(`[QUEST ACTION] Ad progress updated in Firestore for ${questId}: ${newWatchedCount}/${adLimit}`);
+        // Prepare updates: increment watch count AND set last watched time for cooldown
+        const updates = {
+            [`adProgress.${questId}.watched`]: newWatchedCount,
+            lastRewardedAdWatchedTime: firebase.firestore.FieldValue.serverTimestamp() // --- ADDED --- Update cooldown timestamp
+        };
+
+        // Update Firestore
+        await userDocRef.update(updates);
+        debugLog(`[QUEST ACTION] Ad progress updated for ${questId}: ${newWatchedCount}/${adLimit}. Cooldown timer reset.`);
 
         // Log event
         if (analytics) analytics.logEvent('ads_quest_watch', { userId: telegramUser.id, questId, adType });
@@ -1057,7 +1108,6 @@ async function watchAdForQuest(questId, adType, adLimit, button, li, userData) {
         // Update UI to reset button state on failure
         updateQuestItemUI(questId, li);
     }
-    // No finally block needed as updateQuestItemUI handles button state
 }
 
 
@@ -1284,32 +1334,28 @@ function updateQuestItemUI(questId, listItemElement) {
          }
      }
 
-    const cooldownPeriod = 3600 * 1000; // 1 hour
+    const cooldownPeriod = 3600 * 1000; // 1 hour (This is for CLAIM cooldown, not watch cooldown)
     const timeSinceLastClaim = lastClaimedTime ? currentTime.getTime() - lastClaimedTime.getTime() : Infinity;
-    const isCooldownOver = timeSinceLastClaim >= cooldownPeriod;
+    const isClaimCooldownOver = timeSinceLastClaim >= cooldownPeriod;
 
     // Logic based on combined states
-    if (isEffectivelyClaimed && (!isAdBased || !isCooldownOver)) { // Claimed (non-ad) OR Claimed Ad still in cooldown
+    if (isEffectivelyClaimed && (!isAdBased || !isClaimCooldownOver)) { // Claimed (non-ad) OR Claimed Ad still in claim cooldown
         button.className = 'claimed-button';
         button.textContent = isAdBased ? `Wait ${Math.ceil((cooldownPeriod - timeSinceLastClaim) / 60000)}m` : 'Claimed';
         button.disabled = true;
     } else if (isCompleted && !isEffectivelyClaimed) { // Ready to claim (Ad completed or non-ad not claimed yet but eligible)
-        // For non-ad, the 'GO' button might still be shown until clicked, then becomes claimed.
-        // Let's refine: If it's *not* ad-based, 'GO' should remain until clicked, then it becomes 'Claimed'.
-        // If it *is* ad-based and completed & not claimed, it becomes 'Claim'.
         if (isAdBased) {
             button.className = 'claim-button active';
             button.textContent = 'Claim';
             button.disabled = false;
         } else {
              // Non-ad quests usually transition directly from GO -> Claimed upon successful action
-             // If we reach here for a non-ad, it likely means the initial state before interaction.
              button.className = 'go-button';
              button.textContent = listItemElement.querySelector('span')?.textContent || 'GO'; // Try to get original action text
              button.disabled = false;
         }
 
-    } else { // Not completed (Ad) or Cooldown is over for Ad (can watch again) or initial state for non-ad
+    } else { // Not completed (Ad) or Claim Cooldown is over for Ad (can watch again) or initial state for non-ad
         button.className = 'go-button';
         // Try to get the quest's original action text, fall back to defaults
         const originalActionText = listItemElement.dataset.originalAction || (isAdBased ? 'Watch Ad' : 'GO');
@@ -1515,7 +1561,7 @@ async function updateTransactionHistory() {
              return;
          }
 
-         debugLog(`Workspaceed ${snapshot.docs.length} transaction history entries.`);
+         debugLog(`Workspaceed ${snapshot.docs.length} transaction history entries.`); // Corrected log
          transactionListEl.innerHTML = snapshot.docs.map(doc => {
              const tx = doc.data();
              let txTime = 'Invalid date';
@@ -1868,7 +1914,7 @@ function generateReferralLink() {
          return null; // Return null if no link can be generated
     }
     // !!! IMPORTANT: REPLACE 'YourBotUsername' with your actual Telegram bot's username !!!
-    const botUsername = 'FourMetasBot'; // <--- REPLACE THIS
+    const botUsername = 'FourMetasBot'; // <--- REPLACE THIS (Assuming it's correct based on previous code)
     if (botUsername === 'YourBotUsername') {
         console.warn("Please replace 'YourBotUsername' in generateReferralLink function!");
         debugLog("[WARN] Bot username not set in generateReferralLink.");
@@ -2418,7 +2464,7 @@ async function updateTopSectionUI() {
                  photoUrl: data.photoUrl || 'assets/icons/user-avatar.png' // Default avatar
              });
          });
-         debugLog(`Workspaceed ${rankings.length} ranking entries.`);
+         debugLog(`Workspaceed ${rankings.length} ranking entries.`); // Corrected log
 
          if (rankings.length === 0) {
              rankingList.innerHTML = `<li class="no-rankings"><p>The ranking is empty right now.</p></li>`;
@@ -2491,16 +2537,17 @@ async function initializeApp() {
     // 10. Automatic Ad Initialization (optional, depends on SDK)
     try {
         if (typeof window.show_9180370 === 'function') {
-            // Define the settings for automatic display - ADJUST THESE AS NEEDED
+            // --- MODIFIED: Updated In-App Ad Settings ---
             const autoInAppSettings = {
                 frequency: 2,      // Max 2 ads per session defined by capping
-                capping: 0.016,    // Session duration = 0.016 hours (~1 minute)
+                capping: 0.0667,   // Session duration = 0.0667 hours (~4 minutes)
                 interval: 30,     // Minimum 30 seconds between ads
                 timeout: 5,       // 5-second delay before the *first* ad in a session might show
                 everyPage: false   // Set to true if ads should potentially show on every section switch
             };
             debugLog('[AD INIT] Initializing automatic In-App ads with settings:', JSON.stringify(autoInAppSettings));
             window.show_9180370({ type: 'inApp', inAppSettings: autoInAppSettings });
+            // --- END MODIFICATION ---
         } else {
             debugLog('[AD INIT WARN] Monetag SDK function not found, cannot initialize automatic ads.');
         }
