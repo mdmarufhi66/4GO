@@ -6,10 +6,7 @@ let firebaseInitialized = false;
 let telegramUser;
 let tonConnectUI = null;
 let currentChestIndex = 0; // Keep track of chest slider
-// Removed global quest arrays as fetching is now direct in updateEarnSectionUI
-// let dailyQuests = [];
-// let basicQuests = [];
-let currentUserData = null;
+let currentUserData = null; // Global cache for user data
 
 // Firebase Configuration
 const firebaseConfig = {
@@ -21,6 +18,9 @@ const firebaseConfig = {
     appId: "1:511215742272:web:04bd85a284919ae123dea5",
     measurementId: "G-DC7E6ECF2L"
 };
+
+// Cooldown Constants
+const REWARDED_AD_COOLDOWN_MS = 3 * 60 * 1000; // 3 minutes in milliseconds
 
 // Chest Data (Consider fetching from Firestore later)
 const chests = [
@@ -277,7 +277,7 @@ function initializeTelegram() {
 // --- Storage Abstraction (Firestore) ---
 const Storage = {
     getItem: async (key) => {
-        debugLog(`Storage: Getting item '${key}' for user ${telegramUser?.id}`);
+        // debugLog(`Storage: Getting item '${key}' for user ${telegramUser?.id}`); // Reduce noise
         if (!firebaseInitialized || !db) {
             console.error("Firestore not initialized. Cannot fetch item:", key);
             debugLog(`Storage Error: Firestore not init for getItem '${key}'`);
@@ -292,7 +292,7 @@ const Storage = {
             const docRef = db.collection('userData').doc(telegramUser.id.toString());
             const doc = await docRef.get();
             const value = doc.exists ? doc.data()[key] : null;
-            debugLog(`Storage: Got item '${key}', value:`, value);
+            // debugLog(`Storage: Got item '${key}', value:`, value); // Reduce noise
             return value;
         } catch (error) {
             console.error(`Storage: Error fetching ${key}:`, error);
@@ -490,9 +490,9 @@ async function initializeUserData() {
                 lastLogin: firebase.firestore.FieldValue.serverTimestamp(),
                 claimedQuests: [],
                 adProgress: {},
+                adCooldowns: {}, // <-- Initialize ad cooldowns object
                 walletAddress: null,
-                transactions: [], // Consider subcollection later
-                lastRewardedAdWatchedTime: null // --- ADDED --- Initialize cooldown timestamp field
+                transactions: [] // Consider subcollection later
             };
             await userDocRef.set(newUser);
 
@@ -515,8 +515,8 @@ async function initializeUserData() {
             // Ensure essential fields exist if user doc was created before fields were added
             if (userData.vipLevel === undefined) updates.vipLevel = 0;
             if (userData.adProgress === undefined) updates.adProgress = {};
+            if (userData.adCooldowns === undefined) updates.adCooldowns = {}; // <-- Ensure adCooldowns exists
             if (userData.claimedQuests === undefined) updates.claimedQuests = [];
-            if (userData.lastRewardedAdWatchedTime === undefined) updates.lastRewardedAdWatchedTime = null; // --- ADDED --- Ensure cooldown field exists for older users
             // Add other checks as needed
 
             await userDocRef.update(updates);
@@ -566,12 +566,10 @@ async function fetchAndUpdateUserData() {
     }
     try {
         const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-        const userDoc = await userDocRef.get();
+        const userDoc = await userDocRef.get({ source: 'server' }); // Force server fetch to get latest cooldowns etc.
         if (!userDoc.exists) {
             debugLog("User doc not found during fetch.");
             currentUserData = null;
-            // Optionally re-run initialization logic?
-            // await initializeUserData(); // Be careful with potential loops
             return null;
         }
         currentUserData = userDoc.data(); // Update global cache
@@ -595,7 +593,6 @@ async function updateUserStatsUI() {
         document.getElementById('gems').textContent = 0;
         document.getElementById('usdt').textContent = '0.0000';
         document.getElementById('ton').textContent = '0.0000';
-        // Also update wallet section display if applicable
          try {
              document.getElementById('wallet-usdt').textContent = '0.0000';
              document.getElementById('wallet-ton').textContent = '0.0000';
@@ -621,11 +618,8 @@ async function updateUserStatsUI() {
     }
 }
 
-// --- REMOVED fetchQuests function ---
-// The logic is now directly inside updateEarnSectionUI
 
 // --- Earn Section (Quests) ---
-// *** THIS IS THE UPDATED FUNCTION USING THE ORIGINAL FETCH LOGIC ***
 async function updateEarnSectionUI() {
     debugLog("[QUEST DEBUG] Starting Earn section UI update...");
     const dailyQuestList = document.getElementById('daily-quest-list');
@@ -661,15 +655,16 @@ async function updateEarnSectionUI() {
 
         // Ensure sub-objects exist
         userData.adProgress = userData.adProgress || {};
+        userData.adCooldowns = userData.adCooldowns || {}; // <-- Ensure adCooldowns exists
         userData.claimedQuests = userData.claimedQuests || [];
-        debugLog("[QUEST DEBUG] Ensured adProgress and claimedQuests exist on userData.");
+        debugLog("[QUEST DEBUG] Ensured adProgress, adCooldowns, and claimedQuests exist on userData.");
 
-        // --- Fetch Daily Quests (Original Method) ---
+        // --- Fetch Daily Quests ---
         debugLog("[QUEST DEBUG] Fetching daily quests from quests/daily...");
         const dailyQuestsSnapshot = await db.collection('quests').doc('daily').get({ source: 'server' });
         debugLog("[QUEST DEBUG] Daily quests snapshot received.", dailyQuestsSnapshot.exists);
         const dailyQuestsData = dailyQuestsSnapshot.exists ? dailyQuestsSnapshot.data() : {};
-        const fetchedDailyQuests = dailyQuestsData.tasks || []; // Access the 'tasks' array
+        const fetchedDailyQuests = dailyQuestsData.tasks || [];
         debugLog(`[QUEST DEBUG] Found ${fetchedDailyQuests.length} daily quests in tasks array.`, fetchedDailyQuests);
 
         dailyQuestCountEl.textContent = fetchedDailyQuests.length;
@@ -679,18 +674,13 @@ async function updateEarnSectionUI() {
         } else {
             dailyQuestList.innerHTML = ''; // Clear loading message
             fetchedDailyQuests.forEach(quest => {
-                // Need to make sure quest objects have an 'id' if it wasn't stored directly in the array items
-                // If 'id' isn't part of the object in the 'tasks' array, you might need to adjust how you track claimed quests.
-                // Assuming quest objects within the 'tasks' array *do* have an 'id' field:
                  if (!quest.id) {
                     console.warn("[QUEST WARN] Daily quest object missing 'id' field:", quest);
                     debugLog("[QUEST WARN] Daily quest object missing 'id' field.");
-                    // Decide how to handle quests without IDs - skip or generate one?
-                    // Skipping for now:
                      return;
                  }
                  try {
-                     const li = createQuestItem(quest, userData); // Use your existing createQuestItem
+                     const li = createQuestItem(quest, userData);
                      dailyQuestList.appendChild(li);
                  } catch(renderError) {
                      console.error(`[QUEST ERROR] Failed to render daily quest ${quest.id}:`, renderError);
@@ -700,19 +690,18 @@ async function updateEarnSectionUI() {
             debugLog("[QUEST DEBUG] Daily quests rendered from tasks array.");
         }
 
-        // --- Fetch Basic Quests (Original Method) ---
+        // --- Fetch Basic Quests ---
         debugLog("[QUEST DEBUG] Fetching basic quests from quests/basic...");
         const basicQuestsSnapshot = await db.collection('quests').doc('basic').get({ source: 'server' });
         debugLog("[QUEST DEBUG] Basic quests snapshot received.", basicQuestsSnapshot.exists);
         const basicQuestsData = basicQuestsSnapshot.exists ? basicQuestsSnapshot.data() : {};
-        const fetchedBasicQuests = basicQuestsData.tasks || []; // Access the 'tasks' array
+        const fetchedBasicQuests = basicQuestsData.tasks || [];
         debugLog(`[QUEST DEBUG] Found ${fetchedBasicQuests.length} basic quests in tasks array.`, fetchedBasicQuests);
 
         // Ensure adProgress structure is initialized for all fetched ad quests if not present
         let adProgressUpdateNeeded = false;
         const adProgressUpdate = {};
         fetchedBasicQuests.forEach(quest => {
-            // Check if 'id' exists before using it
             if (quest.type === 'ads' && quest.id && !userData.adProgress[quest.id]) {
                 userData.adProgress[quest.id] = { watched: 0, claimed: false, lastClaimed: null };
                 adProgressUpdate[`adProgress.${quest.id}`] = userData.adProgress[quest.id];
@@ -726,7 +715,7 @@ async function updateEarnSectionUI() {
         if (adProgressUpdateNeeded) {
             await db.collection('userData').doc(telegramUser.id.toString()).update(adProgressUpdate);
             debugLog("[QUEST DEBUG] Updated user data with initial adProgress structures.");
-            userData = currentUserData || await fetchAndUpdateUserData(); // Refresh data
+            userData = await fetchAndUpdateUserData(); // Refresh data
             if (!userData) throw new Error("User data unavailable after adProgress init.");
         }
 
@@ -738,14 +727,13 @@ async function updateEarnSectionUI() {
         } else {
             basicQuestList.innerHTML = ''; // Clear loading message
             fetchedBasicQuests.forEach(quest => {
-                 // Assuming quest objects within the 'tasks' array *do* have an 'id' field:
                  if (!quest.id) {
                      console.warn("[QUEST WARN] Basic quest object missing 'id' field:", quest);
                      debugLog("[QUEST WARN] Basic quest object missing 'id' field.");
                      return; // Skip rendering
                  }
                   try {
-                     const li = createQuestItem(quest, userData); // Use your existing createQuestItem
+                     const li = createQuestItem(quest, userData);
                      basicQuestList.appendChild(li);
                  } catch(renderError) {
                      console.error(`[QUEST ERROR] Failed to render basic quest ${quest.id}:`, renderError);
@@ -766,7 +754,6 @@ async function updateEarnSectionUI() {
         basicQuestCountEl.textContent = 'ERR';
     }
 }
-// *** END OF UPDATED FUNCTION ***
 
 function createQuestItem(quest, userData) {
     // --- Check if quest or quest.id is invalid ---
@@ -778,7 +765,7 @@ function createQuestItem(quest, userData) {
     }
     // --- End Check ---
 
-    debugLog(`Creating quest item: ${quest.id}`);
+    // debugLog(`Creating quest item: ${quest.id}`); // Reduce noise
     const li = document.createElement('li');
     li.className = 'quest-item';
     li.dataset.questId = quest.id;
@@ -821,14 +808,13 @@ function createQuestItem(quest, userData) {
 
     // --- Ad Quest Specific Logic & Button ---
     const isAdBased = quest.type === 'ads'; // More robust check based on type
-    let progressText = '';
     let button;
 
     if (isAdBased) {
         // Ensure adProgress object and quest-specific entry exist
         const adProgress = userData.adProgress?.[quest.id] || { watched: 0, claimed: false, lastClaimed: null };
         const adsRequired = Math.max(1, Number(quest.adLimit) || 1); // Use adLimit from quest
-        const adType = quest.adType || 'rewarded_interstitial'; // Get ad type
+        const adType = quest.adType || 'rewarded_interstitial'; // Get ad type ('rewarded_popup', 'rewarded_interstitial')
 
         // Create Progress Span
         const progressSpan = document.createElement('span');
@@ -847,25 +833,37 @@ function createQuestItem(quest, userData) {
 
         const isCompleted = adProgress.watched >= adsRequired;
         const isClaimed = adProgress.claimed;
-        const currentTime = new Date();
-        const lastClaimedTime = adProgress.lastClaimed ? new Date(adProgress.lastClaimed) : null; // Simplified handling
-        const cooldownPeriod = 3600 * 1000; // 1 hour
-        const timeSinceLastClaim = lastClaimedTime ? currentTime - lastClaimedTime : Infinity;
-        const isCooldownOver = timeSinceLastClaim >= cooldownPeriod;
+        // Quest cooldown (if any, e.g., daily repeatable)
+        const questCooldownPeriod = 3600 * 1000; // 1 hour for example quest cooldown
+        const questLastClaimedTime = adProgress.lastClaimed ? safeConvertToDate(adProgress.lastClaimed)?.getTime() : 0;
+        const timeSinceQuestLastClaim = questLastClaimedTime ? Date.now() - questLastClaimedTime : Infinity;
+        const isQuestCooldownOver = timeSinceQuestLastClaim >= questCooldownPeriod;
 
-        if (isClaimed && !isCooldownOver) {
-             const timeLeftMinutes = Math.ceil((cooldownPeriod - timeSinceLastClaim) / 60000);
+        // *** Check the AD TYPE cooldown separately ***
+        const adTypeLastWatched = userData.adCooldowns?.[adType] ? safeConvertToDate(userData.adCooldowns[adType])?.getTime() : 0;
+        const timeSinceAdTypeLastWatched = adTypeLastWatched ? Date.now() - adTypeLastWatched : Infinity;
+        const isAdTypeCooldownActive = timeSinceAdTypeLastWatched < REWARDED_AD_COOLDOWN_MS;
+        const adTypeCooldownRemainingMinutes = isAdTypeCooldownActive ? Math.ceil((REWARDED_AD_COOLDOWN_MS - timeSinceAdTypeLastWatched) / 60000) : 0;
+
+        // --- Button Logic incorporating both cooldowns ---
+        if (isClaimed && !isQuestCooldownOver) { // Quest itself is claimed and on cooldown
+            const questCooldownRemainingMinutes = Math.ceil((questCooldownPeriod - timeSinceQuestLastClaim) / 60000);
              button.className = 'claimed-button'; // Use standard 'claimed' style
-             button.textContent = `Wait ${timeLeftMinutes}m`;
+             button.textContent = `Wait ${questCooldownRemainingMinutes}m`; // Show quest cooldown
              button.disabled = true;
-        } else if (isCompleted && !isClaimed) {
+        } else if (isCompleted && !isClaimed) { // Ready to CLAIM quest reward
             button.className = 'claim-button active';
             button.textContent = 'Claim';
             button.disabled = false;
-        } else { // Not completed or cooldown is over (allowing more watches)
+        } else { // Not completed OR quest cooldown is over (ready for more watches/actions)
             button.className = 'go-button';
-            button.textContent = quest.action || 'Watch Ad'; // Use action text or default
-            button.disabled = false; // Enable GO button
+            if (isAdTypeCooldownActive) { // Check AD TYPE cooldown before allowing "Watch Ad"
+                button.textContent = `Wait ${adTypeCooldownRemainingMinutes}m`; // Show ad type cooldown
+                button.disabled = true;
+            } else { // Ad type cooldown is NOT active
+                button.textContent = quest.action || 'Watch Ad'; // Use action text or default
+                button.disabled = false; // Enable GO button
+            }
         }
 
     } else { // --- Non-Ad Quest Button ---
@@ -877,6 +875,7 @@ function createQuestItem(quest, userData) {
         button.dataset.questLink = link; // Add link data for click handler
 
         if (isClaimed) {
+            // Assuming non-ad quests are not typically repeatable with cooldowns in this logic
             button.className = 'claimed-button';
             button.textContent = 'Claimed';
             button.disabled = true;
@@ -892,13 +891,31 @@ function createQuestItem(quest, userData) {
     // Append the button (created above based on quest type)
     rewardDiv.appendChild(button); // Add button inside rewardDiv for alignment
 
-    // --- Add Click Listener (Now unified) ---
-    // The listener is added outside the if/else to handle both ad and non-ad quests
+    // --- Add Click Listener (Unified) ---
     button.addEventListener('click', handleQuestButtonClick);
-    debugLog(`Quest ${quest.id} button listener attached.`);
+    // debugLog(`Quest ${quest.id} button listener attached.`); // Reduce noise
 
-    debugLog(`Quest item created: ${quest.id}`);
+    // debugLog(`Quest item created: ${quest.id}`); // Reduce noise
     return li;
+}
+
+// Helper to safely convert Firestore Timestamp or Date string/number to Date object
+function safeConvertToDate(timestamp) {
+    if (!timestamp) return null;
+    try {
+        if (typeof timestamp.toDate === 'function') {
+            return timestamp.toDate(); // Firestore Timestamp
+        }
+        const date = new Date(timestamp); // Attempt string/number conversion
+        if (isNaN(date.getTime())) { // Check if conversion resulted in invalid date
+            console.warn(`[DATE WARN] Invalid date format encountered:`, timestamp);
+            return null;
+        }
+        return date;
+    } catch (dateError) {
+        console.warn(`[DATE ERROR] Error converting value to Date:`, timestamp, dateError);
+        return null;
+    }
 }
 
 // --- Unified Quest Button Click Handler ---
@@ -922,14 +939,16 @@ async function handleQuestButtonClick(event) {
         return;
     }
 
-    let userData = currentUserData || await fetchAndUpdateUserData();
+    // Get potentially updated user data before proceeding
+    let userData = await fetchAndUpdateUserData();
     if (!userData) {
         alert("Cannot process quest action: User data unavailable.");
         debugLog("[QUEST ACTION ERROR] User data unavailable.");
         return;
     }
-     // Ensure necessary sub-objects exist
+     // Ensure necessary sub-objects exist (redundant if fetchAndUpdateUserData works, but safe)
      userData.adProgress = userData.adProgress || {};
+     userData.adCooldowns = userData.adCooldowns || {};
      userData.claimedQuests = userData.claimedQuests || [];
 
     // --- Logic based on button class ---
@@ -940,7 +959,7 @@ async function handleQuestButtonClick(event) {
         // Handle 'GO' actions
         if (questType === 'ads') {
             // GO action for an ad quest means "Watch Ad"
-            await watchAdForQuest(questId, adType, adLimit, button, li); // Removed userData pass, will fetch inside
+            await watchAdForQuest(questId, adType, adLimit, button, li, userData);
         } else {
             // GO action for other quests (e.g., link)
             await completeLinkQuest(questId, reward, link, button, li, userData);
@@ -979,7 +998,6 @@ async function claimQuestReward(questId, reward, questType, button, li, userData
             debugLog(`[QUEST ACTION] Ad quest ${questId} claim updates prepared.`);
         } else {
             // Mark non-ad, non-repeatable quest as claimed
-             // Need quest definition for repeatability check - simplified: assuming claim button only shows for claimable non-ads
              updates.claimedQuests = firebase.firestore.FieldValue.arrayUnion(questId);
              debugLog(`[QUEST ACTION] Default quest ${questId} claim updates prepared.`);
         }
@@ -997,93 +1015,73 @@ async function claimQuestReward(questId, reward, questType, button, li, userData
         console.error(`[QUEST ERROR] Error claiming reward for ${questId}:`, error);
         debugLog(`[QUEST ERROR] Error claiming reward for ${questId}: ${error.message}`);
         alert("Failed to claim reward. Please try again.");
-        // Re-enable button on failure ONLY IF it's still a claim button
-        if(button.classList.contains('claim-button')) {
-            button.disabled = false; button.textContent = 'Claim';
-        }
+        // Re-enable button based on updated UI state after fetch
+        await fetchAndUpdateUserData();
+        updateQuestItemUI(questId, li);
     }
 }
 
-// --- MODIFIED Function: Added Cooldown Logic ---
-async function watchAdForQuest(questId, adType, adLimit, button, li) {
+async function watchAdForQuest(questId, adType, adLimit, button, li, initialUserData) {
     debugLog(`[QUEST ACTION] Attempting to watch ad (${adType}) for quest: ${questId}`);
 
-    const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
-
-    // --- ADDED: Cooldown Check ---
-    try {
-        const cooldownMinutes = 3;
-        const cooldownMillis = cooldownMinutes * 60 * 1000;
+    // --- *** NEW: AD TYPE COOLDOWN CHECK *** ---
+    if (adType === 'rewarded_popup' || adType === 'rewarded_interstitial') {
+        const lastWatchedTimestamp = initialUserData.adCooldowns?.[adType] ? safeConvertToDate(initialUserData.adCooldowns[adType])?.getTime() : 0;
         const now = Date.now();
+        const elapsed = now - lastWatchedTimestamp;
 
-        // Ensure we have fresh user data for the check by fetching it
-        debugLog("[AD COOLDOWN] Fetching latest user data for cooldown check...");
-        const latestUserDataForCheck = await fetchAndUpdateUserData(); // Use latest data from cache or fetch
-        if (!latestUserDataForCheck) {
-            alert("Could not verify ad cooldown status. Please try again.");
-            updateQuestItemUI(questId, li); // Reset button state
-            return;
+        if (lastWatchedTimestamp > 0 && elapsed < REWARDED_AD_COOLDOWN_MS) {
+            const remainingMs = REWARDED_AD_COOLDOWN_MS - elapsed;
+            const remainingMinutes = Math.ceil(remainingMs / 60000);
+            alert(`Please wait ${remainingMinutes} minute${remainingMinutes > 1 ? 's' : ''} before watching another ${adType.replace('_', ' ')} ad.`);
+            debugLog(`[AD COOLDOWN] Blocked ${adType} for quest ${questId}. Remaining: ${remainingMinutes} min.`);
+            // No button state change needed here, createQuestItem/updateQuestItemUI handles the "Wait Xm" display
+            return; // Stop execution
         }
+         debugLog(`[AD COOLDOWN] Cooldown check passed for ${adType}. Last watched: ${lastWatchedTimestamp ? new Date(lastWatchedTimestamp).toLocaleTimeString() : 'Never'}. Elapsed: ${elapsed/1000}s`);
+    }
+    // --- *** END AD TYPE COOLDOWN CHECK *** ---
 
-        const lastAdTime = latestUserDataForCheck.lastRewardedAdWatchedTime;
-        let lastAdTimestampMillis = 0;
 
-        if (lastAdTime && typeof lastAdTime.toDate === 'function') {
-            lastAdTimestampMillis = lastAdTime.toDate().getTime(); // Correctly get millis from Firestore Timestamp
-        } else if (lastAdTime && typeof lastAdTime === 'number') {
-             lastAdTimestampMillis = lastAdTime; // Handle if it was stored as millis before
-        } else if (lastAdTime) {
-            // Fallback for other types (e.g., string) - less reliable
-            try { lastAdTimestampMillis = new Date(lastAdTime).getTime(); } catch (e) { debugLog(`[AD COOLDOWN WARN] Could not parse lastAdTime: ${lastAdTime}`); }
-        }
+    const adProgress = initialUserData.adProgress?.[questId] || { watched: 0, claimed: false, lastClaimed: null };
 
-        debugLog(`[AD COOLDOWN] Check: Now=${now}, LastAdTime=${lastAdTimestampMillis}, Diff=${now - lastAdTimestampMillis}, Cooldown=${cooldownMillis}`);
+    if (adProgress.watched >= adLimit) {
+        debugLog(`[QUEST ACTION] Ad limit already reached for ${questId}.`);
+        alert("You have already watched the required ads for this quest.");
+        updateQuestItemUI(questId, li); // Ensure UI is correct
+        return;
+    }
 
-        if (lastAdTimestampMillis && (now - lastAdTimestampMillis < cooldownMillis)) {
-            const timeRemainingMillis = cooldownMillis - (now - lastAdTimestampMillis);
-            const timeLeftSeconds = Math.ceil(timeRemainingMillis / 1000);
-            const timeLeftMinutes = Math.ceil(timeLeftSeconds / 60);
-            alert(`Please wait ${timeLeftMinutes} minute(s) before watching another rewarded ad.`);
-            debugLog(`[AD COOLDOWN] Ad watch blocked for quest ${questId}. Time left: ~${timeLeftSeconds}s`);
-            updateQuestItemUI(questId, li); // Reset button state
-            return; // Block ad showing
-        }
-        // --- END Cooldown Check ---
+    button.disabled = true; button.textContent = 'Loading Ad...';
 
-        // Check current progress *after* cooldown check passes
-        const adProgress = latestUserDataForCheck.adProgress?.[questId] || { watched: 0, claimed: false, lastClaimed: null };
-        if (adProgress.watched >= adLimit) {
-            debugLog(`[QUEST ACTION] Ad limit already reached for ${questId}.`);
-            alert("You have already watched the required ads for this quest.");
-            updateQuestItemUI(questId, li); // Ensure UI is correct
-            return;
-        }
+    try {
+        // Show the ad (pass the correct type from Firestore/dataset)
+        await showAd(adType);
+        debugLog(`[QUEST ACTION] Ad shown successfully (or closed) for quest: ${questId}, type: ${adType}`);
 
-        button.disabled = true; button.textContent = 'Loading Ad...';
+        // Fetch latest user data *before* update to prevent race conditions with cooldowns
+        const latestUserData = await fetchAndUpdateUserData();
+        if (!latestUserData) throw new Error("User data unavailable after ad watch.");
 
-        // Show the ad
-        await showAd(adType); // Pass the adType retrieved from the quest data
-        debugLog(`[QUEST ACTION] Ad shown successfully (or closed) for quest: ${questId}`);
-
-        // Fetch latest user data *again* before update to prevent race conditions if needed,
-        // though the `latestUserDataForCheck` might be recent enough if `showAd` was quick.
-        // Using it is slightly less safe but might be acceptable. Let's fetch again for safety.
-        const latestUserDataAfterAd = await fetchAndUpdateUserData();
-        if (!latestUserDataAfterAd) throw new Error("User data unavailable after ad watch for update.");
-
-        // Calculate new watch count based on the most recent data
-        const currentAdProgress = latestUserDataAfterAd.adProgress?.[questId] || { watched: 0, claimed: false, lastClaimed: null };
+        const currentAdProgress = latestUserData.adProgress?.[questId] || { watched: 0, claimed: false, lastClaimed: null };
         const newWatchedCount = currentAdProgress.watched + 1;
 
-        // Prepare updates: increment watch count AND set last watched time for cooldown
-        const updates = {
-            [`adProgress.${questId}.watched`]: newWatchedCount,
-            lastRewardedAdWatchedTime: firebase.firestore.FieldValue.serverTimestamp() // --- ADDED --- Update cooldown timestamp
-        };
+        // --- Prepare Firestore updates for BOTH quest progress AND ad cooldown ---
+        const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+        const updates = {};
 
-        // Update Firestore
+        // 1. Update Quest Progress
+        updates[`adProgress.${questId}.watched`] = newWatchedCount;
+
+        // 2. Update Ad Type Cooldown Timestamp (if applicable)
+        if (adType === 'rewarded_popup' || adType === 'rewarded_interstitial') {
+            updates[`adCooldowns.${adType}`] = firebase.firestore.FieldValue.serverTimestamp();
+             debugLog(`[AD COOLDOWN] Preparing to update cooldown timestamp for ${adType}.`);
+        }
+
+        // Apply all updates together
         await userDocRef.update(updates);
-        debugLog(`[QUEST ACTION] Ad progress updated for ${questId}: ${newWatchedCount}/${adLimit}. Cooldown timer reset.`);
+        debugLog(`[QUEST ACTION] Firestore updated for ${questId}: Progress ${newWatchedCount}/${adLimit}. Cooldown set for ${adType}.`);
 
         // Log event
         if (analytics) analytics.logEvent('ads_quest_watch', { userId: telegramUser.id, questId, adType });
@@ -1102,10 +1100,11 @@ async function watchAdForQuest(questId, adType, adLimit, button, li) {
         updateQuestItemUI(questId, li);
 
     } catch (error) {
-        console.error(`[QUEST ERROR] Failed to show ad or update progress for ${questId}:`, error);
-        debugLog(`[QUEST ERROR] Failed showing ad/updating progress for ${questId}: ${error.message}`);
+        console.error(`[QUEST ERROR] Failed to show ad or update progress for ${questId} (${adType}):`, error);
+        debugLog(`[QUEST ERROR] Failed showing ad/updating progress for ${questId} (${adType}): ${error.message}`);
         alert(`Failed to show ad. Please try again. Error: ${error.message}`);
-        // Update UI to reset button state on failure
+        // Update UI to reset button state based on latest data after failure
+        await fetchAndUpdateUserData(); // Ensure we have latest state
         updateQuestItemUI(questId, li);
     }
 }
@@ -1116,7 +1115,6 @@ async function completeLinkQuest(questId, reward, link, button, li, userData) {
 
      if (userData.claimedQuests?.includes(questId)) {
          debugLog(`[QUEST ACTION WARN] Link quest ${questId} already claimed.`);
-         // Optionally alert user or just update UI
          updateQuestItemUI(questId, li);
          return;
      }
@@ -1157,34 +1155,30 @@ async function completeLinkQuest(questId, reward, link, button, li, userData) {
         console.error(`[QUEST ERROR] Error completing link quest ${questId}:`, error);
         debugLog(`[QUEST ERROR] Error completing link quest ${questId}: ${error.message}`);
         alert("Failed to complete quest. Please try again.");
-        // Re-enable button on failure ONLY IF it should still be GO
-        if(button.classList.contains('go-button')) {
-             button.disabled = false; button.textContent = 'GO'; // Reset text if needed
-        }
+        // Re-enable button based on updated UI state after fetch
+        await fetchAndUpdateUserData();
+        updateQuestItemUI(questId, li);
     }
 }
 
 // --- Ad Logic (showAd function) ---
-// *** THIS IS THE CORRECTED FUNCTION ***
-// It now maps Firestore adType values to the correct Monetag SDK calls.
+// No changes needed here; it correctly takes adType and calls the SDK.
+// The cooldown logic happens *before* calling this and *after* its success.
 async function showAd(adType) { // Parameter is the value from Firestore (e.g., 'rewarded_popup')
     debugLog(`[AD] Attempting to show ad. Received adType from quest data: ${adType}`);
     return new Promise((resolve, reject) => {
 
         // --- REJECT MANUAL 'inApp' TRIGGERS ---
-        // Automatic 'inApp' ads should be handled by the SDK's own initialization/timing rules
         if (adType === 'inApp') {
             const errorMsg = "In-App ads are shown automatically or via different SDK settings, not via manual quest trigger.";
             console.warn(`[AD WARN] ${errorMsg}`);
             debugLog(`[AD WARN] ${errorMsg}`);
-            // Reject the promise as this type shouldn't be manually triggered this way
             return reject(new Error(errorMsg));
         }
         // --- END REJECTION ---
 
         const maxWaitTime = 30000; // 30 seconds timeout
 
-        // Check if SDK function exists
         if (typeof window.show_9180370 !== 'function') {
             console.warn("[AD WARN] Monetag SDK function 'show_9180370' not found. Simulating ad success after delay.");
             debugLog("[AD WARN] Monetag SDK function not found. Simulating success.");
@@ -1197,20 +1191,19 @@ async function showAd(adType) { // Parameter is the value from Firestore (e.g., 
 
         let adPromise = null;
         let adTriggered = false;
-        // Assume promise handling needed unless SDK call fails or type is rejected
         let requiresPromiseHandling = true;
 
-        // Cleanup function (remains the same)
         const cleanup = (success, error = null) => {
             clearTimeout(timeoutId);
             if (success) {
+                 debugLog(`[AD] Cleanup called: Success for adType ${adType}`);
                 resolve();
             } else {
+                 debugLog(`[AD] Cleanup called: Failure for adType ${adType}`, error);
                 reject(error || new Error(`Ad failed or was closed early (${adType || 'unknown type'})`));
             }
         };
 
-        // Timeout Logic (remains the same)
         const timeoutId = setTimeout(() => {
             console.warn(`[AD WARN] Ad timed out after ${maxWaitTime / 1000}s (${adType || 'unknown type'}). Rejecting.`);
             debugLog(`[AD WARN] Ad timed out: ${adType}`);
@@ -1218,91 +1211,77 @@ async function showAd(adType) { // Parameter is the value from Firestore (e.g., 
         }, maxWaitTime);
 
         try {
-            // --- *** CORRECTED SDK CALL LOGIC *** ---
             debugLog(`[AD] Mapping Firestore adType '${adType}' to Monetag SDK call.`);
 
             if (adType === 'rewarded_popup') {
-                // If Firestore adType is 'rewarded_popup', call the SDK with 'pop' argument
                 debugLog("[AD] Calling Monetag SDK with 'pop' argument for rewarded_popup.");
                 adPromise = window.show_9180370('pop');
                 adTriggered = true;
             } else if (adType === 'rewarded_interstitial') {
-                 // If Firestore adType is 'rewarded_interstitial', call the SDK with no arguments
                 debugLog("[AD] Calling Monetag SDK with no arguments for rewarded_interstitial.");
                 adPromise = window.show_9180370();
                 adTriggered = true;
-            // } else if (adType === 'inApp') {
-                // This case is already handled by the rejection at the start.
-                // adTriggered = false; // Ensure flag is false if rejected
-                // requiresPromiseHandling = false;
             } else {
-                // Default case: If adType is something else or missing, show standard interstitial
                 console.warn(`[AD WARN] Unrecognized or missing adType '${adType}'. Defaulting to standard interstitial.`);
                 debugLog(`[AD WARN] Defaulting to standard interstitial for adType: ${adType}`);
                 adPromise = window.show_9180370(); // Default call
                 adTriggered = true;
             }
-            // --- *** END CORRECTED SDK CALL LOGIC *** ---
 
-            // --- Handle Promise (remains the same) ---
             if (requiresPromiseHandling && adTriggered && adPromise && typeof adPromise.then === 'function') {
                 debugLog(`[AD] SDK returned a Promise for type ${adType}. Waiting for resolution...`);
                 adPromise.then(() => {
                     debugLog(`[AD] SDK Promise resolved successfully for type: ${adType}. Ad likely watched/closed.`);
-                    cleanup(true); // Resolve the outer promise on success
+                    cleanup(true);
                 }).catch(e => {
                     console.error(`[AD ERROR] SDK Promise rejected for type ${adType}:`, e);
                     debugLog(`[AD ERROR] SDK Promise rejected for ${adType}: ${e?.message || e}`);
-                    cleanup(false, new Error(`Ad failed or was closed early (${adType})`)); // Reject the outer promise on failure
+                    // Don't treat rejection as outright failure necessarily, Monetag might reject on close?
+                    // Let's assume rejection means it wasn't fully watched or failed.
+                    cleanup(false, new Error(`Ad failed or was closed early (${adType})`));
                 });
             } else if (requiresPromiseHandling && adTriggered) {
                  console.warn(`[AD WARN] SDK call for ${adType} was triggered but did not return a standard promise. Relying on timeout for completion.`);
-                 // If Monetag doesn't always return a promise, you might need event listeners or rely solely on the timeout.
-                 // However, modern usage typically involves promises. Check their documentation if issues persist.
+                 // If relying on timeout, cleanup(true) will never be called unless we add other event listeners.
+                 // For now, this path likely leads to timeout unless the SDK implicitly resolves something.
             } else {
-                // This path might be taken if adType was 'inApp' and rejected earlier.
-                 debugLog("[AD INFO] Ad was not triggered or handled differently (e.g., rejected 'inApp'). No promise to await.");
-                 // If 'inApp' was rejected, the outer promise from showAd should already be rejected by the cleanup in the 'inApp' check.
+                 debugLog("[AD INFO] Ad was not triggered or handled differently. No promise to await.");
             }
 
         } catch (error) {
-            // Catch immediate errors from calling show_9180370 itself
             console.error("[AD ERROR] Failed to trigger Monetag ad:", error);
             debugLog(`[AD ERROR] Failed to trigger ad ${adType}: ${error.message}`);
-            cleanup(false, error); // Reject the outer promise if the call fails immediately
+            cleanup(false, error);
         }
     });
 }
-// *** END OF CORRECTED showAd FUNCTION ***
 
 
 // --- Update Quest Item UI Helper ---
 // This function updates a single quest item in the list based on latest user data
-// It's called after claiming or watching an ad for a specific quest.
+// It's called after claiming or watching an ad for a specific quest, or during initial render setup.
 function updateQuestItemUI(questId, listItemElement) {
-    debugLog(`[QUEST UI] Updating specific quest item UI for: ${questId}`);
+    // debugLog(`[QUEST UI] Updating specific quest item UI for: ${questId}`); // Reduce noise
     const userData = currentUserData; // Use cached data
     if (!userData || !listItemElement) {
-        debugLog("[QUEST UI] Update skipped: No user data or list item element.");
+        // debugLog("[QUEST UI] Update skipped: No user data or list item element."); // Reduce noise
         return;
     }
 
-    // Find the quest definition (we need it for checks like repeatability, adLimit etc.)
-    // This part is tricky without the global arrays. We might need to fetch it again,
-    // OR pass the full quest object to this function when initially calling it.
-    // *** Assuming the necessary quest data is available via dataset attributes on 'listItemElement' ***
+    // Retrieve quest details from dataset attributes
     const questType = listItemElement.dataset.questType;
     const adLimit = parseInt(listItemElement.dataset.adLimit || '0');
-    const button = listItemElement.querySelector('.quest-reward button'); // Find the button within the item
-    const progressSpan = listItemElement.querySelector('.progress'); // Find progress span if it exists
+    const adType = listItemElement.dataset.adType || ''; // Needed for ad cooldown check
+    const button = listItemElement.querySelector('.quest-reward button');
+    const progressSpan = listItemElement.querySelector('.progress');
 
      if (!button) {
         debugLog("[QUEST UI WARN] Could not find button within quest item:", questId);
-        return; // Cannot update if button is missing
+        return;
      }
 
     const isAdBased = questType === 'ads';
-    const isClaimed = userData.claimedQuests?.includes(questId) || false; // Check non-ad claimed status
+    const isNonAdClaimed = !isAdBased && (userData.claimedQuests?.includes(questId) || false);
     let adProgress = userData.adProgress?.[questId] || { watched: 0, claimed: false, lastClaimed: null };
 
     // Update progress text if it's an ad quest and span exists
@@ -1310,64 +1289,60 @@ function updateQuestItemUI(questId, listItemElement) {
         progressSpan.textContent = `${adProgress.watched}/${adLimit}`;
     }
 
-    // Determine new button state
-    const isCompleted = isAdBased ? adProgress.watched >= adLimit : true; // Non-ad quests are 'complete' if not claimed
-    const isEffectivelyClaimed = isAdBased ? adProgress.claimed : isClaimed; // Use relevant claimed status
+    // Determine quest state
+    const isQuestCompleted = isAdBased ? adProgress.watched >= adLimit : true; // Non-ad quests are 'complete' if not claimed
+    const isQuestClaimed = isAdBased ? adProgress.claimed : isNonAdClaimed;
 
-    const currentTime = new Date();
-    // Safely attempt to convert Firestore Timestamp or Date string/number to Date object
-    let lastClaimedTime = null;
-    if (adProgress.lastClaimed) {
-        try {
-             if (typeof adProgress.lastClaimed.toDate === 'function') {
-                 lastClaimedTime = adProgress.lastClaimed.toDate(); // Firestore Timestamp
-             } else {
-                 lastClaimedTime = new Date(adProgress.lastClaimed); // Attempt string/number conversion
-             }
-             if (isNaN(lastClaimedTime.getTime())) { // Check if conversion resulted in invalid date
-                 lastClaimedTime = null;
-                 console.warn(`[QUEST UI WARN] Invalid date format for lastClaimed on quest ${questId}:`, adProgress.lastClaimed);
-             }
-         } catch (dateError) {
-             lastClaimedTime = null;
-             console.warn(`[QUEST UI ERROR] Error processing lastClaimed date for quest ${questId}:`, dateError);
-         }
-     }
+    // Check Quest Cooldown (e.g., for daily repeatables)
+    const questCooldownPeriod = 3600 * 1000; // Example: 1 hour cooldown for the quest itself if repeatable
+    const questLastClaimedTime = isAdBased ? safeConvertToDate(adProgress.lastClaimed)?.getTime() : 0; // Only check for ad quests for now
+    const timeSinceQuestLastClaim = questLastClaimedTime ? Date.now() - questLastClaimedTime : Infinity;
+    const isQuestOnCooldown = isQuestClaimed && timeSinceQuestLastClaim < questCooldownPeriod;
+    const questCooldownRemainingMinutes = isQuestOnCooldown ? Math.ceil((questCooldownPeriod - timeSinceQuestLastClaim) / 60000) : 0;
 
-    const cooldownPeriod = 3600 * 1000; // 1 hour (This is for CLAIM cooldown, not watch cooldown)
-    const timeSinceLastClaim = lastClaimedTime ? currentTime.getTime() - lastClaimedTime.getTime() : Infinity;
-    const isClaimCooldownOver = timeSinceLastClaim >= cooldownPeriod;
-
-    // Logic based on combined states
-    if (isEffectivelyClaimed && (!isAdBased || !isClaimCooldownOver)) { // Claimed (non-ad) OR Claimed Ad still in claim cooldown
-        button.className = 'claimed-button';
-        button.textContent = isAdBased ? `Wait ${Math.ceil((cooldownPeriod - timeSinceLastClaim) / 60000)}m` : 'Claimed';
-        button.disabled = true;
-    } else if (isCompleted && !isEffectivelyClaimed) { // Ready to claim (Ad completed or non-ad not claimed yet but eligible)
-        if (isAdBased) {
-            button.className = 'claim-button active';
-            button.textContent = 'Claim';
-            button.disabled = false;
-        } else {
-             // Non-ad quests usually transition directly from GO -> Claimed upon successful action
-             button.className = 'go-button';
-             button.textContent = listItemElement.querySelector('span')?.textContent || 'GO'; // Try to get original action text
-             button.disabled = false;
+    // Check AD TYPE Cooldown (only relevant for 'GO' button state)
+    let isAdTypeOnCooldown = false;
+    let adTypeCooldownRemainingMinutes = 0;
+    if (isAdBased && (adType === 'rewarded_popup' || adType === 'rewarded_interstitial')) {
+        const adTypeLastWatched = userData.adCooldowns?.[adType] ? safeConvertToDate(userData.adCooldowns[adType])?.getTime() : 0;
+        const timeSinceAdTypeLastWatched = adTypeLastWatched ? Date.now() - adTypeLastWatched : Infinity;
+        isAdTypeOnCooldown = timeSinceAdTypeLastWatched < REWARDED_AD_COOLDOWN_MS;
+        if (isAdTypeOnCooldown) {
+             adTypeCooldownRemainingMinutes = Math.ceil((REWARDED_AD_COOLDOWN_MS - timeSinceAdTypeLastWatched) / 60000);
         }
-
-    } else { // Not completed (Ad) or Claim Cooldown is over for Ad (can watch again) or initial state for non-ad
-        button.className = 'go-button';
-        // Try to get the quest's original action text, fall back to defaults
-        const originalActionText = listItemElement.dataset.originalAction || (isAdBased ? 'Watch Ad' : 'GO');
-        button.textContent = originalActionText;
-        // Store original action text if not already done
-        if (!listItemElement.dataset.originalAction) {
-            listItemElement.dataset.originalAction = button.textContent;
-        }
-        button.disabled = false;
     }
 
-    debugLog(`[QUEST UI] Item UI updated for ${questId}. New button state: ${button.className}, Text: ${button.textContent}`);
+    // --- Set Button State based on combined logic ---
+    button.disabled = false; // Default to enabled, disable below if needed
+
+    if (isQuestOnCooldown) { // Quest itself is claimed and on its own cooldown (e.g., daily)
+        button.className = 'claimed-button';
+        button.textContent = `Wait ${questCooldownRemainingMinutes}m`;
+        button.disabled = true;
+    } else if (isQuestClaimed && !isQuestOnCooldown && !isAdBased) { // Non-ad quest permanently claimed
+        button.className = 'claimed-button';
+        button.textContent = 'Claimed';
+        button.disabled = true;
+    } else if (isQuestCompleted && !isQuestClaimed) { // Ready to CLAIM the reward
+        button.className = 'claim-button active';
+        button.textContent = 'Claim';
+    } else { // Quest is not complete OR quest cooldown is over (ready for action)
+        button.className = 'go-button';
+        if (isAdBased && isAdTypeOnCooldown) { // Check AD TYPE cooldown before allowing watch action
+            button.textContent = `Wait ${adTypeCooldownRemainingMinutes}m`;
+            button.disabled = true;
+        } else { // Ad type cooldown not active OR it's a non-ad quest ready for 'GO'
+             // Try to get the quest's original action text, fall back to defaults
+            const originalActionText = listItemElement.dataset.originalAction || (isAdBased ? 'Watch Ad' : 'GO');
+            button.textContent = originalActionText;
+            // Store original action text if not already done
+            if (!listItemElement.dataset.originalAction) {
+                listItemElement.dataset.originalAction = button.textContent;
+            }
+        }
+    }
+
+    // debugLog(`[QUEST UI] Item UI updated for ${questId}. New button state: ${button.className}, Text: ${button.textContent}, Disabled: ${button.disabled}`); // Reduce noise
 }
 
 
@@ -1449,10 +1424,6 @@ async function updateWalletConnectionStatusUI() {
 
         // Enable withdraw buttons if connected
         withdrawButtons.forEach(btn => {
-            // Optional: Add balance check here if needed before enabling
-            // const card = btn.closest('.balance-card');
-            // const balance = parseFloat(card?.querySelector('.balance-info span')?.textContent || '0');
-            // btn.disabled = balance <= 0;
             btn.disabled = false; // Enable based on connection for now
         });
 
@@ -1460,8 +1431,14 @@ async function updateWalletConnectionStatusUI() {
         const walletAddress = tonConnectUI.account?.address;
         if (walletAddress && telegramUser?.id) {
             try {
-                 await Storage.setItem('walletAddress', walletAddress); // Use Storage abstraction
-                 debugLog(`Wallet connected: Address ${walletAddress} stored for user ${telegramUser.id}.`);
+                 // Only update if address changed or not set
+                 const currentStoredAddress = await Storage.getItem('walletAddress');
+                 if (currentStoredAddress !== walletAddress) {
+                    await Storage.setItem('walletAddress', walletAddress); // Use Storage abstraction
+                    debugLog(`Wallet connected: Address ${walletAddress} stored for user ${telegramUser.id}.`);
+                 } else {
+                     debugLog(`Wallet address ${walletAddress} already stored.`);
+                 }
             } catch (storageError) {
                  console.error("Failed to store wallet address:", storageError);
                  debugLog(`[WALLET ERROR] Failed to store wallet address: ${storageError.message}`);
@@ -1517,9 +1494,7 @@ async function handleConnectClick() {
          // Manually update UI on error as status change might not fire
          await updateWalletConnectionStatusUI();
      }
-     // Note: Button re-enabling is handled by onStatusChange listener for success cases
-     // If an error occurs above before disconnect/connectWallet resolves/rejects,
-     // the button might stay disabled. `updateWalletConnectionStatusUI` should re-enable it.
+     // Button re-enabling is handled by onStatusChange listener or the error block above
 }
 
 
@@ -1561,29 +1536,23 @@ async function updateTransactionHistory() {
              return;
          }
 
-         debugLog(`Workspaceed ${snapshot.docs.length} transaction history entries.`); // Corrected log
+         debugLog(`Workspaceed ${snapshot.docs.length} transaction history entries.`);
          transactionListEl.innerHTML = snapshot.docs.map(doc => {
              const tx = doc.data();
              let txTime = 'Invalid date';
-             // Format timestamp safely
-             if (tx.timestamp && typeof tx.timestamp.toDate === 'function') {
-                 try { txTime = tx.timestamp.toDate().toLocaleString(); } catch (dateErr) { console.warn("Error formatting date:", dateErr); }
-             } else if (tx.timestamp) {
-                 // Fallback for different timestamp formats if needed
-                 try { txTime = new Date(tx.timestamp).toLocaleString(); } catch (e) { /* ignore */ }
-             }
+             const timestamp = safeConvertToDate(tx.timestamp);
+             if (timestamp) txTime = timestamp.toLocaleString();
 
              let detail = '';
              const status = tx.status || 'unknown';
              const statusClass = status.toLowerCase(); // Ensure class is lowercase
 
              // Determine transaction detail string
-             if (tx.type === 'withdrawal' || tx.type === 'Withdrawal') { // Check both cases just in case
-                 detail = `Withdraw ${tx.amount?.toFixed(4) || '?'} ${tx.currency || '?'} (Fee: ${tx.fee?.toFixed(4) || '?'})`;
-             } else if (tx.type === 'credit_claim') { // Assuming this type might exist from claim logic
+             if (tx.type === 'Withdrawal') { // Check standardized type
+                 detail = `Withdraw ${tx.amount?.toFixed(4) || '?'} ${tx.currency || '?'} (Fee: ${tx.fee?.toFixed(currency === 'USDT' ? 2:3) || '?'})`; // Format fee correctly
+             } else if (tx.type === 'credit_claim') {
                  detail = `Claimed ${tx.usdtAmount?.toFixed(4) || '?'} USDT (${tx.creditsSpent?.toLocaleString() || '?'} C)`;
              } else {
-                 // Fallback for other potential transaction types
                  detail = `Type: ${tx.type || 'Unknown'}, Amount: ${tx.amount || '?'} ${tx.currency || '?'}`;
              }
 
@@ -1634,6 +1603,10 @@ function setupWithdrawModal() {
         amountInput.step = currency === 'USDT' ? "0.01" : "0.001"; // Adjust step
         amountInput.max = Math.max(0, availableBalance - fee).toFixed(4); // Max withdrawable amount
 
+        // Reset button state
+        confirmButton.disabled = false;
+        confirmButton.textContent = 'Confirm';
+
         withdrawModal.style.display = 'flex';
     };
 
@@ -1644,12 +1617,19 @@ function setupWithdrawModal() {
         const newButton = button.cloneNode(true);
         button.parentNode.replaceChild(newButton, button);
 
-        newButton.addEventListener('click', (event) => {
+        newButton.addEventListener('click', async (event) => { // Make async for data fetch
             const isUsdt = card?.classList.contains('usdt-card');
             const currency = isUsdt ? 'USDT' : 'TON';
             debugLog(`${currency} Withdraw button clicked.`);
-            const userData = currentUserData; // Use cached data
-            const balance = isUsdt ? (userData?.usdt || 0) : (userData?.ton || 0);
+
+            // Fetch latest data to ensure accurate balance check
+            const userData = await fetchAndUpdateUserData();
+            if (!userData) {
+                alert("Could not retrieve your balance. Please try again.");
+                return;
+            }
+
+            const balance = isUsdt ? (userData.usdt || 0) : (userData.ton || 0);
 
             if (balance > 0) {
                  showModal(currency, balance);
@@ -1682,11 +1662,21 @@ function setupWithdrawModal() {
         const amount = parseFloat(amountInput.value);
         const currency = currencySpan.textContent;
         const fee = parseFloat(feeSpan.textContent);
-        const available = parseFloat(availableBalanceSpan.textContent);
+        const available = parseFloat(availableBalanceSpan.textContent); // Balance shown in modal
 
         const confirmBtn = event.target; // Use event target
         confirmBtn.disabled = true;
         confirmBtn.textContent = 'Processing...';
+
+        // Re-fetch latest data for validation before proceeding
+        const latestUserData = await fetchAndUpdateUserData();
+        if (!latestUserData) {
+             alert("Error verifying balance. Please try again.");
+             debugLog("[WITHDRAW VALIDATION] Failed to fetch latest user data for final check.");
+             confirmBtn.disabled = false; confirmBtn.textContent = 'Confirm';
+             return;
+        }
+        const currentActualBalance = currency === 'USDT' ? (latestUserData.usdt || 0) : (latestUserData.ton || 0);
 
         // Validation
         if (isNaN(amount) || amount <= 0) {
@@ -1695,9 +1685,12 @@ function setupWithdrawModal() {
             confirmBtn.disabled = false; confirmBtn.textContent = 'Confirm';
             return;
         }
-        if (amount + fee > available) {
-            alert(`Insufficient balance to cover amount and fee (${fee.toFixed(currency === 'USDT' ? 2 : 3)} ${currency}).`);
-            debugLog(`[WITHDRAW VALIDATION] Insufficient balance. Need ${amount + fee}, have ${available}.`);
+        if (amount + fee > currentActualBalance) { // Use latest actual balance for final check
+            alert(`Insufficient balance to cover amount and fee (${fee.toFixed(currency === 'USDT' ? 2 : 3)} ${currency}). Your current balance is ${currentActualBalance.toFixed(4)} ${currency}.`);
+            debugLog(`[WITHDRAW VALIDATION] Insufficient actual balance. Need ${amount + fee}, have ${currentActualBalance}.`);
+            // Update modal display if balance changed since opening
+            availableBalanceSpan.textContent = currentActualBalance.toFixed(4);
+            amountInput.max = Math.max(0, currentActualBalance - fee).toFixed(4);
             confirmBtn.disabled = false; confirmBtn.textContent = 'Confirm';
             return;
         }
@@ -1752,11 +1745,13 @@ function setupWithdrawModal() {
                     console.error("Error updating simulated transaction status:", simError);
                     debugLog(`[WITHDRAW SIMULATION ERROR] Failed updating tx ${txId} status: ${simError.message}`);
                     try {
+                        // Try to mark as failed even if first update failed
                         await txCollectionRef.doc(txId).update({ status: 'failed', failureReason: simError.message });
                     } catch (failErr) {
                         console.error("Failed to mark tx as failed:", failErr);
+                    } finally {
+                        await updateTransactionHistory(); // Refresh history UI to show failed status
                     }
-                    await updateTransactionHistory(); // Refresh history UI to show failed
                 }
             }, 5000); // 5 second delay simulation
 
@@ -1768,17 +1763,16 @@ function setupWithdrawModal() {
             await fetchAndUpdateUserData(); // Refresh global cache
             await updateUserStatsUI(); // Update header/wallet balances
             await updateTransactionHistory(); // Show the new pending transaction
-            alert(`Withdrawal of ${amount.toFixed(4)} ${currency} initiated (Fee: ${fee.toFixed(currency === 'USDT' ? 2 : 3)} ${currency}). This is a simulation.`);
+            alert(`Withdrawal of ${amount.toFixed(4)} ${currency} initiated (Fee: ${fee.toFixed(currency === 'USDT' ? 2 : 3)} ${currency}). This is a simulation and may take a moment to complete.`);
 
         } catch (error) {
             console.error(`Withdrawal processing error: ${error.message}`);
             debugLog(`[WITHDRAW ERROR] Processing failed: ${error.message}`);
             alert(`Withdrawal failed: ${error.message}. Please try again.`);
-            // Attempt to update history if transaction was partially created? Or handle rollback?
-            // For simulation, just alerting failure is often sufficient.
-            await updateTransactionHistory(); // Refresh history just in case
+            // Update history just in case (might show failed if tx record was created)
+            await updateTransactionHistory();
         } finally {
-             // Ensure button is re-enabled if modal is still somehow open
+             // Re-enable button if modal didn't close for some reason
              if (withdrawModal.style.display !== 'none') {
                 confirmBtn.disabled = false;
                 confirmBtn.textContent = 'Confirm';
@@ -1803,6 +1797,8 @@ async function updateInviteSectionUI() {
         document.getElementById('invite-record-placeholder').style.display = 'block';
         document.getElementById('claim-record-list').innerHTML = '';
         document.getElementById('invite-record-list').innerHTML = '';
+        const claimButton = document.querySelector('#invite .claim-button');
+        if(claimButton) claimButton.disabled = true;
         return;
     }
 
@@ -1823,6 +1819,7 @@ async function updateInviteSectionUI() {
      // Enable/Disable Claim button based on credits
      if (claimButton) {
         claimButton.disabled = (userData.referralCredits || 0) < 10000;
+        claimButton.textContent = 'Claim'; // Reset text
      }
 
     // Populate Claim Records
@@ -1835,23 +1832,14 @@ async function updateInviteSectionUI() {
         claimRecordPlaceholderEl.style.display = 'none';
         // Sort by timestamp descending (newest first) before mapping
         claimHistory.sort((a, b) => {
-                const timeA = a.claimTime?.toDate ? a.claimTime.toDate().getTime() : (new Date(a.claimTime || 0)).getTime();
-                const timeB = b.claimTime?.toDate ? b.claimTime.toDate().getTime() : (new Date(b.claimTime || 0)).getTime();
+                const timeA = safeConvertToDate(a.claimTime)?.getTime() || 0;
+                const timeB = safeConvertToDate(b.claimTime)?.getTime() || 0;
                 return timeB - timeA;
             })
             .forEach(record => {
                 const div = document.createElement('div');
                 div.className = 'record-item';
-                let claimTime = 'Invalid date';
-                try {
-                     // Check if timestamp is a Firestore Timestamp object
-                     if (record.claimTime && typeof record.claimTime.toDate === 'function') {
-                        claimTime = record.claimTime.toDate().toLocaleString();
-                     } else if (record.claimTime) {
-                         // Fallback if it's already a string/number (less likely)
-                         claimTime = new Date(record.claimTime).toLocaleString();
-                     }
-                } catch (e) { console.warn("Error formatting claim date", e); }
+                const claimTime = safeConvertToDate(record.claimTime)?.toLocaleString() || 'Invalid date';
 
                 div.innerHTML = `
                     <img src="assets/icons/usdt.png" alt="USDT Claim" style="border-radius: 0;"> <div class="user-info">
@@ -1874,25 +1862,19 @@ async function updateInviteSectionUI() {
         inviteRecordPlaceholderEl.style.display = 'none';
          // Sort by join time descending before mapping
           inviteRecords.sort((a, b) => {
-                const timeA = a.joinTime?.toDate ? a.joinTime.toDate().getTime() : (new Date(a.joinTime || 0)).getTime();
-                const timeB = b.joinTime?.toDate ? b.joinTime.toDate().getTime() : (new Date(b.joinTime || 0)).getTime();
+                 const timeA = safeConvertToDate(a.joinTime)?.getTime() || 0;
+                 const timeB = safeConvertToDate(b.joinTime)?.getTime() || 0;
                 return timeB - timeA;
             })
              .forEach(record => {
                 const div = document.createElement('div');
                 div.className = 'record-item';
-                 let joinTime = 'Invalid date';
-                 try {
-                     if (record.joinTime && typeof record.joinTime.toDate === 'function') {
-                        joinTime = record.joinTime.toDate().toLocaleString();
-                     } else if (record.joinTime) {
-                         joinTime = new Date(record.joinTime).toLocaleString();
-                     }
-                 } catch (e) { console.warn("Error formatting join date", e); }
+                 const joinTime = safeConvertToDate(record.joinTime)?.toLocaleString() || 'Invalid date';
+                 const avatarLetter = (record.username || 'U')[0].toUpperCase();
+                 const avatarColor = intToHSL(hashCode(record.userId || record.username || 'Default')); // Generate color based on ID/name
 
-                // Use a placeholder/default avatar for invited users for simplicity
                 div.innerHTML = `
-                    <img src="https://via.placeholder.com/40/808080/FFFFFF?text=${(record.username || 'U')[0].toUpperCase()}" alt="${record.username || 'User'}">
+                    <img src="https://via.placeholder.com/40/${avatarColor.substring(1)}/FFFFFF?text=${avatarLetter}" alt="${record.username || 'User'}">
                     <div class="user-info">
                         <span>${record.username || 'Unknown User'}</span>
                         <small>${joinTime}</small>
@@ -1907,6 +1889,24 @@ async function updateInviteSectionUI() {
     debugLog("Invite section UI updated successfully.");
 }
 
+// Simple hash function for color generation
+function hashCode(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return hash;
+}
+
+// Convert integer hash to HSL color string (pastel range)
+function intToHSL(h) {
+  const hue = h % 360;
+  const saturation = 70 + (h % 10); // Keep saturation relatively high but vary slightly
+  const lightness = 75 + (h % 10); // Keep lightness high for pastel
+  return `hsl(${hue},${saturation}%,${lightness}%)`;
+}
+
+
 function generateReferralLink() {
      debugLog("Generating referral link...");
     if (!telegramUser || !telegramUser.id) {
@@ -1914,7 +1914,7 @@ function generateReferralLink() {
          return null; // Return null if no link can be generated
     }
     // !!! IMPORTANT: REPLACE 'YourBotUsername' with your actual Telegram bot's username !!!
-    const botUsername = 'FourMetasBot'; // <--- REPLACE THIS (Assuming it's correct based on previous code)
+    const botUsername = 'FourMetasBot'; // <--- REPLACE THIS
     if (botUsername === 'YourBotUsername') {
         console.warn("Please replace 'YourBotUsername' in generateReferralLink function!");
         debugLog("[WARN] Bot username not set in generateReferralLink.");
@@ -1945,7 +1945,6 @@ async function handleReferral() {
 
     let startParam = null;
     try {
-        // Access start_param safely
         startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
     } catch (e) {
         console.error("Error accessing Telegram start_param:", e);
@@ -1957,8 +1956,7 @@ async function handleReferral() {
         const referrerId = startParam.split('_')[1];
         debugLog(`Referral parameter found: ref_${referrerId}`);
 
-        // Validate referrerId
-        if (!referrerId || !/^\d+$/.test(referrerId)) { // Check if it's a string of digits
+        if (!referrerId || !/^\d+$/.test(referrerId)) {
             debugLog(`Invalid referrerId format: ${referrerId}`);
             return;
         }
@@ -1966,82 +1964,78 @@ async function handleReferral() {
         const currentUserIdStr = telegramUser.id.toString();
         if (referrerId === currentUserIdStr) {
             debugLog("User referred themselves, skipping.");
-            return; // Don't process self-referral
+            return;
         }
 
         const currentUserRef = db.collection('userData').doc(currentUserIdStr);
         const referrerRef = db.collection('userData').doc(referrerId);
 
         try {
-            // Check if the current user has already been referred
-            const userDoc = await currentUserRef.get();
-            // Ensure doc exists before checking data - might be a new user
-            if (!userDoc.exists) {
-                 debugLog("User document doesn't exist yet for referral check (might be created in initializeUserData).");
-                 // If initialization hasn't run yet, the 'isReferred' check will happen there if needed.
-                 // Or, we could potentially wait/retry, but simpler to let init handle it.
-                 // For now, we just log and exit. If init runs later, it won't find the start_param.
-                 // A more robust solution might involve passing the referrerId to init.
-                 return;
-            }
-            const userData = userDoc.data();
+            // Use transaction to ensure atomicity
+            await db.runTransaction(async (transaction) => {
+                const userDoc = await transaction.get(currentUserRef);
+                 // It's possible the user doc doesn't exist yet if init hasn't finished.
+                 // If so, the referral can't be processed yet. Let initializeUserData handle creation.
+                 // A more robust system might queue the referral, but this is simpler for now.
+                if (!userDoc.exists) {
+                     debugLog(`User document ${currentUserIdStr} not found during referral transaction. Deferring.`);
+                     // Throwing an error here would cancel the transaction attempt.
+                     // Returning without throwing allows init to potentially handle later.
+                     // However, the start_param might be lost by then.
+                     // Safest might be to just log and let it fail silently if init hasn't run.
+                     return;
+                }
+                const userData = userDoc.data();
 
-            if (userData.isReferred) {
-                debugLog(`User ${currentUserIdStr} has already been referred by ${userData.referredBy}. Skipping.`);
-                return;
-            }
+                if (userData.isReferred) {
+                    debugLog(`User ${currentUserIdStr} already referred by ${userData.referredBy}. Skipping transaction.`);
+                    return; // Exit transaction without changes
+                }
 
-            // Check if the referrer exists
-            const referrerDoc = await referrerRef.get();
-            if (!referrerDoc.exists) {
-                 debugLog(`Referrer document ${referrerId} not found. Cannot process referral.`);
-                 // Maybe store the invalid attempt? For now, just skip.
-                 return;
-            }
+                const referrerDoc = await transaction.get(referrerRef);
+                if (!referrerDoc.exists) {
+                     debugLog(`Referrer document ${referrerId} not found. Cannot process referral.`);
+                     // Throw an error to cancel the transaction? Or just log?
+                     // Let's just log and exit the transaction silently.
+                     return;
+                }
 
-            // --- Process the referral ---
-            debugLog(`Processing referral: User ${currentUserIdStr} referred by ${referrerId}`);
+                // --- Process the referral within the transaction ---
+                debugLog(`Processing referral via transaction: User ${currentUserIdStr} referred by ${referrerId}`);
 
-            // 1. Update the current user
-            await currentUserRef.update({
-                isReferred: true,
-                referredBy: referrerId
-            });
-            debugLog(`User ${currentUserIdStr} marked as referred by ${referrerId}.`);
+                // 1. Update the current user
+                transaction.update(currentUserRef, {
+                    isReferred: true,
+                    referredBy: referrerId
+                });
 
-            // 2. Update the referrer
-            const referralCreditAmount = 100; // Example: Credits per referral
-            const referralGemAmount = 0;   // Example: Gems per referral (optional)
+                // 2. Update the referrer
+                const referralCreditAmount = 100;
+                const newInviteRecord = {
+                    userId: currentUserIdStr,
+                    username: telegramUser.username || telegramUser.first_name || `User_${currentUserIdStr.slice(-4)}`,
+                    joinTime: firebase.firestore.FieldValue.serverTimestamp(), // Use server time
+                    creditAwarded: referralCreditAmount,
+                };
 
-            // Create a record for the referrer's list
-            const newInviteRecord = {
-                userId: currentUserIdStr,
-                username: telegramUser.username || telegramUser.first_name || `User_${currentUserIdStr.slice(-4)}`,
-                joinTime: firebase.firestore.FieldValue.serverTimestamp(), // Use server time
-                creditAwarded: referralCreditAmount,
-                // photoUrl: telegramUser.photo_url || null // Optionally store photo
-            };
+                transaction.update(referrerRef, {
+                    referrals: firebase.firestore.FieldValue.increment(1),
+                    referralCredits: firebase.firestore.FieldValue.increment(referralCreditAmount),
+                    inviteRecords: firebase.firestore.FieldValue.arrayUnion(newInviteRecord)
+                });
+            }); // End of transaction
 
-            await referrerRef.update({
-                referrals: firebase.firestore.FieldValue.increment(1),
-                referralCredits: firebase.firestore.FieldValue.increment(referralCreditAmount),
-                // Add gems increment if awarding gems:
-                // gems: firebase.firestore.FieldValue.increment(referralGemAmount),
-                inviteRecords: firebase.firestore.FieldValue.arrayUnion(newInviteRecord) // Add to the array
-            });
-            debugLog(`Updated referrer ${referrerId} data: +1 referral, +${referralCreditAmount} credits.`);
-
-            // Log analytics event
+            // Transaction likely succeeded if no error was thrown
+            debugLog("Referral transaction completed successfully.");
             if (analytics) analytics.logEvent('referral_success', { userId: currentUserIdStr, referrerId });
-
-            debugLog("Referral handled successfully.");
-            // Optionally, refresh user data immediately if needed elsewhere right after referral
+            // Optionally refresh data if needed immediately, but UI updates usually handle it.
             // await fetchAndUpdateUserData();
 
         } catch (error) {
-            console.error("Error processing referral:", error);
-            debugLog(`Error processing referral: ${error.message}`);
-            // Don't alert the user, as this runs silently on load
+            // Transaction failed or error occurred during checks before transaction.get
+            console.error("Error processing referral transaction:", error);
+            debugLog(`Error processing referral transaction: ${error.message}`);
+            // Don't alert user
         }
     } else {
         debugLog("No referral parameter found or not in 'ref_' format.");
@@ -2052,24 +2046,27 @@ async function handleReferral() {
 function setupInviteButtons() {
     const inviteButton = document.querySelector('.invite-friend');
     const copyLinkButton = document.querySelector('.copy-link');
-    const claimButton = document.querySelector('.invite-section .claim-button'); // More specific selector
+    const claimButton = document.querySelector('#invite .claim-button'); // More specific selector
 
+    // Use cloning to ensure old listeners are removed
     if (inviteButton) {
-        // Remove old listener before adding new one
-        inviteButton.removeEventListener('click', handleInviteFriendClick);
-        inviteButton.addEventListener('click', handleInviteFriendClick);
+        const newInviteButton = inviteButton.cloneNode(true);
+        inviteButton.parentNode.replaceChild(newInviteButton, inviteButton);
+        newInviteButton.addEventListener('click', handleInviteFriendClick);
         debugLog("Invite Friend button listener attached.");
     } else { debugLog("[INVITE WARN] Invite Friend button not found."); }
 
     if (copyLinkButton) {
-        copyLinkButton.removeEventListener('click', handleCopyLinkClick);
-        copyLinkButton.addEventListener('click', handleCopyLinkClick);
+         const newCopyLinkButton = copyLinkButton.cloneNode(true);
+         copyLinkButton.parentNode.replaceChild(newCopyLinkButton, copyLinkButton);
+         newCopyLinkButton.addEventListener('click', handleCopyLinkClick);
          debugLog("Copy Link button listener attached.");
     } else { debugLog("[INVITE WARN] Copy Link button not found."); }
 
     if (claimButton) {
-        claimButton.removeEventListener('click', handleClaimCreditsClick);
-        claimButton.addEventListener('click', handleClaimCreditsClick);
+         const newClaimButton = claimButton.cloneNode(true);
+         claimButton.parentNode.replaceChild(newClaimButton, claimButton);
+         newClaimButton.addEventListener('click', handleClaimCreditsClick);
          debugLog("Claim Credits button listener attached.");
     } else { debugLog("[INVITE WARN] Claim Credits button not found."); }
 }
@@ -2083,11 +2080,10 @@ function handleInviteFriendClick(event) {
         return;
     }
     if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openTelegramLink) {
-         // Use Telegram's share URL format for better integration
-         const text = encodeURIComponent("Join me on 4Metas!"); // Optional text
+         const text = encodeURIComponent("Join me on 4Metas and earn rewards!"); // Example text
          window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${text}`);
     } else {
-        alert("Please copy the link manually."); // Fallback if not in Telegram context
+        alert("Please copy the link manually to share."); // Fallback
         debugLog("[INVITE WARN] Cannot open Telegram share link outside Telegram context.");
     }
 }
@@ -2104,16 +2100,19 @@ function handleCopyLinkClick(event) {
         navigator.clipboard.writeText(link).then(() => {
             alert("Invite link copied to clipboard!");
             debugLog("Referral link copied successfully.");
+            // Optional: Visual feedback like changing button text temporarily
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = 'Copied!';
+            setTimeout(() => { button.textContent = originalText; }, 2000);
         }).catch(err => {
             console.error("Failed to copy link:", err);
             alert("Failed to copy link. Please copy it manually.");
             debugLog("[INVITE ERROR] Failed to copy link using navigator.clipboard:", err);
         });
     } else {
-        // Fallback for browsers without clipboard API support (less common now)
         alert("Clipboard access not available. Please copy the link manually.");
         debugLog("[INVITE WARN] navigator.clipboard API not available.");
-        // Consider showing the link in a prompt or text area for manual copying as a better fallback.
     }
 }
 
@@ -2130,9 +2129,13 @@ async function handleClaimCreditsClick(event) {
     }
 
     const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
+    const txCollectionRef = userDocRef.collection('transactions'); // For transaction history
 
     try {
-        // Use a transaction for atomicity: read credits, check, then update
+        let usdtToClaim = 0;
+        let creditsToSpend = 0;
+
+        // Use a transaction for atomicity
         await db.runTransaction(async (transaction) => {
             const userDoc = await transaction.get(userDocRef);
             if (!userDoc.exists) {
@@ -2141,8 +2144,8 @@ async function handleClaimCreditsClick(event) {
 
             const data = userDoc.data();
             const currentCredits = data.referralCredits || 0;
-            const conversionRate = 10000; // 10,000 credits = 1 USDT
-            const minimumClaim = 10000; // Minimum credits needed to claim
+            const conversionRate = 10000;
+            const minimumClaim = 10000;
 
             debugLog(`[CREDIT CLAIM] Transaction Check: Current credits: ${currentCredits}`);
 
@@ -2150,48 +2153,53 @@ async function handleClaimCreditsClick(event) {
                 throw new Error(`Insufficient credits. Minimum ${minimumClaim.toLocaleString()} required.`);
             }
 
-            // Calculate exact USDT and credits to use
-            // Floor USDT to avoid fractional amounts if conversion isn't exact
-            const usdtToClaim = Math.floor(currentCredits / conversionRate);
-            const creditsToSpend = usdtToClaim * conversionRate; // Credits actually being spent
+            usdtToClaim = Math.floor(currentCredits / conversionRate);
+            creditsToSpend = usdtToClaim * conversionRate;
 
             if (usdtToClaim <= 0) {
-                 throw new Error("Calculated claim amount is zero or less."); // Should not happen if min check passed
+                 throw new Error("Calculated claim amount is zero or less.");
             }
 
             debugLog(`[CREDIT CLAIM] Transaction Proceed: Claiming ${usdtToClaim} USDT for ${creditsToSpend} credits.`);
-            // Update button text visually, although transaction might still fail
-            // This might be slightly misleading if it fails, but gives immediate feedback
-            claimButton.textContent = 'Claiming...';
+            claimButton.textContent = 'Claiming...'; // UI feedback
 
             const claimRecord = {
-                claimTime: firebase.firestore.FieldValue.serverTimestamp(), // Use server time
+                claimTime: firebase.firestore.FieldValue.serverTimestamp(),
                 usdtAmount: usdtToClaim,
                 creditsSpent: creditsToSpend,
                 rate: conversionRate
-                // Optionally add username/photoUrl here if needed in history items
+            };
+            const transactionRecord = { // Record for transaction history
+                txId: `claim_${Date.now()}`,
+                userId: telegramUser.id.toString(),
+                type: 'credit_claim',
+                usdtAmount: usdtToClaim,
+                creditsSpent: creditsToSpend,
+                status: 'completed', // Claim is instant
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            // Perform the update within the transaction
+            // Perform updates within the transaction
             transaction.update(userDocRef, {
                 usdt: firebase.firestore.FieldValue.increment(usdtToClaim),
                 referralCredits: firebase.firestore.FieldValue.increment(-creditsToSpend),
                 claimHistory: firebase.firestore.FieldValue.arrayUnion(claimRecord)
             });
-            // Transaction commits automatically if no error is thrown here
-        });
+            // Add transaction history record (use set in transaction)
+            transaction.set(txCollectionRef.doc(transactionRecord.txId), transactionRecord);
+
+        }); // End of transaction
 
         // Transaction successful
-        debugLog(`[CREDIT CLAIM] Transaction successful.`);
-         // Find claimed amount again if needed for alert (might be slightly complex post-transaction)
-         // Simple alert for now:
-         alert(`Successfully claimed USDT for credits!`);
-        if (analytics) analytics.logEvent('credit_claim', { userId: telegramUser.id /*, usdt: usdtToClaim, credits: creditsToSpend */ }); // Add amounts if easily accessible
+        debugLog(`[CREDIT CLAIM] Transaction successful. Claimed ${usdtToClaim} USDT for ${creditsToSpend} credits.`);
+        alert(`Successfully claimed ${usdtToClaim.toFixed(4)} USDT for ${creditsToSpend.toLocaleString()} credits!`);
+        if (analytics) analytics.logEvent('credit_claim', { userId: telegramUser.id, usdt: usdtToClaim, credits: creditsToSpend });
 
         // Update UI *after* successful transaction
         await fetchAndUpdateUserData(); // Refresh cache
         await updateUserStatsUI();
-        await updateInviteSectionUI(); // This will re-render lists and update button state
+        await updateInviteSectionUI(); // Re-renders lists and updates button state
+        await updateTransactionHistory(); // Show the new claim in history
 
     } catch (error) {
         console.error("[CREDIT CLAIM ERROR]", error);
@@ -2200,15 +2208,15 @@ async function handleClaimCreditsClick(event) {
         // Update UI to reflect potential unchanged state after error
          await updateInviteSectionUI(); // Re-renders button based on actual credit amount
     }
-    // No finally block needed for button state, updateInviteSectionUI handles it based on refreshed data
+    // No finally needed, updateInviteSectionUI handles button state based on refreshed data
 }
 
 
 // --- Chest Section ---
 function updateChestUI() {
-    debugLog("Updating Chest section UI...");
+    // debugLog("Updating Chest section UI..."); // Reduce noise
     const chestContainer = document.getElementById('chestContainer');
-    const chestCostDisplay = document.getElementById('chestCost'); // Main cost display below slider
+    const chestCostDisplay = document.getElementById('chestCost');
     const chestCostAmount = document.getElementById('chest-cost-amount');
     const vipRequirementDisplay = document.getElementById('chestVipRequirement');
     const openButton = document.querySelector('.open-chest-button');
@@ -2225,13 +2233,10 @@ function updateChestUI() {
      if (!chest) {
         console.error(`[CHEST ERROR] Invalid chest index: ${currentChestIndex}`);
         debugLog(`[CHEST ERROR] Invalid chest index: ${currentChestIndex}`);
-        // Optionally reset index or display error in UI
         return;
      }
 
-    // Update Slider Content (if not already rendered or needs dynamic update)
-    // Assuming renderChests() was called once initially.
-    // We just need to ensure the correct one is visually centered.
+    // Update Slider Content position
     chestContainer.style.transform = `translateX(-${currentChestIndex * 100}%)`;
 
 
@@ -2240,38 +2245,35 @@ function updateChestUI() {
      const userVipLevel = userData?.vipLevel || 0;
      const userGems = userData?.gems || 0;
 
-     debugLog(`[CHEST CHECK] User VIP: ${userVipLevel}, User Gems: ${userGems.toLocaleString()}, Chest: ${chest.name} (Needs VIP ${chest.vip}, Cost ${chest.gemCost.toLocaleString()})`);
+     // debugLog(`[CHEST CHECK] User VIP: ${userVipLevel}, User Gems: ${userGems.toLocaleString()}, Chest: ${chest.name} (Needs VIP ${chest.vip}, Cost ${chest.gemCost.toLocaleString()})`); // Reduce noise
 
-     // Hide requirement/cost initially
      vipRequirementDisplay.style.display = 'none';
-     chestCostDisplay.style.display = 'none'; // Hide the whole cost div initially
-     openButton.disabled = false; // Enable button by default, disable based on checks
+     chestCostDisplay.style.display = 'none';
+     openButton.disabled = false; // Enable button by default
+     chestCostDisplay.style.color = ''; // Reset cost color
+     openButton.textContent = 'Open Chest'; // Reset button text
 
     // Check VIP Level
      if (chest.vip > userVipLevel) {
          vipRequirementDisplay.textContent = `NEED VIP ${chest.vip}`;
-         vipRequirementDisplay.style.display = 'block'; // Show VIP requirement
+         vipRequirementDisplay.style.display = 'block';
          openButton.disabled = true;
          openButton.textContent = `VIP ${chest.vip} Required`;
-         debugLog(`[CHEST] VIP ${chest.vip} required, user has ${userVipLevel}. Button disabled.`);
+         // debugLog(`[CHEST] VIP ${chest.vip} required, user has ${userVipLevel}. Button disabled.`); // Reduce noise
      } else {
          // VIP level met, show cost and check gems
-         vipRequirementDisplay.style.display = 'none'; // Hide VIP req
-         chestCostAmount.textContent = chest.gemCost.toLocaleString(); // Set cost amount
-         chestCostDisplay.style.display = 'flex'; // Show the cost display div
-         openButton.textContent = 'Open Chest';
+         vipRequirementDisplay.style.display = 'none';
+         chestCostAmount.textContent = chest.gemCost.toLocaleString();
+         chestCostDisplay.style.display = 'flex';
 
          // Check Gems
          if (userGems < chest.gemCost) {
              openButton.disabled = true;
-             // Optionally add a visual indicator for insufficient gems
-             // e.g., change button style or show a small message next to cost
-             debugLog(`[CHEST] Insufficient gems. Need ${chest.gemCost.toLocaleString()}, user has ${userGems.toLocaleString()}. Button disabled.`);
-              chestCostDisplay.style.color = '#ffcc00'; // Example: Make cost yellow if not enough
+             chestCostDisplay.style.color = '#ffcc00'; // Make cost yellow if not enough
+             // debugLog(`[CHEST] Insufficient gems. Need ${chest.gemCost.toLocaleString()}, user has ${userGems.toLocaleString()}. Button disabled.`); // Reduce noise
          } else {
              // Meets VIP and Gem requirements
-              chestCostDisplay.style.color = ''; // Reset color
-             debugLog(`[CHEST] User meets VIP and Gem requirements. Button enabled.`);
+             // debugLog(`[CHEST] User meets VIP and Gem requirements. Button enabled.`); // Reduce noise
          }
      }
 
@@ -2301,22 +2303,27 @@ function renderChests() {
     `).join('');
      debugLog(`[CHEST] Rendered ${chests.length} chests into slider.`);
 
-     // Add event listeners to arrows and button AFTER rendering
+     // Add event listeners using cloning to remove old ones
      const leftArrow = document.querySelector('.nav-arrow.left');
      const rightArrow = document.querySelector('.nav-arrow.right');
      const openButton = document.querySelector('.open-chest-button');
 
      if (leftArrow) {
-         leftArrow.removeEventListener('click', prevChest); // Remove old listener first
-         leftArrow.addEventListener('click', prevChest);
+        const newLeft = leftArrow.cloneNode(true);
+        leftArrow.parentNode.replaceChild(newLeft, leftArrow);
+        newLeft.addEventListener('click', prevChest);
      } else { debugLog("[CHEST WARN] Left arrow not found."); }
+
      if (rightArrow) {
-         rightArrow.removeEventListener('click', nextChest);
-         rightArrow.addEventListener('click', nextChest);
+        const newRight = rightArrow.cloneNode(true);
+        rightArrow.parentNode.replaceChild(newRight, rightArrow);
+        newRight.addEventListener('click', nextChest);
      } else { debugLog("[CHEST WARN] Right arrow not found."); }
+
      if (openButton) {
-         openButton.removeEventListener('click', openChest);
-         openButton.addEventListener('click', openChest);
+         const newOpen = openButton.cloneNode(true);
+         openButton.parentNode.replaceChild(newOpen, openButton);
+         newOpen.addEventListener('click', openChest);
      } else { debugLog("[CHEST WARN] Open Chest button not found."); }
 
      updateChestUI(); // Initial UI update for the first chest
@@ -2324,7 +2331,7 @@ function renderChests() {
 
 
 function prevChest() {
-    debugLog("Prev Chest button clicked.");
+    // debugLog("Prev Chest button clicked."); // Reduce noise
     if (currentChestIndex > 0) {
         currentChestIndex--;
         updateChestUI();
@@ -2332,7 +2339,7 @@ function prevChest() {
 }
 
 function nextChest() {
-    debugLog("Next Chest button clicked.");
+    // debugLog("Next Chest button clicked."); // Reduce noise
     if (currentChestIndex < chests.length - 1) {
         currentChestIndex++;
         updateChestUI();
@@ -2351,57 +2358,59 @@ async function openChest() {
      const openButton = document.querySelector('.open-chest-button');
      openButton.disabled = true; openButton.textContent = 'Opening...';
 
-     if (!telegramUser || !telegramUser.id) { alert("User not identified."); openButton.disabled = false; updateChestUI(); return; }
-     if (!firebaseInitialized || !db) { alert("Database not ready."); openButton.disabled = false; updateChestUI(); return; }
+     if (!telegramUser || !telegramUser.id) { alert("User not identified."); updateChestUI(); return; } // Update UI restores button
+     if (!firebaseInitialized || !db) { alert("Database not ready."); updateChestUI(); return; }
 
      const userDocRef = db.collection('userData').doc(telegramUser.id.toString());
      const rankingDocRef = db.collection('users').doc(telegramUser.id.toString());
 
      try {
-          // Fetch latest data for check (important!) using the global cache pattern
-          const userData = await fetchAndUpdateUserData();
-          if (!userData) throw new Error("User data not found to open chest.");
+          // Fetch latest data using a transaction for atomic check-and-update
+          let rewards = {}; // Scope for alert
+          await db.runTransaction(async (transaction) => {
+             const userDoc = await transaction.get(userDocRef);
+             if (!userDoc.exists) throw new Error("User data not found to open chest.");
+             const userData = userDoc.data();
 
-         const currentGems = userData.gems || 0;
-         const userVipLevel = userData.vipLevel || 0;
+             const currentGems = userData.gems || 0;
+             const userVipLevel = userData.vipLevel || 0;
 
-         debugLog(`[CHEST ACTION CHECK] Checking requirements: Need VIP ${chest.vip} (Have ${userVipLevel}), Need Gems ${chest.gemCost.toLocaleString()} (Have ${currentGems.toLocaleString()})`);
+             debugLog(`[CHEST ACTION CHECK] Transaction: Need VIP ${chest.vip} (Have ${userVipLevel}), Need Gems ${chest.gemCost.toLocaleString()} (Have ${currentGems.toLocaleString()})`);
 
-         if (chest.vip > userVipLevel) throw new Error(`VIP Level ${chest.vip} required.`);
-         if (currentGems < chest.gemCost) throw new Error(`Insufficient gems. Need ${chest.gemCost.toLocaleString()}, have ${currentGems.toLocaleString()}.`);
+             if (chest.vip > userVipLevel) throw new Error(`VIP Level ${chest.vip} required.`);
+             if (currentGems < chest.gemCost) throw new Error(`Insufficient gems. Need ${chest.gemCost.toLocaleString()}, have ${currentGems.toLocaleString()}.`);
 
-         // Simulate Reward Calculation (Example Logic - adjust as needed)
-         const rewards = {
-             usdt: parseFloat((Math.random() * (chest.gemCost / 4000) + (chest.gemCost / 10000)).toFixed(4)), // Scale USDT reward with cost
-             landPiece: Math.random() < (0.05 + currentChestIndex * 0.02) ? 1 : 0, // Increase land piece chance with chest level (max ~17% for mythic)
-             foxMedal: Math.floor(Math.random() * (currentChestIndex + 1) * 1.5) + 1 // More medals for higher chests
-         };
-         debugLog("[CHEST ACTION] Calculated rewards:", rewards);
+             // Calculate Rewards (inside transaction to ensure consistency if needed, though random is usually ok outside)
+             rewards = {
+                 usdt: parseFloat((Math.random() * (chest.gemCost / 4000) + (chest.gemCost / 10000)).toFixed(4)),
+                 landPiece: Math.random() < (0.05 + currentChestIndex * 0.02) ? 1 : 0,
+                 foxMedal: Math.floor(Math.random() * (currentChestIndex + 1) * 1.5) + 1
+             };
+             debugLog("[CHEST ACTION] Calculated rewards:", rewards);
 
-         // Update Firestore atomically using transaction if possible, or batched write
-         const batch = db.batch(); // Use a batch for multiple updates
+             // Prepare updates for user data
+             const updates = {
+                 gems: firebase.firestore.FieldValue.increment(-chest.gemCost),
+                 usdt: firebase.firestore.FieldValue.increment(rewards.usdt),
+                 landPieces: firebase.firestore.FieldValue.increment(rewards.landPiece),
+                 foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
+             };
+             transaction.update(userDocRef, updates);
 
-         // Update user data
-         const updates = {
-             gems: firebase.firestore.FieldValue.increment(-chest.gemCost),
-             usdt: firebase.firestore.FieldValue.increment(rewards.usdt),
-             landPieces: firebase.firestore.FieldValue.increment(rewards.landPiece),
-             foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
-         };
-         batch.update(userDocRef, updates);
+             // Update ranking document if medals were awarded
+             if (rewards.foxMedal > 0) {
+                 // Use set with merge to handle potential non-existence safely within transaction
+                 transaction.set(rankingDocRef, {
+                     foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal),
+                     // Ensure username/photo are present/updated in ranking if needed
+                     username: userData.username || telegramUser.username || telegramUser.first_name || `User_${telegramUser.id.toString().slice(-4)}`,
+                     photoUrl: userData.photoUrl || telegramUser.photo_url || 'assets/icons/user-avatar.png'
+                 }, { merge: true });
+             }
+         }); // End transaction
 
-         // Update ranking document if medals were awarded
-         if (rewards.foxMedal > 0) {
-              // Use set with merge to ensure document exists or is updated safely
-               batch.set(rankingDocRef, {
-                   foxMedals: firebase.firestore.FieldValue.increment(rewards.foxMedal)
-               }, { merge: true });
-         }
-
-         await batch.commit(); // Commit all updates together
-         debugLog(`[CHEST ACTION] Firestore updated via batch. Deducted ${chest.gemCost.toLocaleString()} gems. Added rewards.`);
-
-         // Log analytics event
+         // Transaction successful
+         debugLog(`[CHEST ACTION] Transaction successful. Deducted ${chest.gemCost.toLocaleString()} gems. Added rewards.`);
          if (analytics) analytics.logEvent('chest_opened', { userId: telegramUser.id, chestName: chest.name, cost: chest.gemCost, rewards });
 
          // Show Rewards
@@ -2410,22 +2419,22 @@ async function openChest() {
          if (rewards.landPiece > 0) rewardString += `- ${rewards.landPiece} Land Piece\n`;
          if (rewards.foxMedal > 0) rewardString += `- ${rewards.foxMedal} Fox Medal\n`;
          if (rewards.usdt <= 0 && rewards.landPiece <= 0 && rewards.foxMedal <= 0) {
-            rewardString += "- Nothing this time!"; // Handle case where all rewards are 0
+            rewardString += "- Nothing this time!";
          }
          alert(rewardString);
 
-         // Update UI
-         await fetchAndUpdateUserData(); // Refresh cache with new balances *after* update
-         await updateUserStatsUI(); // Update header stats
-         updateChestUI(); // Re-check requirements/costs for the current chest & update button state
+         // Update UI after successful transaction
+         await fetchAndUpdateUserData();
+         await updateUserStatsUI();
+         updateChestUI(); // Re-check requirements/costs & update button
 
      } catch (error) {
          console.error("Error opening chest:", error);
          debugLog(`[CHEST ERROR] ${error.message}`);
          alert(`Failed to open chest: ${error.message}`);
-         // Ensure button is re-enabled and UI reflects potential unchanged state
-         openButton.disabled = false;
-         updateChestUI(); // Crucial to reset button state based on actual data
+         // Ensure UI reflects actual state after failure
+         await fetchAndUpdateUserData(); // Get potentially unchanged state
+         updateChestUI(); // Reset button based on actual data
      }
  }
 
@@ -2448,23 +2457,22 @@ async function updateTopSectionUI() {
      }
 
      try {
-         const rankingsSnapshot = await db.collection('users') // Assuming 'users' collection holds ranking data
+         const rankingsSnapshot = await db.collection('users') // Use 'users' collection for ranking
              .orderBy('foxMedals', 'desc')
-             .limit(30) // Limit to top 30
-             .get();
+             .limit(30)
+             .get({ source: 'server' }); // Get fresh data
 
          const rankings = [];
          rankingsSnapshot.forEach(doc => {
              const data = doc.data();
-             // Basic validation/defaults
              rankings.push({
                  id: doc.id,
                  username: data.username || 'Anonymous',
                  foxMedals: data.foxMedals || 0,
-                 photoUrl: data.photoUrl || 'assets/icons/user-avatar.png' // Default avatar
+                 photoUrl: data.photoUrl || 'assets/icons/user-avatar.png'
              });
          });
-         debugLog(`Workspaceed ${rankings.length} ranking entries.`); // Corrected log
+         debugLog(`Workspaceed ${rankings.length} ranking entries.`);
 
          if (rankings.length === 0) {
              rankingList.innerHTML = `<li class="no-rankings"><p>The ranking is empty right now.</p></li>`;
@@ -2498,7 +2506,6 @@ async function initializeApp() {
     const telegramSuccess = initializeTelegram();
     if (!telegramSuccess) {
         debugLog("Proceeding with fallback Telegram user.");
-        // Decide if app should stop or continue in fallback mode
     }
 
     // 2. Initialize Firebase (essential)
@@ -2506,48 +2513,41 @@ async function initializeApp() {
     if (!firebaseSuccess) {
         debugLog("App Init Failed: Firebase could not be initialized.");
         alert("Critical Error: Cannot connect to the database. Please try restarting the app.");
-        return; // Stop initialization if Firebase fails
+        return;
     }
 
-    // 3. Initialize User Data (includes fetching initial data into currentUserData)
-    // Use ensureFirebaseReady wrapper for safety, although firebaseSuccess check is done above
+    // 3. Initialize User Data (creates record if needed, fetches into currentUserData)
     await ensureFirebaseReady(initializeUserData, 'initializeUserData');
 
-    // 4. Handle Incoming Referrals (check after user data might exist)
+    // 4. Handle Incoming Referrals (checks start_param AFTER user data might exist)
     await ensureFirebaseReady(handleReferral, 'handleReferral');
 
-    // 5. Generate User's Referral Link
-    generateReferralLink(); // Doesn't need await or Firebase
+    // 5. Generate User's Referral Link (doesn't need await/Firebase)
+    generateReferralLink();
 
     // 6. Initialize TON Connect
-    // Doesn't strictly need ensureFirebaseReady, but await its completion
-    await initializeTONConnect();
+    await initializeTONConnect(); // Await completion
 
-    // 7. Render Dynamic Components (Chests - depends on chest data array)
-    renderChests(); // Doesn't need await or Firebase
+    // 7. Render Dynamic Components (Chests)
+    renderChests(); // Doesn't need await/Firebase
 
     // 8. Setup Main Navigation (attaches listeners, sets default view)
-    setupNavigation(); // Doesn't need await or Firebase
+    // This implicitly triggers the data load for the default section ('earn')
+    setupNavigation();
 
-    // 9. Initial Data Load for Default Section
-    // This is now handled implicitly by setupNavigation -> switchSection(defaultSection)
-    // which calls ensureFirebaseReady(updateEarnSectionUI, ...)
-    debugLog("Initial data load for default section triggered via navigation setup.");
-
-    // 10. Automatic Ad Initialization (optional, depends on SDK)
+    // 9. Automatic Ad Initialization (In-App Interstitial)
     try {
         if (typeof window.show_9180370 === 'function') {
-            // --- MODIFIED: Updated In-App Ad Settings ---
+            // *** UPDATED In-App Settings ***
             const autoInAppSettings = {
-                frequency: 2,      // Max 2 ads per session defined by capping
+                frequency: 2,      // Max 2 ads per session
                 capping: 0.0667,   // Session duration = 0.0667 hours (~4 minutes)
-                interval: 30,     // Minimum 30 seconds between ads
-                timeout: 5,       // 5-second delay before the *first* ad in a session might show
-                everyPage: false   // Set to true if ads should potentially show on every section switch
+                interval: 30,      // Minimum 30 seconds between ads
+                timeout: 5,        // 5-second delay before the *first* ad in a session might show
+                everyPage: false   // Keep false unless needed on every navigation
             };
             debugLog('[AD INIT] Initializing automatic In-App ads with settings:', JSON.stringify(autoInAppSettings));
             window.show_9180370({ type: 'inApp', inAppSettings: autoInAppSettings });
-            // --- END MODIFICATION ---
         } else {
             debugLog('[AD INIT WARN] Monetag SDK function not found, cannot initialize automatic ads.');
         }
@@ -2556,10 +2556,10 @@ async function initializeApp() {
         debugLog(`[AD INIT ERROR] Error initializing automatic ads: ${initAdError.message}`);
     }
 
-    // 11. Final UI Updates (optional, ensure everything reflects initial state)
+    // 10. Final UI Updates (ensure stats are up-to-date after all init steps)
     await ensureFirebaseReady(updateUserStatsUI, 'finalUserStatsUpdate');
-    // Other section updates might be needed if they weren't the default section
-    // e.g., await ensureFirebaseReady(updateWalletSectionUI, 'finalWalletUpdate');
+    // Wallet UI might also need a final refresh if state changed during init
+    await ensureFirebaseReady(updateWalletSectionUI, 'finalWalletUpdate');
 
 
     debugLog("--- App Initialization Sequence Finished ---");
@@ -2568,14 +2568,10 @@ async function initializeApp() {
 
 
 // --- DOMContentLoaded Listener ---
-// Ensures DOM is fully loaded before initializing the app logic
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    // DOM is already loaded or nearly loaded, initialize shortly after current script execution finishes
     debugLog("DOM already loaded, initializing app shortly.");
-    // Use setTimeout to ensure it runs after the current call stack clears, allowing rendering engine potentially catch up
     setTimeout(initializeApp, 0);
 } else {
-    // DOM not ready yet, wait for the event
     debugLog("Waiting for DOMContentLoaded to initialize app.");
     document.addEventListener('DOMContentLoaded', () => {
         debugLog("DOMContentLoaded fired, initializing app.");
