@@ -61,12 +61,16 @@ header h1 {
     height: 40px;
     border-radius: 50%;
 }
+
+/* CRITICAL STYLES FOR SECTION VISIBILITY */
 .section {
     display: none; /* Sections hidden by default */
 }
 .section.active {
     display: block; /* Active section is visible */
 }
+/* END CRITICAL STYLES */
+
 .banner-placeholder {
     background: #1a1a3d;
     border-radius: 10px;
@@ -634,3 +638,13 @@ nav.bottom-nav .nav-button span {
     font-size: 10px;
     cursor: pointer;
  }
+
+/* Add this rule if it's somehow missing */
+.section.earn-section.active,
+.section.wallet-section.active,
+.section.game-section.active,
+.section.invite-section.active,
+.section.chest-section.active,
+.section.top-section.active {
+    display: block !important; /* Force active sections to display */
+}
