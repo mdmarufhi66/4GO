@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4Metas Mini App</title>
-
+    <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Monetag SDK -->
     <script src='//whephiwums.com/sdk.js' data-zone='9180370' data-sdk='show_9180370'></script>
-
-    <link rel="stylesheet" href="style.css">
-
+    <!-- Link to external CSS -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <header>
@@ -40,181 +40,211 @@
             </div>
         </section>
 
-        <section id="earn" class="section earn-section active"> <div class="banner-placeholder">
-                <img src="assets/icons/banner.png" alt="Banner">
-            </div>
-            <div class="quest-section">
-                <h2>DAILY QUEST <span class="badge" id="daily-quest-count">0</span></h2>
-                <ul class="quest-list" id="daily-quest-list">
-                    <li class="no-quests"><p>Loading daily quests...</p></li>
-                </ul>
-            </div>
-            <div class="quest-section">
-                <h2>BASIC QUEST <span class="badge" id="basic-quest-count">0</span></h2>
-                <ul class="quest-list" id="basic-quest-list">
-                    <li class="no-quests"><p>Loading basic quests...</p></li>
-                </ul>
-            </div>
-        </section>
+<section id="earn" class="section earn-section active">
+    <div class="banner-placeholder">
+        <img src="assets/icons/banner.png" alt="Banner">
+    </div>
+    <div class="quest-section">
+        <h2>DAILY QUEST <span class="badge" id="daily-quest-count">0</span></h2>
+        <ul class="quest-list" id="daily-quest-list">
+            <li class="no-quests">
+                <p>Loading daily quests...</p>
+            </li>
+        </ul>
+    </div>
+    <div class="quest-section">
+        <h2>BASIC QUEST <span class="badge" id="basic-quest-count">0</span></h2>
+        <ul class="quest-list" id="basic-quest-list">
+            <li class="no-quests">
+                <p>Loading basic quests...</p>
+            </li>
+        </ul>
+    </div>
+</section>
 
         <section id="wallet" class="section wallet-section">
-             <h2>Wallet</h2>
-             <div class="wallet-status disconnected">
-                 <span id="connection-status">Disconnected</span>
-             </div>
-             <div class="balance-card usdt-card">
-                 <img src="assets/icons/usdt.png" alt="USDT Icon">
-                 <div class="balance-info">
-                     <span id="wallet-usdt">0.0000</span>
-                     <small>USDT</small>
-                 </div>
-                 <button class="withdraw-button" disabled>WITHDRAW</button>
-                 <button class="warning-button">!</button>
-             </div>
-             <div class="balance-card ton-card">
-                 <img src="assets/icons/ton.png" alt="TON Icon">
-                 <div class="balance-info">
-                     <span id="wallet-ton">0.0000</span>
-                     <small>TON</small>
-                 </div>
-                 <button class="withdraw-button" disabled>WITHDRAW</button>
-                 <button class="warning-button">!</button>
-             </div>
-             <p class="instruction">Connect wallet to withdraw your balance.</p>
-             <button class="connect-button">CONNECT TON WALLET</button>
-             <div class="transaction-history">
-                 <h3>Transaction History</h3>
-                 <ul id="transaction-list">
-                     <li>No transactions yet</li>
-                 </ul>
-             </div>
-             <div id="withdraw-modal" class="modal" style="display: none;">
-                 <div class="modal-content">
-                     <h3>Withdraw Funds</h3>
-                     <label>Amount: <input type="number" id="withdraw-amount" min="0" step="0.0001"></label>
-                     <p>Available: <span id="available-balance">0</span> <span id="currency"></span></p>
-                     <p>Fee: <span id="withdraw-fee">0</span> <span id="fee-currency"></span></p>
-                     <button id="confirm-withdraw">Confirm</button>
-                     <button id="cancel-withdraw">Cancel</button>
-                 </div>
-             </div>
+            <h2>Wallet</h2>
+            <div class="wallet-status disconnected">
+                <span id="connection-status">Disconnected</span>
+            </div>
+            <div class="balance-card usdt-card">
+                <img src="assets/icons/usdt.png" alt="USDT Icon">
+                <div class="balance-info">
+                    <span id="wallet-usdt">0.0000</span>
+                    <small>USDT</small>
+                </div>
+                <button class="withdraw-button" disabled>WITHDRAW</button>
+                <button class="warning-button">!</button>
+            </div>
+            <div class="balance-card ton-card">
+                <img src="assets/icons/ton.png" alt="TON Icon">
+                <div class="balance-info">
+                    <span id="wallet-ton">0.0000</span>
+                    <small>TON</small>
+                </div>
+                <button class="withdraw-button" disabled>WITHDRAW</button>
+                <button class="warning-button">!</button>
+            </div>
+            <p class="instruction">Connect wallet to withdraw your balance.</p>
+            <button class="connect-button">CONNECT TON WALLET</button>
+            <div class="transaction-history">
+                <h3>Transaction History</h3>
+                <ul id="transaction-list">
+                    <li>No transactions yet</li>
+                </ul>
+            </div>
+            <div id="withdraw-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <h3>Withdraw Funds</h3>
+                    <label>Amount: <input type="number" id="withdraw-amount" min="0" step="0.0001"></label>
+                    <p>Available: <span id="available-balance">0</span> <span id="currency"></span></p>
+                    <p>Fee: <span id="withdraw-fee">0</span> <span id="fee-currency"></span></p>
+                    <button id="confirm-withdraw">Confirm</button>
+                    <button id="cancel-withdraw">Cancel</button>
+                </div>
+            </div>
         </section>
 
         <section id="game" class="section game-section">
-             <div class="banner-placeholder">
-                 <img src="assets/icons/game-banner.png" alt="Game Banner">
-             </div>
-             <h2>Game List</h2>
-             <div class="game-list">
-                  <div class="game-item"><img src="https://via.placeholder.com/80/FF0000/FFFFFF?text=TG" alt="Traffic Go"><p>Traffic Go</p></div>
-                  <div class="game-item"><img src="https://via.placeholder.com/80/00FF00/FFFFFF?text=CM" alt="Cutting Master"><p>Cutting Master</p></div>
-                  <div class="game-item"><img src="https://via.placeholder.com/80/0000FF/FFFFFF?text=EM" alt="Element Magic"><p>Element Magic</p></div>
-                  <div class="game-item"><img src="https://via.placeholder.com/80/FFFF00/000000?text=JS" alt="Juicy Splash"><p>Juicy Splash</p></div>
-                  <div class="game-item"><img src="https://via.placeholder.com/80/FF00FF/FFFFFF?text=COR" alt="Creed of Rescue"><p>Creed of Rescue</p></div>
-                  <div class="game-item"><img src="https://via.placeholder.com/80/00FFFF/000000?text=FJ" alt="Farm Jam"><p>Farm Jam</p></div>
-                  <div class="game-item"><img src="https://via.placeholder.com/80/FFA500/FFFFFF?text=2048" alt="2048 Blocks"><p>2048 Blocks</p></div>
-                  <div class="game-item"><img src="https://via.placeholder.com/80/800080/FFFFFF?text=CRC" alt="Cut Rope Combo"><p>Cut Rope Combo</p></div>
-                  <div class="game-item"><img src="https://via.placeholder.com/80/008000/FFFFFF?text=HJ" alt="Happy Jelly Jump"><p>Happy Jelly Jump</p></div>
-                  <div class="game-item"><img src="https://via.placeholder.com/80/000080/FFFFFF?text=UTR" alt="Undersea Tunnel Race"><p>Undersea Tunnel Race</p></div>
-                  <div class="game-item"><img src="https://via.placeholder.com/80/FFC0CB/000000?text=MM" alt="Motor Master"><p>Motor Master</p></div>
-                  <div class="game-item"><img src="https://via.placeholder.com/80/FFD700/000000?text=OF" alt="Open Fire"><p>Open Fire</p></div>
-                  <div class="game-item"><img src="https://via.placeholder.com/80/ADFF2F/000000?text=MTD" alt="Monster TD"><p>Monster TD</p></div>
-                  <div class="game-item"><img src="https://via.placeholder.com/80/FF4500/FFFFFF?text=BW" alt="Bloody Warrior"><p>Bloody Warrior</p></div>
-             </div>
+            <div class="banner-placeholder">
+                <img src="assets/icons/game-banner.png" alt="Game Banner">
+            </div>
+            <h2>Game List</h2>
+            <div class="game-list">
+                <div class="game-item"><img src="https://via.placeholder.com/80/FF0000/FFFFFF?text=TG" alt="Traffic Go"><p>Traffic Go</p></div>
+                <div class="game-item"><img src="https://via.placeholder.com/80/00FF00/FFFFFF?text=CM" alt="Cutting Master"><p>Cutting Master</p></div>
+                <div class="game-item"><img src="https://via.placeholder.com/80/0000FF/FFFFFF?text=EM" alt="Element Magic"><p>Element Magic</p></div>
+                <div class="game-item"><img src="https://via.placeholder.com/80/FFFF00/000000?text=JS" alt="Juicy Splash"><p>Juicy Splash</p></div>
+                <div class="game-item"><img src="https://via.placeholder.com/80/FF00FF/FFFFFF?text=COR" alt="Creed of Rescue"><p>Creed of Rescue</p></div>
+                <div class="game-item"><img src="https://via.placeholder.com/80/00FFFF/000000?text=FJ" alt="Farm Jam"><p>Farm Jam</p></div>
+                <div class="game-item"><img src="https://via.placeholder.com/80/FFA500/FFFFFF?text=2048" alt="2048 Blocks"><p>2048 Blocks</p></div>
+                <div class="game-item"><img src="https://via.placeholder.com/80/800080/FFFFFF?text=CRC" alt="Cut Rope Combo"><p>Cut Rope Combo</p></div>
+                <div class="game-item"><img src="https://via.placeholder.com/80/008000/FFFFFF?text=HJ" alt="Happy Jelly Jump"><p>Happy Jelly Jump</p></div>
+                <div class="game-item"><img src="https://via.placeholder.com/80/000080/FFFFFF?text=UTR" alt="Undersea Tunnel Race"><p>Undersea Tunnel Race</p></div>
+                <div class="game-item"><img src="https://via.placeholder.com/80/FFC0CB/000000?text=MM" alt="Motor Master"><p>Motor Master</p></div>
+                <div class="game-item"><img src="https://via.placeholder.com/80/FFD700/000000?text=OF" alt="Open Fire"><p>Open Fire</p></div>
+                <div class="game-item"><img src="https://via.placeholder.com/80/ADFF2F/000000?text=MTD" alt="Monster TD"><p>Monster TD</p></div>
+                <div class="game-item"><img src="https://via.placeholder.com/80/FF4500/FFFFFF?text=BW" alt="Bloody Warrior"><p>Bloody Warrior</p></div>
+            </div>
         </section>
 
         <section id="invite" class="section invite-section">
-             <div class="invite-stats">
-                 <span id="my-invite">My Invite: 0</span>
-                 <div class="spin-info">
-                     <span>Spin x0</span>
-                     <span class="warning">!</span>
-                 </div>
-             </div>
-             <div class="action-buttons">
-                 <button class="action-button invite-friend">Invite Friend</button>
-                 <button class="action-button copy-link">Copy Link</button>
-             </div>
-             <div class="total-credit">
-                 <div class="credit-info">
-                     <span id="total-credit-text">Total Credit <span class="warning">!</span> : 0</span> <small>10,000 = 1 <img src="assets/icons/usdt.png" alt="USDT"></small>
-                 </div>
-                 <button class="claim-button">Claim</button>
-             </div>
-             <div class="record-section">
-                 <h3>Claim Record</h3>
-                  <div class="no-frens" id="claim-record-placeholder">
-                      <img src="assets/icons/nofrens.png" alt="No Claims">
-                      <p>No claim records yet</p>
-                  </div>
-                  <div id="claim-record-list"></div>
-             </div>
-             <div class="invite-record">
-                 <h3 id="invite-record-title">Invite Record (0)</h3>
-                 <div class="record-header">
-                     <span>User</span>
-                     <span>Join Time</span>
-                     <span>Credit</span>
-                 </div>
-                 <div class="record-list" id="invite-record-list">
+            <div class="invite-stats">
+                <span id="my-invite">My Invite: 0</span>
+                <div class="spin-info">
+                    <span>Spin x0</span>
+                    <span class="warning">!</span>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button class="action-button invite-friend">Invite Friend</button>
+                <button class="action-button copy-link">Copy Link</button>
+            </div>
+            <div class="total-credit">
+                <div class="credit-info">
+                    <span id="total-credit-text">Total Credit <span class="warning">!</span> : 0</span>
+                    <small>10,000 = 1 <img src="assets/icons/usdt.png" alt="USDT"></small>
+                </div>
+                <button class="claim-button">Claim</button>
+            </div>
+            <div class="record-section">
+                <h3>Claim Record</h3>
+                <div class="no-frens" id="claim-record-placeholder">
+                    <img src="assets/icons/nofrens.png" alt="No Claims">
+                    <p>No claim records yet</p>
+                </div>
+                <div id="claim-record-list"></div>
+            </div>
+            <div class="invite-record">
+                <h3 id="invite-record-title">Invite Record (0)</h3>
+                <div class="record-header">
+                    <span>User</span>
+                    <span>Join Time</span>
+                    <span>Credit</span>
+                </div>
+                <div class="record-list" id="invite-record-list">
                     <div class="no-frens" id="invite-record-placeholder">
                         <img src="assets/icons/nofrens.png" alt="No Frens">
                         <p>No invites yet</p>
                     </div>
                 </div>
-             </div>
+            </div>
         </section>
 
         <section id="chest" class="section chest-section">
-             <h2>Chests</h2> <div class="chest-slider">
-                 <button class="nav-arrow left" onclick="prevChest()">&lt;</button>
-                 <div class="chest-container" id="chestContainer">
-                     <div class="chest-item"> <div class="chest-title">
-                              <h2>Loading...</h2>
-                              <span>...</span>
-                          </div>
-                          <div class="chest-image"><img src="assets/icons/chest_placeholder.png" alt="Loading Chest"></div>
-                      </div>
-                  </div>
-                 <button class="nav-arrow right" onclick="nextChest()">&gt;</button>
-             </div>
-              <h3>Possible Rewards</h3> <div class="rewards">
-                 <div class="reward-item usdt"><img src="assets/icons/usdt.png" alt="USDT"><p>USDT</p></div>
-                 <div class="reward-item land-piece"><img src="assets/icons/land-piece.png" alt="Land Piece"><p>Land Piece</p></div>
-                 <div class="reward-item fox-medal"><img src="assets/icons/fox-medal.png" alt="Fox Medal"><p>Fox Medal</p></div>
-             </div>
-             <div class="cost" id="chestCost"> <img src="assets/icons/gem.png" alt="Gem">
-                 <span id="chest-cost-amount">...</span> </div>
-             <div class="vip-requirement" id="chestVipRequirement" style="display: none;">
-                 NEED VIP X
-             </div>
-             <button class="open-chest-button" onclick="openChest()">Open Chest</button>
+            <h2>Chests</h2>
+            <div class="chest-slider">
+                <button class="nav-arrow left" onclick="prevChest()">&lt;</button>
+                <div class="chest-container" id="chestContainer">
+                    <div class="chest-item">
+                        <div class="chest-title">
+                            <h2>Loading...</h2>
+                            <span>...</span>
+                        </div>
+                        <div class="chest-image"><img src="assets/icons/chest_placeholder.png" alt="Loading Chest"></div>
+                    </div>
+                </div>
+                <button class="nav-arrow right" onclick="nextChest()">&gt;</button>
+            </div>
+            <h3>Possible Rewards</h3>
+            <div class="rewards">
+                <div class="reward-item usdt"><img src="assets/icons/usdt.png" alt="USDT"><p>USDT</p></div>
+                <div class="reward-item land-piece"><img src="assets/icons/land-piece.png" alt="Land Piece"><p>Land Piece</p></div>
+                <div class="reward-item fox-medal"><img src="assets/icons/fox-medal.png" alt="Fox Medal"><p>Fox Medal</p></div>
+            </div>
+            <div class="cost" id="chestCost">
+                <img src="assets/icons/gem.png" alt="Gem">
+                <span id="chest-cost-amount">...</span>
+            </div>
+            <div class="vip-requirement" id="chestVipRequirement" style="display: none;">
+                NEED VIP X
+            </div>
+            <button class="open-chest-button" onclick="openChest()">Open Chest</button>
         </section>
 
         <section id="top" class="section top-section">
-             <h2>Medal Ranking <span class="warning">!</span></h2>
-             <ul class="ranking-list" id="ranking-list">
-                 <li class="no-rankings"><p>Loading rankings...</p></li>
-             </ul>
+            <h2>Medal Ranking <span class="warning">!</span></h2>
+            <ul class="ranking-list" id="ranking-list">
+                <li class="no-rankings">
+                    <p>Loading rankings...</p>
+                </li>
+            </ul>
         </section>
     </div>
 
     <nav class="bottom-nav">
-        <button class="nav-button active" data-section="earn"> <img src="assets/icons/earn.png" alt="Earn"><span>Earn</span></button>
-        <button class="nav-button" data-section="wallet"><img src="assets/icons/wallet.png" alt="Wallet"><span>Wallet</span></button>
-        <button class="nav-button" data-section="game"><img src="assets/icons/game.png" alt="Game"><span>Game</span></button>
-        <button class="nav-button" data-section="invite"><img src="assets/icons/invite.png" alt="Invite"><span>Invite</span></button>
-        <button class="nav-button" data-section="chest"><img src="assets/icons/chest.png" alt="Chest"><span>Chest</span></button>
-        <button class="nav-button" data-section="top"><img src="assets/icons/top.png" alt="Top"><span>Top</span></button>
+        <button class="nav-button active" data-section="earn">
+            <img src="assets/icons/earn.png" alt="Earn">
+            <span>Earn</span>
+        </button>
+        <button class="nav-button" data-section="wallet">
+            <img src="assets/icons/wallet.png" alt="Wallet">
+            <span>Wallet</span>
+        </button>
+        <button class="nav-button" data-section="game">
+            <img src="assets/icons/game.png" alt="Game">
+            <span>Game</span>
+        </button>
+        <button class="nav-button" data-section="invite">
+            <img src="assets/icons/invite.png" alt="Invite">
+            <span>Invite</span>
+        </button>
+        <button class="nav-button" data-section="chest">
+            <img src="assets/icons/chest.png" alt="Chest">
+            <span>Chest</span>
+        </button>
+        <button class="nav-button" data-section="top">
+            <img src="assets/icons/top.png" alt="Top">
+            <span>Top</span>
+        </button>
     </nav>
 
     <div id="debugConsole"></div>
-    <button id="toggleDebugButton" onclick="document.getElementById('debugConsole').style.display =
-        document.getElementById('debugConsole').style.display === 'none' ? 'block' : 'none'">
+    <button id="toggleDebugButton" onclick="document.getElementById('debugConsole').style.display = document.getElementById('debugConsole').style.display === 'none' ? 'block' : 'none'">
         Debug
     </button>
 
-    <script src="script.js"></script>
-
+    <!-- Link to external JavaScript -->
+    <script src="js/script.js"></script>
 </body>
 </html>
